@@ -1,0 +1,26 @@
+# Build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# IDL files
+target/idl/
+target/types/
+
+# Test keypairs
+test-ledger/
+.DS_Store
+
+# Anchor
+.anchor/
+test-ledger/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Docker
+.docker/

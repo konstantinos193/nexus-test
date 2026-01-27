@@ -1,0 +1,18 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main {
+  flex-grow: 1;
+  padding-top: 0;
+}
+
+/* Mobile padding for fixed header and bottom nav */
+@media (max-width: 767px) {
+  .main {
+    padding-top: 56px; /* Mobile header height */
+    padding-bottom: 64px; /* Mobile bottom nav height */
+  }
+}

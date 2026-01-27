@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+/* Tailwind v4 @theme – custom design tokens */
+@theme {
+  /* Dark palette – backgrounds */
+  --color-dark-bg-primary: #0a0a0f;
+  --color-dark-bg-secondary: #111118;
+  --color-dark-bg-tertiary: #1a1a24;
+  --color-dark-bg-hover: #1f1f2e;
+  
+  /* Dark palette – borders */
+  --color-dark-border-primary: #252535;
+  --color-dark-border-secondary: #2a2a3a;
+  --color-dark-border-accent: #3a3a4a;
+  
+  /* Dark palette – text */
+  --color-dark-text-primary: #ffffff;
+  --color-dark-text-secondary: #b8b8c8;
+  --color-dark-text-tertiary: #8a8a9a;
+  --color-dark-text-accent: #00d4ff;
+  
+  /* Dark palette – accents */
+  --color-dark-accent-primary: #00d4ff;
+  --color-dark-accent-secondary: #7c3aed;
+  --color-dark-accent-success: #10b981;
+  --color-dark-accent-warning: #f59e0b;
+  --color-dark-accent-error: #ef4444;
+  --color-dark-accent-glow: #00d4ff;
+  
+  /* Background images (gradients) */
+  --background-image-gradient-dark: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 50%, #111118 100%);
+  --background-image-gradient-accent: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  
+  /* Box shadows */
+  --shadow-dark: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-dark-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+  --shadow-glow-lg: 0 0 40px rgba(0, 212, 255, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: #0a0a0f;
+  color: #ffffff;
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252535;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a3a;
+}
+
+/* Custom scrollbar for launchpad (collections page) */
+html.launchpad {
+  scrollbar-width: thin;
+  scrollbar-color: #00d4ff #111118;
+}
+
+html.launchpad::-webkit-scrollbar {
+  width: 8px;
+}
+
+html.launchpad::-webkit-scrollbar-track {
+  background: #111118;
+  border-radius: 4px;
+}
+
+html.launchpad::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00d4ff 0%, #7c3aed 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+html.launchpad::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #33ddff 0%, #8b5cf6 100%);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+}
+
+html.launchpad::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #00b8e6 0%, #6d28d9 100%);
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(0, 212, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Utility classes */
+@layer utilities {
+  .bg-gradient-dark {
+    background: var(--background-image-gradient-dark);
+  }
+  
+  .bg-gradient-accent {
+    background: var(--background-image-gradient-accent);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-glow-lg {
+    box-shadow: var(--shadow-glow-lg);
+  }
+  
+  .shadow-dark {
+    box-shadow: var(--shadow-dark);
+  }
+  
+  .shadow-dark-lg {
+    box-shadow: var(--shadow-dark-lg);
+  }
+
+  /* Skip to main content – hidden until focused (a11y/SEO) */
+  .skip-link {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    z-index: 100;
+  }
+  .skip-link:focus {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background: rgba(0, 212, 255, 0.9);
+    color: #0a0a0f;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    outline: 2px solid rgba(0, 212, 255, 1);
+    outline-offset: 2px;
+  }
+}

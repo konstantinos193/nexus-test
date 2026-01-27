@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  anchor-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-anchor-dev
+    volumes:
+      - .:/workspace
+      - cargo-cache:/root/.cargo
+      - solana-cache:/root/.local/share/solana
+      - target:/workspace/target
+    working_dir: /workspace
+    environment:
+      - CARGO_HOME=/root/.cargo
+      - SOLANA_HOME=/root/.local/share/solana
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+volumes:
+  cargo-cache:
+  solana-cache:
+  target:

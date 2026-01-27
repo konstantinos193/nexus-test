@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  anchor-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-anchor-build
+    volumes:
+      - .:/workspace
+      - cargo-cache:/root/.cargo
+      - solana-cache:/root/.local/share/solana
+      - target:/workspace/target
+    working_dir: /workspace
+    environment:
+      - CARGO_HOME=/root/.cargo
+      - SOLANA_HOME=/root/.local/share/solana
+    command: sh -c "avm install latest && avm use latest && anchor build"
+
+volumes:
+  cargo-cache:
+  solana-cache:
+  target:

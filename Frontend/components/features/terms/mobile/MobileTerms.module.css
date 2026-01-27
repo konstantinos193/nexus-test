@@ -1,0 +1,244 @@
+/* Mobile Terms of Service - Optimized for small screens
+ * Touch-friendly, easy to read, and mobile-first
+ */
+
+.mobileTermsContainer {
+  width: 100%;
+  padding: 1.5rem 1.25rem 3rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Header */
+.mobileTermsHeader {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobileTermsTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.mobileTermsMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metaLabel {
+  font-size: 0.75rem;
+  color: #00d4ff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metaDate {
+  font-size: 0.875rem;
+  color: #8a8a9a;
+  font-weight: 500;
+}
+
+/* Introduction */
+.mobileTermsIntro {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid #00d4ff;
+  border-radius: 0 4px 4px 0;
+}
+
+.mobileIntroText {
+  color: #b8b8c8;
+  line-height: 1.75;
+  font-size: 0.9375rem;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Sections - Accordion */
+.mobileTermsSections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+}
+
+.mobileTermsSection {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.mobileTermsSection:active {
+  transform: scale(0.98);
+}
+
+.mobileSectionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileSectionHeader:active {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.mobileSectionHeader.expanded {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobileSectionTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  flex: 1;
+  padding-right: 1rem;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.mobileSectionToggle {
+  font-size: 1.5rem;
+  color: #00d4ff;
+  font-weight: 300;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: rgba(0, 212, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.mobileSectionHeader.expanded .mobileSectionToggle {
+  background: rgba(0, 212, 255, 0.2);
+  transform: rotate(0deg);
+}
+
+.mobileSectionContent {
+  padding: 0 1.5rem 1.5rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileSectionParagraph {
+  color: #b8b8c8;
+  line-height: 1.75;
+  font-size: 0.9375rem;
+  margin: 0 0 1.25rem 0;
+  font-weight: 400;
+}
+
+.mobileSectionParagraph:last-child {
+  margin-bottom: 0;
+}
+
+/* Contact Section */
+.mobileTermsContact {
+  margin-top: 2rem;
+  padding: 2rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.mobileContactTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+}
+
+.mobileContactText {
+  color: #b8b8c8;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.mobileContactLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.mobileContactLink {
+  display: block;
+  padding: 0.875rem 1.5rem;
+  color: #00d4ff;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.2s ease;
+  background: rgba(0, 212, 255, 0.05);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileContactLink:active {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: rgba(0, 212, 255, 0.5);
+  transform: scale(0.98);
+}
+
+/* Ensure touch targets are at least 44x44px */
+@media (max-width: 480px) {
+  .mobileTermsContainer {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+
+  .mobileTermsTitle {
+    font-size: 1.625rem;
+  }
+
+  .mobileSectionHeader {
+    padding: 1rem 1.25rem;
+  }
+
+  .mobileSectionTitle {
+    font-size: 1rem;
+  }
+
+  .mobileSectionContent {
+    padding: 0 1.25rem 1.25rem;
+  }
+
+  .mobileContactLink {
+    padding: 1rem 1.25rem;
+  }
+}

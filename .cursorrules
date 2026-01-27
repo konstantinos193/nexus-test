@@ -1,0 +1,46 @@
+# NFT Launchpad - Cursor Rules
+
+## Project Structure
+- All components are organized by feature/type in `/components`
+- Pages import components from their respective directories
+- Use TypeScript for all files
+- Add cheeky dark humor comments throughout the codebase
+- Keep components modular and reusable
+
+## Code Style
+- Use dark mode color palette from `tailwind.config.ts`
+- Components should be self-contained with proper TypeScript types
+- Use functional components with hooks
+- Prefer named exports for components
+- Add JSDoc comments with dark humor for complex functions
+
+## File Organization
+```
+Frontend/
+├── app/                    # Next.js app router pages
+├── components/
+│   ├── layout/            # Layout components (Header, Footer, Nav)
+│   ├── features/          # Feature-specific components
+│   ├── ui/                # Reusable UI components
+│   └── wallet/            # Wallet-related components
+├── lib/                    # Utilities and helpers
+├── types/                  # TypeScript type definitions
+└── hooks/                  # Custom React hooks
+```
+
+## Import Rules
+- Pages import from component directories
+- Components import from lib/utils for utilities
+- Use absolute imports with @/ prefix
+- Group imports: external -> internal -> types
+
+## Comments
+- Add cheeky dark humor comments explaining complex logic
+- Use comments to explain "why" not "what"
+- Make comments entertaining but informative
+
+## Naming Conventions
+- Components: PascalCase (e.g., `CollectionCard.tsx`)
+- Utilities: camelCase (e.g., `formatAddress.ts`)
+- Types: PascalCase with descriptive names
+- Files: Match component/function names exactly

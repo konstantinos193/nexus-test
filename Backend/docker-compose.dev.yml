@@ -1,0 +1,62 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-postgres-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: nexus123
+      POSTGRES_DB: nexus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexus-network-dev
+
+  # NestJS Backend (Development)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nexus-backend-dev
+    environment:
+      DATABASE_URL: postgresql://postgres:nexus123@postgres:5432/nexus_db?schema=public
+      PORT: 8000
+      FRONTEND_URL: http://localhost:3000
+      NODE_ENV: development
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./prisma:/app/prisma
+    networks:
+      - nexus-network-dev
+    restart: unless-stopped
+    command: >
+      sh -c "
+        echo 'Installing dependencies...' &&
+        npm install &&
+        echo 'Generating Prisma Client...' &&
+        npx prisma generate &&
+        echo 'Running migrations...' &&
+        npx prisma migrate deploy || npx prisma migrate dev --name init &&
+        echo 'Starting dev server...' &&
+        npx nest start --watch
+      "
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  nexus-network-dev:
+    driver: bridge

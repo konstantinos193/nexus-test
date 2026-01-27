@@ -1,0 +1,176 @@
+/**
+ * CollectionCardSkeleton Styles - Loading placeholder for CollectionCard
+ * Matches the CollectionCard design exactly
+ * Because consistency is key (and we're not going to confuse users with different designs)
+ * 
+ * @author Juan - The developer who styled this skeleton
+ * (Styled with care, humor, and probably too much coffee)
+ */
+
+/* ============================================
+   Card Container
+   ============================================ */
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111118;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Ensure skeleton fills grid cell height */
+}
+
+/* ============================================
+   Banner Section
+   ============================================ */
+.banner {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* Match CollectionCard banner aspect ratio */
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ============================================
+   Content Section
+   ============================================ */
+.content {
+  padding: 0.75rem; /* Match CollectionCard content padding */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Match CollectionCard gap */
+  flex: 1; /* Allow content to grow and fill space */
+  min-height: 0; /* Allow flex shrinking */
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem; /* Match CollectionCard header gap */
+}
+
+.collectionName {
+  width: 60%;
+  height: 1rem; /* Match CollectionCard collectionName font-size (1rem) */
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+}
+
+.creator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avatar {
+  width: 1rem; /* Match CollectionCard avatar size */
+  height: 1rem; /* Match CollectionCard avatar size */
+  border-radius: 50%;
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.creatorText {
+  width: 40%;
+  height: 0.75rem; /* Match CollectionCard creatorText font-size (0.75rem) */
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+}
+
+/* ============================================
+   Stats Grid
+   ============================================ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem; /* Match CollectionCard stats gap */
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem; /* Match CollectionCard stat gap */
+}
+
+.statLabel {
+  width: 40%;
+  height: 0.625rem; /* Match CollectionCard statLabel font-size (0.625rem) */
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+}
+
+.statValue {
+  width: 60%;
+  height: 0.75rem; /* Match CollectionCard statValue font-size (0.75rem) */
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+}
+
+/* ============================================
+   Progress Bar
+   ============================================ */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem; /* Match CollectionCard progressPlaceholder gap */
+  height: 2rem; /* Match CollectionCard progressPlaceholder height */
+  justify-content: center;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.progressBar {
+  width: 100%;
+  height: 0.25rem; /* Match CollectionCard progressBar height */
+  background: #1a1a24;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBar::after {
+  content: '';
+  display: block;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, #1a1a24 25%, #1f1f2e 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .banner,
+  .collectionName,
+  .avatar,
+  .creatorText,
+  .statLabel,
+  .statValue,
+  .progressBar::after {
+    animation: none;
+    background: #1a1a24;
+  }
+}

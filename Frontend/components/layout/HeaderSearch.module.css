@@ -1,0 +1,220 @@
+/* HeaderSearch - Pill bar + popover, LMNFTs-inspired but distinct */
+
+.wrapper {
+  position: relative;
+  flex: 0 1 300px;
+  min-width: 220px;
+  max-width: 323px;
+}
+
+.wrapperOverlay {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pill {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  width: 100%;
+  background-color: rgb(27, 28, 32);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pill:focus-within {
+  border-color: rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  flex-shrink: 0;
+  color: rgb(138, 138, 154);
+  pointer-events: none;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: rgb(255, 255, 255);
+}
+
+.input::placeholder {
+  color: rgb(138, 138, 154);
+}
+
+/* Popover */
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(70vh, 400px);
+  overflow-y: auto;
+  background: rgb(18, 18, 22);
+  border: 1px solid rgb(50, 52, 63);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  z-index: 200;
+  padding: 8px 0;
+}
+
+/* Overlay/mobile: flow below pill so dropdown is visible (no clipping by sheet overflow) */
+.popoverFlowing {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  margin-top: 12px;
+  width: 100%;
+  max-height: min(60vh, 360px);
+}
+
+.status {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: rgb(138, 138, 154);
+  text-align: center;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: rgb(255, 255, 255);
+  background: transparent;
+  transition: background 0.15s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.link:hover {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.link:active {
+  background: rgba(0, 212, 255, 0.12);
+}
+
+/* Mobile: larger touch targets when inside overlay */
+@media (max-width: 767px) {
+  .wrapperOverlay .link {
+    padding: 14px 16px;
+    min-height: 52px;
+  }
+
+  .wrapperOverlay .thumb {
+    width: 36px;
+    height: 36px;
+  }
+
+  .wrapperOverlay .thumbImg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .wrapperOverlay .name {
+    font-size: 15px;
+  }
+
+  .wrapperOverlay .popover {
+    max-height: min(60vh, 360px);
+  }
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(124, 58, 237, 0.2));
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.highlight {
+  background: rgba(0, 212, 255, 0.25);
+  color: rgb(0, 212, 255);
+  font-weight: 600;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.progressBar {
+  width: 44px;
+  height: 6px;
+  background: rgb(30, 31, 36);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d4ff, #7c3aed);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.chainBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgb(30, 31, 36);
+  flex-shrink: 0;
+}

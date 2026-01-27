@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Collection {
+  id            String   @id @default(uuid())
+  slug          String   @unique // Human-readable URL identifier, e.g. "nexus-genesis"
+  name          String
+  description   String   @db.Text
+  imageUrl      String
+  bannerUrl     String?
+  creator       String
+  creatorAddress String
+  blockchain    String   @default("solana")
+  totalSupply   Int      @default(0)
+  minted        Int      @default(0)
+  price         Float?
+  status        String   @default("draft") // draft, preparing, ready, minting, completed, paused
+  featured      Boolean  @default(false)
+  endDate       DateTime?
+  traits        Json?    // NFT traits/attributes stored as JSON
+  ipfsHash      String?  // IPFS hash for metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([featured])
+  @@index([createdAt])
+  @@index([minted])
+  @@index([creatorAddress])
+  @@index([name]) // For search performance
+  @@index([slug]) // Lookup by slug for /drops/[slug] routes
+  // Note: Full-text search can be added via raw SQL migration if needed
+}

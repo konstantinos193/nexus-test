@@ -1,0 +1,525 @@
+/* Featured Drops Grid - Standalone CSS Module */
+/* Displays featured collections with minting statistics */
+/* Appears directly below the hero section */
+
+/* ============================================
+   MAIN CONTAINER
+   ============================================ */
+
+.featuredDropsSection {
+  position: relative;
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0.125rem 1rem 0.5rem 1rem;
+  background: transparent;
+}
+
+@media (min-width: 640px) {
+  .featuredDropsSection {
+    padding: 0.25rem 1.5rem 0.75rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .featuredDropsSection {
+    padding: 0.5rem 2rem 1rem 2rem;
+  }
+}
+
+.container {
+  width: 100%;
+}
+
+/* ============================================
+   GRID LAYOUT
+   ============================================ */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .grid {
+    gap: 0.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    gap: 1rem;
+  }
+}
+
+/* ============================================
+   DROP CARD
+   ============================================ */
+
+.dropCard {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.dropCard:hover {
+  transform: translateY(-4px);
+}
+
+.dropCard:active {
+  transform: translateY(-2px);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(17, 17, 24, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  height: 100%;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dropCard:hover .card {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(17, 17, 24, 0.8);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 768px) {
+  .card {
+    flex-direction: row;
+    min-height: 85px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card {
+    min-height: 90px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .card {
+    min-height: 95px;
+  }
+}
+
+/* ============================================
+   IMAGE SECTION
+   ============================================ */
+
+.imageSection {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .imageSection {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@media (min-width: 768px) {
+  .imageSection {
+    width: 45%;
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 100%;
+    align-self: stretch;
+  }
+}
+
+.imageWrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bannerImage {
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.dropCard:hover .bannerImage {
+  transform: scale(1.05);
+}
+
+.topBadge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 5;
+}
+
+.creatorIcon {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.iconImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ============================================
+   CONTENT SECTION
+   ============================================ */
+
+.contentSection {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  flex: 1;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  .contentSection {
+    padding: 0.625rem;
+    gap: 0.375rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .contentSection {
+    width: 55%;
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .contentSection {
+    padding: 0.875rem;
+  }
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.375rem;
+}
+
+.collectionName {
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+  margin: 0;
+  flex: 1;
+}
+
+@media (min-width: 640px) {
+  .collectionName {
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .collectionName {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .collectionName {
+    font-size: 1.125rem;
+  }
+}
+
+/* ============================================
+   LIVE BADGE
+   ============================================ */
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(16, 185, 129, 0.15);
+  backdrop-filter: blur(10px);
+  color: #10b981;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+@media (min-width: 640px) {
+  .liveBadge {
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}
+
+.liveDotContainer {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.liveDot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.375rem;
+  height: 0.375rem;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: currentColor;
+  z-index: 2;
+}
+
+.liveDotPing {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   CREATOR INFO
+   ============================================ */
+
+.creatorInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.creatorAvatar {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.creatorName {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@media (min-width: 640px) {
+  .creatorName {
+    font-size: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .creatorName {
+    font-size: 0.875rem;
+  }
+}
+
+/* ============================================
+   MINTING STATISTICS - Clean Inline Design
+   ============================================ */
+
+.mintingStats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
+  .mintingStats {
+    gap: 0.75rem;
+  }
+}
+
+.statRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.statLabel {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.2;
+}
+
+.statValue {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .statValue {
+    font-size: 0.875rem;
+  }
+}
+
+.statValueWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.statSolanaIcon {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  flex-shrink: 0;
+  opacity: 0.9;
+  object-fit: contain;
+}
+
+.statDivider {
+  width: 1px;
+  height: 2rem;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .statLabel {
+    font-size: 0.6875rem;
+  }
+  
+  .statValue {
+    font-size: 0.9375rem;
+  }
+  
+  .statSolanaIcon {
+    width: 1rem !important;
+    height: 1rem !important;
+    object-fit: contain;
+  }
+  
+  .statValueWithIcon {
+    gap: 0.5rem;
+  }
+  
+  .mintingStats {
+    gap: 1rem;
+  }
+  
+  .statDivider {
+    height: 2.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .statLabel {
+    font-size: 0.75rem;
+  }
+  
+  .statValue {
+    font-size: 1rem;
+  }
+  
+  .statSolanaIcon {
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+    object-fit: contain;
+  }
+  
+  .statValueWithIcon {
+    gap: 0.625rem;
+  }
+  
+  .mintingStats {
+    gap: 1.25rem;
+  }
+  
+  .statDivider {
+    height: 2.5rem;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .dropCard,
+  .card,
+  .bannerImage,
+  .liveDotPing {
+    transition: none;
+    animation: none;
+  }
+  
+  .dropCard:hover {
+    transform: none;
+  }
+  
+  .dropCard:hover .bannerImage {
+    transform: none;
+  }
+}

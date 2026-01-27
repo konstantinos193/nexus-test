@@ -1,0 +1,70 @@
+/* 404 Not Found – minimal, calm */
+/* The CSS for when users go where no page has gone before */
+/* (Or more accurately: where no page exists) */
+
+/* Main container – centered, full-ish height */
+/* Because a 404 floating in a tiny box is even sadder than a 404 alone */
+.section {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.content {
+  max-width: 420px;
+}
+
+/* The big 404 – muted so we don't shout */
+/* (We're lost, not angry) */
+.code {
+  font-size: clamp(4rem, 12vw, 6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #8a8a9a;
+}
+
+.headline {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin-top: 0.75rem;
+}
+
+.subtext {
+  font-size: 0.9375rem;
+  color: #8a8a9a;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Escape hatch – one clear way out */
+/* Because leaving users stranded would be rude */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #00d4ff;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  border: 1px solid #252535;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.cta:hover {
+  border-color: rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.cta:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}

@@ -1,0 +1,19 @@
+{
+  "name": "NFT Launchpad",
+  "short_name": "NFT Launchpad",
+  "description": "Create, prepare, and launch your NFT collections with professional Web3 tools.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/NeXus_Web3_Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "utilities"]
+}
