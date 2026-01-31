@@ -1,0 +1,316 @@
+/**
+ * Standalone styles for the connected-wallet dropdown only.
+ * All selectors are scoped under .cw-dropdown-root so global/Tailwind cannot override.
+ * Import this file in ConnectWallet.tsx and wrap the dropdown in <div className="cw-dropdown-root">.
+ */
+
+/* Panel */
+.cw-dropdown-root {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 280px;
+  max-width: 340px;
+  z-index: 9999;
+  overflow: hidden;
+  background: #171a21;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: cw-dropdown-in 0.15s ease-out;
+}
+
+@keyframes cw-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header: wallet icon + name */
+.cw-dropdown-root .cw-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 20px 12px;
+}
+
+.cw-dropdown-root .cw-wallet-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  object-fit: contain;
+}
+
+.cw-dropdown-root .cw-wallet-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cw-dropdown-root .cw-wallet-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.cw-dropdown-root .cw-address-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: rgba(229, 231, 235, 0.7);
+  text-align: left;
+  border-radius: 6px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.cw-dropdown-root .cw-address-button:hover {
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cw-dropdown-root .cw-address-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+}
+
+.cw-dropdown-root .cw-address {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cw-dropdown-root .cw-copy-hint {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(229, 231, 235, 0.4);
+}
+
+.cw-dropdown-root .cw-address-button:hover .cw-copy-hint {
+  color: rgba(229, 231, 235, 0.6);
+}
+
+.cw-dropdown-root .cw-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(229, 231, 235, 0.4);
+}
+
+.cw-dropdown-root .cw-divider {
+  height: 1px;
+  margin: 0 20px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cw-dropdown-root .cw-section {
+  padding: 12px 20px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cw-dropdown-root .cw-section-danger {
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Network */
+.cw-dropdown-root .cw-network-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.cw-dropdown-root .cw-network-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(229, 231, 235, 0.35);
+}
+
+.cw-dropdown-root .cw-network-dot-ok {
+  background: rgba(34, 197, 94, 0.9);
+}
+
+.cw-dropdown-root .cw-network-dot-wrong {
+  background: #b45309;
+}
+
+.cw-dropdown-root .cw-network-dot-checking {
+  background: rgba(229, 231, 235, 0.35);
+  animation: cw-network-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cw-network-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.cw-dropdown-root .cw-network-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(229, 231, 235, 0.75);
+}
+
+.cw-dropdown-root .cw-network-label-muted {
+  color: rgba(229, 231, 235, 0.5);
+  font-weight: 400;
+}
+
+.cw-dropdown-root .cw-network-warning {
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(229, 231, 235, 0.5);
+  background: none;
+  border: none;
+}
+
+/* Balance */
+.cw-dropdown-root .cw-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.cw-dropdown-root .cw-balance-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(229, 231, 235, 0.5);
+}
+
+.cw-dropdown-root .cw-balance-value {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: rgba(229, 231, 235, 0.85);
+}
+
+/* Actions: ghost */
+.cw-dropdown-root .cw-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(229, 231, 235, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+  box-sizing: border-box;
+}
+
+.cw-dropdown-root .cw-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+}
+
+.cw-dropdown-root .cw-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.2);
+  outline-offset: 2px;
+}
+
+.cw-dropdown-root .cw-item-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: rgba(229, 231, 235, 0.5);
+}
+
+.cw-dropdown-root .cw-item:hover .cw-item-icon {
+  color: rgba(229, 231, 235, 0.7);
+}
+
+/* Primary: Copy Address only */
+.cw-dropdown-root .cw-item-primary {
+  min-height: 48px;
+  padding: 0 16px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+  justify-content: center;
+}
+
+.cw-dropdown-root .cw-item-primary:hover {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.cw-dropdown-root .cw-item-primary .cw-item-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cw-dropdown-root .cw-item-primary:hover .cw-item-icon {
+  color: #fff;
+}
+
+.cw-dropdown-root .cw-item-primary:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.6);
+  outline-offset: 2px;
+}
+
+.cw-dropdown-root .cw-item-primary:disabled {
+  background: rgba(37, 99, 235, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: default;
+}
+
+/* Danger: Disconnect */
+.cw-dropdown-root .cw-item-danger .cw-item-icon {
+  color: rgba(229, 231, 235, 0.4);
+}
+
+.cw-dropdown-root .cw-item-danger {
+  color: rgba(229, 231, 235, 0.55);
+}
+
+.cw-dropdown-root .cw-item-danger:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(239, 68, 68, 0.95);
+}
+
+.cw-dropdown-root .cw-item-danger:hover .cw-item-icon {
+  color: rgba(239, 68, 68, 0.9);
+}

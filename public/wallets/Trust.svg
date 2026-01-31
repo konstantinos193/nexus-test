@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="311 319 385 386" fill="none">
+  <defs>
+    <linearGradient id="trust-gradient" x1="609.58" y1="-1336.58" x2="500.46" y2="-1679.92" gradientTransform="translate(0 -981.85) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset=".02" stop-color="blue"/>
+      <stop offset=".08" stop-color="#0094ff"/>
+      <stop offset=".16" stop-color="#48ff91"/>
+      <stop offset=".42" stop-color="#0094ff"/>
+      <stop offset=".68" stop-color="#0038ff"/>
+      <stop offset=".9" stop-color="#0500ff"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield left -->
+  <path fill="#0500ff" d="m359.04,424.44 144.45-46.95v325.02c-103.18-43.34-144.45-126.4-144.45-173.34v-104.73Z"/>
+  <!-- Shield right -->
+  <path fill="url(#trust-gradient)" d="m647.95,424.44-144.45-46.95v325.02c103.18-43.34,144.45-126.4,144.45-173.34v-104.73Z"/>
+</svg>

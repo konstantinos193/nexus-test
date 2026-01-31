@@ -1,0 +1,104 @@
+/* MobileSearchOverlay - Full-screen search for mobile */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: auto;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+  cursor: default;
+}
+
+.sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0 1rem;
+  padding-top: max(env(safe-area-inset-top), 12px);
+  padding-bottom: 1rem;
+  background: rgb(12, 12, 16);
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.25s ease;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+  padding-bottom: 12px;
+}
+
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgb(184, 184, 200);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.close:hover {
+  background: rgba(0, 212, 255, 0.12);
+  color: rgb(0, 212, 255);
+}
+
+.close:active {
+  background: rgba(0, 212, 255, 0.18);
+}
+
+.closeIcon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+
+.searchWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-12px);
+    opacity: 0.96;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

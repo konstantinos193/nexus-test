@@ -1,0 +1,4341 @@
+/**
+ * NFT Create Page – Step Wizard – Standalone CSS
+ * Scoped to /create. All classes prefixed with .nft-create-
+ * Nexus create flow: violet accent.
+ */
+
+/* Create flow – neutral (no accent colors) */
+.nft-create-page {
+  --create-accent: #ffffff;
+  --create-accent-border: rgba(255, 255, 255, 0.2);
+  --create-accent-bg: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Page wrapper – plain dark like homepage (no mesh/grid) ---- */
+.nft-create-page {
+  min-height: 100vh;
+  background: #0a0a0f;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hide number input spinner arrows */
+.nft-create-page input[type="number"]::-webkit-outer-spin-button,
+.nft-create-page input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.nft-create-page input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.nft-create-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+}
+
+@media (min-width: 768px) {
+  .nft-create-container {
+    padding: 0 1.5rem;
+  }
+}
+
+/* ---- Header (LOGO + Create NFT Collection) ---- */
+.nft-create-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0 0.6rem;
+  border-bottom: 1px solid rgba(37, 37, 53, 0.8);
+  flex-shrink: 0;
+}
+
+.nft-create-header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.nft-create-header a {
+  opacity: 0.9;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.nft-create-header a:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* ---- Hero section ---- */
+.nft-create-hero {
+  position: relative;
+  text-align: center;
+  padding: 2.5rem 1rem 2rem;
+  margin-bottom: 0.5rem;
+  isolation: isolate;
+  flex-shrink: 0;
+}
+
+.nft-create-hero-title {
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.nft-create-hero-sub {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  .nft-create-hero {
+    padding: 3.5rem 1.5rem 2.5rem;
+  }
+}
+
+/* ---- Progress bar (sticky) ---- */
+.nft-create-progress-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(37, 37, 53, 0.8);
+  margin-bottom: 0.75rem;
+  isolation: isolate;
+}
+
+/* Filled track behind steps (absolute relative to .nft-create-progress-wrap) */
+
+.nft-create-progress-track {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--create-accent);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.35s ease-out;
+  z-index: 0;
+}
+
+.nft-create-progress-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.nft-create-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.nft-create-progress-step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5a5a6a;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.nft-create-progress-step.active {
+  color: #ffffff;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  box-shadow: none;
+}
+
+.nft-create-progress-step.done {
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nft-create-progress-sep {
+  width: 6px;
+  height: 2px;
+  background: #252535;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+/* ---- Horizontal stepper (4 steps: Details, Upload, Deploy, Success!) ---- */
+.nft-create-stepper-wrap {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  margin-bottom: 1.5rem;
+  background: rgba(17, 17, 24, 0.95);
+  padding: 1rem 1rem 1.25rem;
+  border: 1px solid #252535;
+  flex-shrink: 0;
+  border-radius: 10px;
+  isolation: isolate;
+}
+
+.nft-create-stepper-horizontal {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: flex-start;
+  width: 100%;
+  position: relative;
+}
+
+/* Full-width track line behind step icons (visible in gaps between circles) */
+.nft-create-stepper-horizontal::before {
+  content: '';
+  position: absolute;
+  left: 12.5%;
+  right: 12.5%;
+  top: 16px;
+  height: 2px;
+  background: rgba(37, 37, 53, 0.9);
+  border-radius: 1px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.nft-create-step-root {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
+
+.nft-create-step-label-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nft-create-step-label-wrap:disabled {
+  cursor: default;
+}
+
+.nft-create-step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1a1a26;
+  color: #8a8a9a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  position: relative;
+  z-index: 1;
+}
+
+.nft-create-step-label-wrap.active .nft-create-step-icon {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nft-create-step-label-wrap.completed .nft-create-step-icon {
+  background: rgba(255, 255, 255, 0.06);
+  color: #8a8a9a;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nft-create-step-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #5a5a6a;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.nft-create-step-label-wrap.active .nft-create-step-label {
+  color: var(--text-primary, #ffffff);
+}
+
+.nft-create-step-label-wrap.completed .nft-create-step-label {
+  color: #8a8a9a;
+}
+
+.nft-create-step-label-wrap.completed:hover:not(:disabled) .nft-create-step-label,
+.nft-create-step-label-wrap.completed:hover:not(:disabled) .nft-create-step-icon {
+  color: #b8b8c8;
+}
+
+.nft-create-step-label-wrap.disabled .nft-create-step-label {
+  color: #5a5a6a;
+}
+
+/* ---- Step content card — flex so footer stays at bottom ---- */
+.nft-create-content-card {
+  background: rgba(17, 17, 24, 0.9);
+  border: 1px solid #252535;
+  border-radius: 10px;
+  padding: 1.75rem 1.25rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .nft-create-content-card {
+    padding: 2.25rem 2rem;
+    border-radius: 20px;
+  }
+}
+
+.nft-create-content {
+  padding-bottom: 0.25rem;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.nft-create-step-content {
+  animation: nftCreateFadeUp 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nft-create-step-content {
+    animation: none;
+  }
+}
+
+@keyframes nftCreateFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Step transition: slide left/right (forward = slide left out, back = slide right out) */
+.nft-create-step-content--forward {
+  animation: nftCreateStepEnterForward 0.25s ease-out;
+}
+
+.nft-create-step-content--back {
+  animation: nftCreateStepEnterBack 0.25s ease-out;
+}
+
+@keyframes nftCreateStepEnterForward {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes nftCreateStepEnterBack {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nft-create-step-content--forward,
+  .nft-create-step-content--back {
+    animation: nftCreateFadeUp 0.15s ease;
+  }
+}
+
+.nft-create-step-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 1.25rem 0;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+
+/* ---- Step 1: minimal basics block (base) ---- */
+.nft-create-basics {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.nft-create-hero-input {
+  width: 100%;
+  padding: 0 0 0.5rem 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.nft-create-hero-input::placeholder {
+  color: #4a4a5a;
+}
+
+.nft-create-hero-input:focus {
+  border-bottom-color: var(--create-accent);
+}
+
+.nft-create-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.nft-create-symbol-input {
+  width: 5rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.nft-create-symbol-input::placeholder {
+  color: #4a4a5a;
+}
+
+.nft-create-symbol-input:focus {
+  border-color: var(--create-accent-border);
+}
+
+.nft-create-meta-text {
+  font-size: 0.75rem;
+  color: #5a5a6a;
+}
+
+.nft-create-desc-input {
+  width: 100%;
+  min-height: 88px;
+  padding: 0.75rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #b8b8c8;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 0;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.nft-create-desc-input::placeholder {
+  color: #4a4a5a;
+}
+
+.nft-create-desc-input:focus {
+  border-bottom-color: var(--create-accent);
+  color: #ffffff;
+}
+
+.nft-create-basics .nft-create-char {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+/* ---- Step 1 — Collection Basics (wireframe) ---- */
+.nft-create-step1-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.nft-create-step1-page-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+
+.nft-create-draft-saved-topright {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* Step 1 micro-progress (Identity | Trading | Revenue) */
+.nft-create-step1-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  color: #6a6a7a;
+}
+
+.nft-create-step1-progress-item {
+  font-weight: 600;
+}
+
+.nft-create-step1-progress-item.active {
+  color: #ffffff;
+}
+
+.nft-create-step1-progress-item.done {
+  color: #68d391;
+}
+
+.nft-create-step1-progress-sep {
+  color: #3a3a4a;
+  user-select: none;
+}
+
+/* Step 1 section: Identity, Trading, Revenue */
+.nft-create-step1-section {
+  margin-bottom: 1.5rem;
+}
+
+.nft-create-step1-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.nft-create-step1-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #68d391;
+  padding: 0.25rem 0.6rem;
+  background: rgba(72, 187, 120, 0.12);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  border-radius: 100px;
+}
+
+/* Collapsible section (Trading, Revenue) */
+.nft-create-step1-section-collapse {
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nft-create-step1-section-collapse.locked .nft-create-step1-collapse-head {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.nft-create-step1-collapse-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font: inherit;
+  color: #b8b8c8;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nft-create-step1-collapse-head:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.nft-create-step1-collapse-head:disabled {
+  cursor: not-allowed;
+}
+
+.nft-create-step1-collapse-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.nft-create-step1-collapse-hint {
+  font-size: 0.75rem;
+  color: #6a6a7a;
+  font-weight: 500;
+}
+
+.nft-create-step1-collapse-chevron {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  color: #6a6a7a;
+}
+
+.nft-create-step1-collapse-body {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(37, 37, 53, 0.6);
+}
+
+/* What's Missing checklist above footer */
+.nft-create-whats-missing {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 10px;
+}
+
+.nft-create-whats-missing-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a8a9a;
+  margin-bottom: 0.5rem;
+}
+
+.nft-create-whats-missing-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.nft-create-whats-missing-item {
+  color: #8a8a9a;
+}
+
+.nft-create-whats-missing-item.done {
+  color: #68d391;
+}
+
+.nft-create-wallet-banner {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b8b8c8;
+  margin-bottom: 1.25rem;
+}
+
+.nft-create-inline-error {
+  display: block;
+  font-size: 0.8125rem;
+  color: #b8b8c8;
+  margin-top: 0.35rem;
+  line-height: 1.3;
+}
+
+.nft-create-hero-input.nft-create-input-error,
+.nft-create-symbol-input.nft-create-input-error,
+.nft-create-input.nft-create-input-error {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nft-create-hero-input.nft-create-input-error:focus,
+.nft-create-symbol-input.nft-create-input-error:focus {
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.nft-create-symbol-row {
+  margin-bottom: 1.25rem;
+}
+
+.nft-create-select-blockchain {
+  width: 100%;
+  max-width: 280px;
+}
+
+.nft-create-chain-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+}
+
+.nft-create-segmented {
+  display: inline-flex;
+  border-radius: 10px;
+  padding: 3px;
+  background: rgba(26, 26, 36, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.nft-create-segmented-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.nft-create-segmented-btn:hover {
+  color: #b8b8c8;
+}
+
+.nft-create-segmented-btn.active {
+  color: #ffffff;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  box-shadow: none;
+}
+
+.nft-create-testnet-warning {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.nft-create-standard-card {
+  background: rgba(26, 26, 36, 0.6);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.nft-create-standard-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6a6a7a;
+  margin-bottom: 0.35rem;
+}
+
+.nft-create-standard-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--create-accent);
+  margin-bottom: 0.5rem;
+}
+
+.nft-create-standard-checks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+}
+
+.nft-create-standard-checks li {
+  padding: 0.2rem 0;
+}
+
+.nft-create-desc-warn {
+  display: block;
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
+/* ---- Step 1: Collection Details (reference layout) ---- */
+/* Shared step content wrapper (step 2, 3, 4) — same layout as step 1 */
+.nft-create-step-main,
+.nft-create-step1-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 32px;
+}
+
+.nft-create-step1-main {
+  justify-content: center;
+  gap: 48px;
+}
+
+.nft-create-step1-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  text-align: center;
+  font-family: Elza, sans-serif;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .nft-create-step1-title {
+    font-size: 2.75rem;
+  }
+}
+
+.nft-create-details-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 32px;
+  width: 100%;
+}
+
+.nft-create-details-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.nft-create-details-section-title {
+  font-family: Elza, sans-serif;
+  font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Section title with icon + gradient underline (Secondary Royalty Split, Mint funds Split) */
+.nft-create-details-section--visual .nft-create-details-section-title {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  width: fit-content;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nft-create-details-section-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.nft-create-details-section-title-icon svg {
+  display: block;
+}
+
+.nft-create-details-section-subtitle {
+  font-family: Elza, sans-serif;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+.nft-create-details-fields-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 24px;
+  width: 100%;
+}
+
+.nft-create-details-fields-wrap {
+  margin-bottom: 0;
+}
+
+.nft-create-details-field {
+  min-width: 0;
+}
+
+.nft-create-details-field-full {
+  width: 100%;
+}
+
+.nft-create-details-field .nft-create-input,
+.nft-create-details-input {
+  width: 100%;
+  min-width: 200px;
+}
+
+@media (min-width: 640px) {
+  .nft-create-details-field:not(.nft-create-details-field-full) {
+    min-width: 298px;
+    flex: 1 1 298px;
+  }
+}
+
+.nft-create-details-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+  margin-bottom: 8px;
+}
+
+/* Tooltip icon in details form: smaller, subtler */
+.nft-create-details-label .nft-create-tooltip-wrap {
+  margin-left: 2px;
+}
+
+.nft-create-details-label .nft-create-tooltip-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #8a8a9a;
+}
+
+.nft-create-details-label .nft-create-tooltip-wrap:hover .nft-create-tooltip-icon {
+  background: var(--create-accent-bg);
+  border-color: var(--create-accent-border);
+  color: var(--create-accent);
+}
+
+.nft-create-input-adorned {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: 4px;
+  background: rgba(8, 8, 12, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+}
+
+.nft-create-input-adorned .nft-create-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.nft-create-input-adorned:focus-within {
+  border-color: var(--create-accent-border);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-input-adorned-start {
+  flex-direction: row;
+}
+
+.nft-create-input-adornment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px 0 10px;
+  color: #8a8a9a;
+  flex-shrink: 0;
+}
+
+.nft-create-input-adornment-text {
+  color: var(--text-primary, #ffffff);
+}
+
+.nft-create-details-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-primary, #ffffff);
+}
+
+.nft-create-details-radios-label {
+  font-weight: 500;
+}
+
+.nft-create-details-label-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Switch (MUI-like) */
+.nft-create-switch {
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(37, 37, 53, 0.9);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  transition: background 0.2s;
+}
+
+.nft-create-switch.on {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.nft-create-switch.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nft-create-switch-thumb {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.nft-create-switch.on .nft-create-switch-thumb {
+  transform: translateX(20px);
+}
+
+/* ---- Collection options panel (toggles) ---- */
+.nft-create-details-options-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  background: rgba(20, 20, 30, 0.6);
+  border: 1px solid #252535;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.nft-create-details-options-panel-title {
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid #252535;
+}
+
+.nft-create-details-switch-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 1rem;
+  padding: 1rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s;
+}
+
+.nft-create-details-switch-row:last-child {
+  border-bottom: none;
+}
+
+.nft-create-details-switch-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Freeze until date row (shown when Freeze Collection is on) */
+.nft-create-details-freeze-until-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nft-create-details-freeze-until-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.nft-create-details-freeze-until-desc {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.nft-create-details-freeze-until-input {
+  max-width: 280px;
+}
+
+/* ---- Freeze-until date-time picker (calendar popover) ---- */
+.nft-create-freeze-until-picker-wrap {
+  position: relative;
+  max-width: 280px;
+}
+
+.nft-create-freeze-until-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+  color: #ffffff;
+  background: rgba(8, 8, 12, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nft-create-freeze-until-trigger:hover {
+  border-color: rgba(42, 42, 58, 0.9);
+}
+
+.nft-create-freeze-until-trigger[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--create-accent-border);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-freeze-until-trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.nft-create-freeze-until-trigger:not([aria-expanded="true"]) .nft-create-freeze-until-trigger-text:empty,
+.nft-create-freeze-until-trigger .nft-create-freeze-until-trigger-text {
+  color: #ffffff;
+}
+
+.nft-create-freeze-until-picker-wrap:has(.nft-create-freeze-until-trigger-text:empty) .nft-create-freeze-until-trigger-text,
+.nft-create-freeze-until-trigger .nft-create-freeze-until-trigger-text.empty-placeholder {
+  color: #4a4a5a;
+}
+
+.nft-create-freeze-until-trigger-icon {
+  flex-shrink: 0;
+  color: #8a8a9a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nft-create-freeze-until-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 300px;
+  background: rgba(17, 17, 24, 0.98);
+  border: 1px solid #252535;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: nftCreateCalendarOpen 0.2s ease-out;
+}
+
+@keyframes nftCreateCalendarOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nft-create-freeze-until-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.nft-create-freeze-until-month-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: capitalize;
+}
+
+.nft-create-freeze-until-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #b8b8c8;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.nft-create-freeze-until-nav:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-freeze-until-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.nft-create-freeze-until-weekday {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #5a5a6a;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.nft-create-freeze-until-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.nft-create-freeze-until-day {
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #b8b8c8;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nft-create-freeze-until-day.empty {
+  cursor: default;
+  visibility: hidden;
+}
+
+.nft-create-freeze-until-day:not(.empty):not(.disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.nft-create-freeze-until-day.selected {
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: #ffffff;
+}
+
+.nft-create-freeze-until-day.disabled {
+  color: #3a3a4a;
+  cursor: not-allowed;
+}
+
+.nft-create-freeze-until-time {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nft-create-freeze-until-time-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.nft-create-freeze-until-time-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.nft-create-freeze-until-time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nft-create-freeze-until-time-field-label {
+  font-size: 0.6875rem;
+  color: #5a5a6a;
+  font-weight: 500;
+}
+
+.nft-create-freeze-until-time-input {
+  width: 56px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  background: rgba(8, 8, 12, 0.9);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 6px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.nft-create-freeze-until-time-input:focus {
+  outline: none;
+  border-color: var(--create-accent-border);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.nft-create-freeze-until-time-sep {
+  align-self: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #5a5a6a;
+  padding-bottom: 0.35rem;
+}
+
+.nft-create-freeze-until-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.nft-create-freeze-until-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.nft-create-freeze-until-btn.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #b8b8c8;
+}
+
+.nft-create-freeze-until-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.nft-create-freeze-until-btn.primary {
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: #ffffff;
+}
+
+.nft-create-freeze-until-btn.primary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.nft-create-details-switch-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.nft-create-details-switch-icon-badge svg {
+  display: block;
+}
+
+.nft-create-details-switch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.nft-create-details-switch-title {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.nft-create-details-switch-title strong {
+  font-weight: 600;
+}
+
+.nft-create-details-switch-desc {
+  color: rgb(184, 187, 201);
+  line-height: 150%;
+  font-size: 0.875rem;
+}
+
+.nft-create-details-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+
+.nft-create-details-icon svg {
+  display: block;
+}
+
+.nft-create-launch-card {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(26, 26, 36, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+}
+
+.nft-create-launch-card-image {
+  position: relative;
+}
+
+.nft-create-launch-card-ph {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0f;
+}
+
+.nft-create-launch-card-ph svg {
+  color: #000000;
+  opacity: 0.9;
+}
+
+.nft-create-launch-card-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 77px;
+  background: var(--bg-primary, rgba(14, 14, 20, 0.9));
+  padding: 8px 10px 7px 7px;
+  font-size: 11px;
+  color: #8a8a9a;
+}
+
+.nft-create-launch-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.nft-create-launch-card-name {
+  font-size: 1.125rem;
+  font-family: Elza, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.nft-create-launch-card-desc {
+  font-size: 12px;
+  color: var(--text-primary, #b8b8c8);
+  line-height: 150%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gradientText {
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Split panels (Secondary Royalty Split / Mint funds Split) ---- */
+.nft-create-split-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+  background: rgba(20, 20, 30, 0.6);
+  border: 1px solid #252535;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.nft-create-split-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid #252535;
+  flex-wrap: wrap;
+}
+
+.nft-create-split-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.nft-create-split-helper-btn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  background: transparent;
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.nft-create-split-helper-btn:hover {
+  color: #b8b8c8;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-split-remaining {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(37, 37, 53, 0.5);
+}
+
+.nft-create-split-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.nft-create-split-row-top .nft-create-split-row-bar-wrap {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.nft-create-split-remove-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nft-create-split-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.nft-create-split-row-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.nft-create-split-row-bar {
+  height: 6px;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: width 0.2s ease-out;
+}
+
+.nft-create-split-row-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  flex-shrink: 0;
+}
+
+.nft-create-split-panel-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.nft-create-split-panel-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.02em;
+}
+
+.nft-create-split-panel-desc {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.nft-create-split-total {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nft-create-split-total.valid {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #b8b8c8;
+}
+
+.nft-create-split-total.invalid {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #8a8a9a;
+}
+
+.nft-create-split-error-banner {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 0;
+}
+
+.nft-create-split-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.25rem;
+}
+
+.nft-create-split-row-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s;
+  min-width: 0;
+}
+
+.nft-create-split-row-card:last-child {
+  border-bottom: none;
+}
+
+.nft-create-split-row-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nft-create-split-row-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nft-create-split-row-fields {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.nft-create-split-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.nft-create-split-field-share {
+  width: 120px;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.nft-create-split-field-share .nft-create-input-adorned .nft-create-input {
+  min-width: 2.5em;
+}
+
+.nft-create-split-field-address {
+  flex: 1;
+  min-width: 140px;
+}
+
+.nft-create-split-field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.nft-create-split-field .nft-create-input,
+.nft-create-split-field .nft-create-input-adorned {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nft-create-split-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 1.25rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b8b8c8;
+  background: transparent;
+  border: 1px dashed #252535;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  align-self: flex-start;
+}
+
+.nft-create-split-add-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.nft-create-split-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nft-create-split-add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nft-create-split-add-icon svg {
+  display: block;
+}
+
+.nft-create-details-advanced-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.nft-create-details-advanced-row .nft-create-details-label {
+  margin-bottom: 0;
+}
+
+.nft-create-details-advanced-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.nft-create-step1-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.nft-create-step1-footer .nft-create-btn-primary {
+  padding: 8px 24px;
+  height: 48px;
+  font-size: 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.nft-create-step1-footer .nft-create-btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.nft-create-step1-footer .nft-create-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Step 1 desktop redesign (homepage-level polish) ---- */
+.nft-create-step1-intro {
+  margin-bottom: 1.75rem;
+}
+
+.nft-create-step1-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+
+.nft-create-step1-subtitle {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  max-width: 36rem;
+}
+
+/* Hero field: collection name with label + hint */
+.nft-create-hero-field {
+  margin-bottom: 1.5rem;
+}
+
+.nft-create-hero-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.nft-create-hero-hint {
+  display: block;
+  font-size: 0.8125rem;
+  color: #5a5a6a;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+/* Symbol + badges row */
+.nft-create-symbol-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.nft-create-symbol-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8a8a9a;
+}
+
+.nft-create-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.nft-create-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: var(--create-accent);
+  box-shadow: 0 0 12px var(--create-accent-dim);
+}
+
+.nft-create-badge-pill-muted {
+  background: rgba(26, 26, 36, 0.8);
+  border-color: rgba(37, 37, 53, 0.9);
+  color: #8a8a9a;
+  box-shadow: none;
+}
+
+/* Description section with label + footer */
+.nft-create-desc-wrap {
+  margin-top: 0.25rem;
+}
+
+.nft-create-desc-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.nft-create-desc-footer {
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.nft-create-desc-footer .nft-create-char {
+  margin-top: 0;
+}
+
+/* Desktop: step 1 hero treatment (match homepage typography and spacing) */
+@media (min-width: 1024px) {
+  .nft-create-step1-intro {
+    margin-bottom: 2rem;
+  }
+
+  .nft-create-step1-title {
+    font-size: 1.5rem;
+    letter-spacing: -0.04em;
+    background: rgba(255, 255, 255, 0.9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .nft-create-step1-subtitle {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .nft-create-basics-desktop .nft-create-hero-input {
+    font-size: 2rem;
+    font-weight: 700;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .nft-create-basics-desktop .nft-create-hero-field {
+    margin-bottom: 1.75rem;
+  }
+
+  .nft-create-basics-desktop .nft-create-meta-line {
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .nft-create-basics-desktop .nft-create-symbol-input {
+    width: 6rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  .nft-create-basics-desktop .nft-create-desc-input {
+    min-height: 110px;
+    padding: 1rem 0;
+    font-size: 1rem;
+  }
+
+  .nft-create-content-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+}
+
+/* ---- Step sections (other steps) ---- */
+.nft-create-section {
+  margin-bottom: 1.5rem;
+}
+
+.nft-create-section:last-child {
+  margin-bottom: 0;
+}
+
+.nft-create-section-heading {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6a6a7a;
+  margin-bottom: 0.75rem;
+}
+
+.nft-create-row {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .nft-create-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.nft-create-row .nft-create-field {
+  margin-bottom: 0;
+}
+
+/* ---- Form groups ---- */
+.nft-create-field {
+  margin-bottom: 1rem;
+}
+
+.nft-create-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.nft-create-label-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.nft-create-input,
+.nft-create-textarea,
+.nft-create-select {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+  color: #ffffff;
+  background: rgba(8, 8, 12, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.nft-create-input:hover,
+.nft-create-textarea:hover,
+.nft-create-select:hover {
+  border-color: rgba(42, 42, 58, 0.9);
+}
+
+.nft-create-input:focus,
+.nft-create-textarea:focus,
+.nft-create-select:focus {
+  outline: none;
+  border-color: var(--create-accent-border);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.15),
+    inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.nft-create-input::placeholder,
+.nft-create-textarea::placeholder {
+  color: #4a4a5a;
+}
+
+.nft-create-textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.nft-create-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%238a8a9a'%3E%3Cpath d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+/* ---- Character counter ---- */
+.nft-create-char {
+  font-size: 0.6875rem;
+  color: #5a5a6a;
+  margin-top: 0.35rem;
+  text-align: right;
+}
+
+/* ---- Badge (used elsewhere: Mainnet, etc.) ---- */
+.nft-create-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: var(--create-accent);
+  box-shadow: 0 0 12px var(--create-accent-dim);
+}
+
+.nft-create-badge.readonly {
+  background: rgba(26, 26, 36, 0.8);
+  border-color: #252535;
+  color: #8a8a9a;
+  box-shadow: none;
+}
+
+/* ---- Info tooltip ---- */
+.nft-create-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.nft-create-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: var(--create-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-style: italic;
+  cursor: help;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.nft-create-tooltip-wrap:hover .nft-create-tooltip-icon {
+  background: var(--create-accent-dim);
+  box-shadow: 0 0 12px var(--create-accent-dim);
+}
+
+.nft-create-tooltip-wrap:hover .nft-create-tooltip-text {
+  opacity: 1;
+  visibility: visible;
+}
+
+.nft-create-tooltip-text {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #b8b8c8;
+  background: #16161f;
+  border: 1px solid #2a2a3a;
+  border-radius: 6px;
+  max-width: 260px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
+  transition-delay: 0.1s;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.nft-create-tooltip-wrap:hover .nft-create-tooltip-text {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* Details form: tooltip stays over its field */
+.nft-create-tooltip-details .nft-create-tooltip-text {
+  left: 0;
+  right: auto;
+  max-width: 240px;
+  bottom: 100%;
+  margin-bottom: 6px;
+}
+
+/* ---- Auto-save indicator ---- */
+.nft-create-draft-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  width: fit-content;
+}
+
+/* ---- Media upload (drag-and-drop) ---- */
+.nft-create-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 140px;
+  border: 2px dashed #252535;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  background: rgba(10, 10, 15, 0.5);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.nft-create-upload:hover,
+.nft-create-upload.dragover {
+  border-color: var(--create-accent-border);
+  background: var(--create-accent-bg);
+  box-shadow: none;
+}
+
+.nft-create-upload-text {
+  font-size: 0.875rem;
+  color: #8a8a9a;
+  margin-bottom: 0.25rem;
+}
+
+.nft-create-upload-hint {
+  font-size: 0.75rem;
+  color: #5a5a6a;
+}
+
+.nft-create-upload-ipfs-note {
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+  margin: 0 0 1rem 0;
+}
+
+.nft-create-upload--loading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.nft-create-upload-loading {
+  font-size: 0.875rem;
+  color: #8a8a9a;
+}
+
+.nft-create-upload-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.nft-create-upload-progress-bar {
+  width: 100%;
+  max-width: 280px;
+  height: 8px;
+  background: rgba(37, 37, 53, 0.9);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.nft-create-upload-progress-fill {
+  height: 100%;
+  background: var(--create-accent-border);
+  border-radius: 4px;
+  transition: width 0.2s ease-out;
+}
+
+.nft-create-upload-hash {
+  font-size: 0.6875rem;
+  color: #5a5a6a;
+  margin: 0.35rem 0 0 0;
+  word-break: break-all;
+}
+
+.nft-create-upload-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ---- Step 2: Media & Metadata (smoother flow) ---- */
+.nft-create-step2 {
+  gap: 1.5rem;
+}
+
+.nft-create-step2-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.03em;
+}
+
+.nft-create-step2-sub {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 1.25rem 0;
+  line-height: 1.45;
+}
+
+.nft-create-step2-download-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 0 0 1.25rem 0;
+}
+
+.nft-create-step2-download-example {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.nft-create-step2-download-example:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.nft-create-step2-download-hint {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 3-step flow strip */
+.nft-create-step2-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 12px;
+  margin-bottom: 0.25rem;
+}
+
+.nft-create-step2-flow-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6a6a7a;
+  transition: color 0.2s, background 0.2s;
+}
+
+.nft-create-step2-flow-item.active {
+  color: #ffffff;
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+}
+
+.nft-create-step2-flow-item.done {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(40, 60, 45, 0.4);
+  border: 1px solid rgba(72, 187, 120, 0.35);
+}
+
+.nft-create-step2-flow-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+.nft-create-step2-flow-item.done .nft-create-step2-flow-num {
+  background: rgba(72, 187, 120, 0.25);
+}
+
+.nft-create-step2-flow-check {
+  margin-left: 0.15rem;
+  color: #68d391;
+  font-size: 0.875rem;
+}
+
+.nft-create-step2-flow-arrow {
+  color: #4a4a5a;
+  font-size: 0.75rem;
+  user-select: none;
+}
+
+/* Two cards side-by-side */
+.nft-create-step2-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 639px) {
+  .nft-create-step2-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nft-create-step2-card {
+  min-width: 0;
+}
+
+.nft-create-step2-dropzone {
+  min-height: 160px;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s ease;
+}
+
+.nft-create-step2-dropzone.dragover {
+  border-color: var(--create-accent-border);
+  background: var(--create-accent-bg);
+  transform: scale(1.01);
+}
+
+.nft-create-step2-dropzone--done {
+  border-color: rgba(72, 187, 120, 0.4);
+  background: rgba(40, 60, 45, 0.2);
+}
+
+.nft-create-step2-dropzone--done:hover {
+  border-color: rgba(72, 187, 120, 0.55);
+}
+
+.nft-create-step2-dropzone-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.35rem;
+  opacity: 0.8;
+}
+
+.nft-create-step2-dropzone-icon--done {
+  font-size: 1.5rem;
+  color: #68d391;
+  opacity: 1;
+}
+
+.nft-create-step2-dropzone-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #b8b8c8;
+  margin-bottom: 0.2rem;
+}
+
+.nft-create-step2-dropzone--done .nft-create-step2-dropzone-title {
+  color: #e8e8f0;
+}
+
+.nft-create-step2-dropzone-hint {
+  font-size: 0.75rem;
+  color: #5a5a6a;
+}
+
+.nft-create-step2-dropzone-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(37, 37, 53, 0.8);
+}
+
+.nft-create-step2-dropzone-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Status (auto-upload, no button / no base URI) */
+.nft-create-step2-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.nft-create-step2-status-msg {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.nft-create-step2-status-msg--uploading {
+  color: #8a8a9a;
+}
+
+.nft-create-step2-status-msg--done {
+  color: #68d391;
+}
+
+.nft-create-step2-error {
+  margin-top: 0;
+}
+
+/* NFT preview gallery — how they will look (constrained, no horizontal overflow) */
+.nft-create-step2-preview {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nft-create-step2-preview-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e8e8f0;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.02em;
+}
+
+.nft-create-step2-preview-hint {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #6a6a7a;
+}
+
+.nft-create-step2-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (min-width: 480px) {
+  .nft-create-step2-preview-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.85rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .nft-create-step2-preview-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .nft-create-step2-preview-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.nft-create-step2-preview-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: rgba(26, 26, 36, 0.6);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nft-create-step2-preview-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.nft-create-step2-preview-card:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
+.nft-create-step2-preview-card-image {
+  aspect-ratio: 1;
+  background: #111118;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.nft-create-step2-preview-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nft-create-step2-preview-card-placeholder {
+  font-size: 0.6875rem;
+  color: #5a5a6a;
+}
+
+.nft-create-step2-preview-card-body {
+  padding: 0.45rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 3.5em;
+}
+
+.nft-create-step2-preview-card-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #e8e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  flex-shrink: 0;
+  line-height: 1.25;
+}
+
+.nft-create-step2-preview-card-attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.35rem;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+
+.nft-create-step2-preview-attr {
+  font-size: 0.6875rem;
+  color: #a8a8b8;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  line-height: 1.35;
+}
+
+.nft-create-step2-preview-attr-more {
+  font-size: 0.6875rem;
+  color: #6a6a7a;
+  flex-shrink: 0;
+}
+
+/* Step 2 preview detail modal */
+.nft-create-step2-preview-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.nft-create-step2-preview-modal {
+  position: relative;
+  background: #16161f;
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 420px;
+  width: 100%;
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.nft-create-step2-preview-modal-image {
+  aspect-ratio: 1;
+  background: #111118;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nft-create-step2-preview-modal-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nft-create-step2-preview-modal-body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.nft-create-step2-preview-modal-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e8e8f0;
+  margin: 0 0 0.75rem;
+  line-height: 1.3;
+}
+
+.nft-create-step2-preview-modal-attrs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.nft-create-step2-preview-modal-attr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(37, 37, 53, 0.5);
+  font-size: 0.875rem;
+}
+
+.nft-create-step2-preview-modal-attr:last-child {
+  border-bottom: none;
+}
+
+.nft-create-step2-preview-modal-attr-type {
+  color: #8a8a9a;
+  flex-shrink: 0;
+}
+
+.nft-create-step2-preview-modal-attr-value {
+  color: #e8e8f0;
+  text-align: right;
+  word-break: break-word;
+}
+
+.nft-create-step2-preview-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #e8e8f0;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nft-create-step2-preview-modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-step2-preview-modal-close:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
+/* Custom confirm dialog (replaces browser confirm popup) */
+.nft-create-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+}
+
+.nft-create-confirm-modal {
+  background: #16161f;
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 16px;
+  padding: 1.5rem 1.5rem 1.25rem;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+.nft-create-confirm-modal--danger .nft-create-confirm-btn--confirm {
+  background: rgba(220, 53, 69, 0.2);
+  border-color: rgba(220, 53, 69, 0.5);
+  color: #f87171;
+}
+
+.nft-create-confirm-modal--danger .nft-create-confirm-btn--confirm:hover {
+  background: rgba(220, 53, 69, 0.3);
+  border-color: rgba(220, 53, 69, 0.6);
+}
+
+.nft-create-confirm-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e8e8f0;
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
+}
+
+.nft-create-confirm-message {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+
+.nft-create-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.nft-create-confirm-btn {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.nft-create-confirm-btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #b8b8c8;
+}
+
+.nft-create-confirm-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.nft-create-confirm-btn--confirm {
+  background: var(--create-accent-bg);
+  border: 1px solid var(--create-accent-border);
+  color: #ffffff;
+}
+
+.nft-create-confirm-btn--confirm:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.nft-create-confirm-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
+/* How it works (expandable) */
+.nft-create-step2-details {
+  border: 1px solid rgba(37, 37, 53, 0.6);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nft-create-step2-details-summary {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #8a8a9a;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.nft-create-step2-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nft-create-step2-details-summary:hover {
+  color: #b8b8c8;
+}
+
+.nft-create-step2-how-note {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(37, 37, 53, 0.5);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.nft-create-step2-how-note p {
+  margin: 0 0 0.5rem 0;
+}
+
+.nft-create-step2-how-note p:last-child {
+  margin-bottom: 0;
+}
+
+/* More options (collapsible) */
+.nft-create-step2-optional {
+  border: 1px solid rgba(37, 37, 53, 0.6);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nft-create-step2-optional-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b8b8c8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.2s;
+}
+
+.nft-create-step2-optional-head:hover {
+  color: #ffffff;
+}
+
+.nft-create-step2-optional-chevron {
+  font-size: 0.6875rem;
+  color: #6a6a7a;
+}
+
+.nft-create-step2-optional-body {
+  padding: 1rem 1rem 1.25rem;
+  border-top: 1px solid rgba(37, 37, 53, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ---- Toast (success / error) ---- */
+.nft-create-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  animation: nft-create-toast-in 0.2s ease-out;
+}
+
+@keyframes nft-create-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nft-create-toast--success {
+  background: rgba(26, 46, 36, 0.95);
+  border: 1px solid rgba(72, 187, 120, 0.5);
+  color: #a7f3d0;
+}
+
+.nft-create-toast--error {
+  background: rgba(46, 26, 26, 0.95);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+}
+
+.nft-create-toast-message {
+  flex: 1;
+}
+
+.nft-create-toast-dismiss {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: inherit;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nft-create-toast-dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.nft-create-preview-card {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1a24;
+  border: 1px solid #252535;
+  margin-top: 0.75rem;
+}
+
+.nft-create-preview-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nft-create-preview-banner {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 16 / 6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1a24;
+  border: 1px solid #252535;
+  margin-top: 0.75rem;
+}
+
+.nft-create-preview-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- Step 1: Collection PFP & banner (collection info) ---- */
+.nft-create-step1-images-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.nft-create-step1-images-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.nft-create-upload-square {
+  width: 100%;
+  max-width: 200px;
+  min-height: 200px;
+  aspect-ratio: 1;
+}
+
+.nft-create-upload-square .nft-create-step1-collection-preview,
+.nft-create-upload-square .nft-create-preview-card {
+  margin-top: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.nft-create-step1-banner-field {
+  flex: 1;
+  min-width: 240px;
+}
+
+.nft-create-upload-banner {
+  min-height: 120px;
+  max-width: 480px;
+}
+
+.nft-create-upload-banner .nft-create-preview-banner {
+  max-width: none;
+  margin-top: 0;
+}
+
+/* ---- Traits table ---- */
+.nft-create-traits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.nft-create-traits-table th,
+.nft-create-traits-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #252535;
+}
+
+.nft-create-traits-table th {
+  color: #8a8a9a;
+  font-weight: 600;
+}
+
+.nft-create-traits-table input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  background: #111118;
+  border: 1px solid #252535;
+  border-radius: 6px;
+}
+
+.nft-create-traits-add {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--create-accent);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.nft-create-traits-add:hover {
+  text-decoration: underline;
+}
+
+/* ---- Collapsible ---- */
+.nft-create-collapse-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b8b8c8;
+  cursor: pointer;
+  border-bottom: 1px solid #252535;
+  user-select: none;
+}
+
+.nft-create-collapse-head:hover {
+  color: #ffffff;
+}
+
+.nft-create-collapse-body {
+  padding: 1rem 0;
+  border-bottom: 1px solid #252535;
+}
+
+/* ---- Radio group ---- */
+.nft-create-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.nft-create-radio-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.nft-create-radio-wrap input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--create-accent);
+}
+
+/* Keep radio and label layout */
+.nft-create-radio-input-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.nft-create-radio-input-wrap input {
+  margin: 0;
+}
+
+.nft-create-radio-label {
+  flex: 0 1 auto;
+}
+
+/* ---- Mint mode (card grid) ---- */
+.nft-create-mint-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nft-create-mint-mode-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  width: fit-content;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nft-create-mint-mode-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  letter-spacing: -0.01em;
+}
+
+.nft-create-mint-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 560px) {
+  .nft-create-mint-mode-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nft-create-mint-mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.25rem 1.25rem 1.25rem 1.25rem;
+  text-align: left;
+  background: rgba(20, 20, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  min-height: 120px;
+  outline: none;
+}
+
+.nft-create-mint-mode-card:hover {
+  transform: translateY(-2px);
+}
+
+.nft-create-mint-mode-card:focus-visible {
+  outline: 2px solid var(--create-accent);
+  outline-offset: 2px;
+}
+
+.nft-create-mint-mode-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nft-create-mint-mode-card--selected {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--create-accent-bg);
+  box-shadow: none;
+}
+
+.nft-create-mint-mode-card--selected:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.nft-create-mint-mode-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  letter-spacing: -0.01em;
+}
+
+.nft-create-mint-mode-card-desc {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.nft-create-mint-mode-card-check {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ---- Toggle (Free Mint) ---- */
+.nft-create-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nft-create-toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: #252535;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.nft-create-toggle.on {
+  background: var(--create-accent);
+}
+
+.nft-create-toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.nft-create-toggle.on::after {
+  transform: translateX(20px);
+}
+
+/* ---- Slider ---- */
+.nft-create-slider-wrap {
+  padding: 0.5rem 0;
+}
+
+.nft-create-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #252535;
+  appearance: none;
+  outline: none;
+}
+
+.nft-create-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--create-accent);
+  cursor: pointer;
+  box-shadow: 0 0 0 2px #0c0c14;
+}
+
+.nft-create-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--create-accent);
+  cursor: pointer;
+  border: none;
+}
+
+/* ---- Primary sale split table ---- */
+.nft-create-split-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.nft-create-split-table th,
+.nft-create-split-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #252535;
+}
+
+.nft-create-split-table th {
+  color: #8a8a9a;
+  font-weight: 600;
+}
+
+.nft-create-split-table input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  background: #111118;
+  border: 1px solid #252535;
+  border-radius: 6px;
+}
+
+.nft-create-sum-validator {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+}
+
+.nft-create-sum-validator.valid {
+  color: #8a8a9a;
+}
+
+.nft-create-sum-validator.invalid {
+  color: #b8b8c8;
+}
+
+/* ---- Summary card (Step 5) ---- */
+.nft-create-summary-card {
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.nft-create-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.nft-create-summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.nft-create-summary-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #1a1a24;
+}
+
+.nft-create-summary-meta h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+}
+
+.nft-create-summary-meta p {
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+  margin: 0;
+}
+
+.nft-create-summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  color: #b8b8c8;
+}
+
+.nft-create-summary-list li {
+  padding: 0.25rem 0;
+}
+
+/* ---- Pre-flight checks ---- */
+.nft-create-checks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.nft-create-checks li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #b8b8c8;
+}
+
+.nft-create-checks li::before {
+  content: '✔';
+  color: #8a8a9a;
+  font-weight: bold;
+}
+
+/* ---- Warning box ---- */
+.nft-create-warning {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #b8b8c8;
+  margin-bottom: 1.5rem;
+}
+
+/* ---- Footer (Back / Next) — always at bottom via flex ---- */
+.nft-create-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0 1.5rem;
+  margin-top: 0.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: rgba(10, 10, 15, 0.98);
+  border-top: 1px solid rgba(37, 37, 53, 0.6);
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+.nft-create-btn {
+  padding: 0.65rem 1.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  border: 1px solid transparent;
+}
+
+.nft-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nft-create-btn-back {
+  background: transparent;
+  border-color: #252535;
+  color: #b8b8c8;
+}
+
+.nft-create-btn-back:hover:not(:disabled) {
+  background: rgba(26, 26, 36, 0.8);
+  border-color: #3a3a4a;
+  color: #ffffff;
+}
+
+.nft-create-btn-primary {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nft-create-btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.nft-create-btn-secondary {
+  background: rgba(26, 26, 36, 0.9);
+  border: 1px solid #252535;
+  color: #ffffff;
+}
+
+.nft-create-btn-secondary:hover:not(:disabled) {
+  background: rgba(37, 37, 53, 0.9);
+  border-color: #3a3a4a;
+}
+
+.nft-create-footer-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.nft-create-footer-actions-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.nft-create-footer-hint {
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+}
+
+/* ---- Validate wallet button ---- */
+.nft-create-btn-validate {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: #1a1a24;
+  border: 1px solid #252535;
+  color: #b8b8c8;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+.nft-create-btn-validate:hover {
+  background: #252535;
+  color: #ffffff;
+}
+
+/* ---- Number input (narrow) ---- */
+.nft-create-input-narrow {
+  max-width: 140px;
+}
+
+/* ---- Display-only row ---- */
+.nft-create-display-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ========================================
+   STEP 3 — MINT PHASES (matches steps 1 & 2)
+   ======================================== */
+
+/* Step 3 Layout */
+.nft-create-step3 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Step 3 Header — same as step 2, no purple gradients */
+.nft-create-step3-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 12px;
+}
+
+.nft-create-step3-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #8a8a9a;
+  flex-shrink: 0;
+}
+
+.nft-create-step3-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.nft-create-step3-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.02em;
+}
+
+.nft-create-step3-subtitle {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Empty State — consistent with create flow */
+.nft-create-phase-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed #252535;
+  border-radius: 12px;
+}
+
+.nft-create-phase-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  color: #6a6a7a;
+  margin-bottom: 1rem;
+}
+
+.nft-create-phase-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+}
+
+.nft-create-phase-empty-desc {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 1.25rem 0;
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+.nft-create-phase-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.nft-create-phase-empty-cta:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.nft-create-phase-empty-cta:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Phase Container */
+.nft-create-phase-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Phase List */
+.nft-create-phase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Phase Card — same as create flow panels */
+.nft-create-phase-card {
+  background: rgba(20, 20, 30, 0.6);
+  border: 1px solid #252535;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.nft-create-phase-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Phase Card Header */
+.nft-create-phase-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(37, 37, 53, 0.8);
+}
+
+.nft-create-phase-card-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.nft-create-phase-card-num {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #8a8a9a;
+  font-variant-numeric: tabular-nums;
+}
+
+.nft-create-phase-card-title-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.nft-create-phase-card-title-input {
+  flex: 1;
+  min-width: 120px;
+  max-width: 280px;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.nft-create-phase-card-title-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.nft-create-phase-card-title-input:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nft-create-phase-card-title-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--create-accent-border);
+}
+
+.nft-create-phase-card-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 6px;
+  white-space: nowrap;
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nft-create-phase-card-type-tag.public {
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.nft-create-phase-card-type-tag.allowlist {
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.nft-create-phase-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.nft-create-phase-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nft-create-phase-action-btn:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-phase-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.nft-create-phase-action-btn--danger:hover:not(:disabled) {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+/* Phase Card Body */
+.nft-create-phase-card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Phase Sections */
+.nft-create-phase-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nft-create-phase-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nft-create-phase-section-label svg {
+  opacity: 0.6;
+}
+
+/* Access Type Toggle */
+.nft-create-phase-section--type {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nft-create-phase-type-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nft-create-phase-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nft-create-phase-type-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nft-create-phase-type-btn.active {
+  color: #ffffff;
+  background: var(--create-accent-bg);
+  border-color: var(--create-accent-border);
+}
+
+/* Schedule Grid */
+.nft-create-phase-schedule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 560px) {
+  .nft-create-phase-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* End mint toggle row (optional end date) */
+.nft-create-phase-end-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nft-create-phase-end-toggle-row .nft-create-phase-input-label {
+  margin-bottom: 0;
+}
+
+.nft-create-phase-end-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.nft-create-phase-end-toggle:hover {
+  opacity: 0.9;
+}
+
+.nft-create-phase-end-toggle:focus-visible {
+  outline: 2px solid var(--create-accent-border);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.nft-create-phase-end-toggle-track {
+  display: block;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(37, 37, 53, 0.9);
+  position: relative;
+  transition: background 0.2s;
+}
+
+.nft-create-phase-end-toggle--on .nft-create-phase-end-toggle-track {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.nft-create-phase-end-toggle-thumb {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.nft-create-phase-end-toggle--on .nft-create-phase-end-toggle-thumb {
+  transform: translateX(20px);
+}
+
+.nft-create-phase-end-toggle-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.nft-create-phase-end-toggle--on .nft-create-phase-end-toggle-label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.nft-create-phase-input--end {
+  margin-top: 0.5rem;
+}
+
+/* Settings Grid */
+.nft-create-phase-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 720px) {
+  .nft-create-phase-settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .nft-create-phase-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Input Group */
+.nft-create-phase-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.nft-create-phase-input-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.nft-create-phase-input-label .optional {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 400;
+}
+
+.nft-create-phase-input-suffix {
+  margin-left: auto;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.nft-create-phase-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #ffffff;
+  background: rgba(8, 8, 12, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 10px;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  color-scheme: dark;
+}
+
+.nft-create-step3 .nft-create-phase-section {
+  gap: 0.5rem;
+}
+.nft-create-step3 .nft-create-phase-section-label {
+  margin-bottom: 0.25rem;
+}
+.nft-create-step3 .nft-create-phase-card-body {
+  gap: 1.25rem;
+}
+
+.nft-create-phase-input::placeholder {
+  color: #4a4a5a;
+}
+
+.nft-create-phase-input:hover {
+  border-color: rgba(42, 42, 58, 0.9);
+}
+
+.nft-create-phase-input:focus {
+  outline: none;
+  border-color: var(--create-accent-border);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+/* Error Banner */
+.nft-create-phase-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8125rem;
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 8px;
+  margin-top: 0.25rem;
+}
+
+.nft-create-phase-error-banner svg {
+  flex-shrink: 0;
+  color: #f87171;
+}
+
+/* Allowlist Section */
+.nft-create-phase-section--allowlist {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  border-radius: 10px;
+}
+
+.nft-create-phase-wallet-count {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.nft-create-phase-allowlist-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.85rem 1rem;
+  font-size: 0.8125rem;
+  font-family: ui-monospace, 'SF Mono', Monaco, 'Cascadia Mono', monospace;
+  color: #ffffff;
+  background: rgba(8, 8, 12, 0.8);
+  border: 1px solid rgba(37, 37, 53, 0.9);
+  border-radius: 10px;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  line-height: 1.6;
+}
+
+.nft-create-phase-allowlist-input::placeholder {
+  color: #4a4a5a;
+  font-family: inherit;
+}
+
+.nft-create-phase-allowlist-input:focus {
+  outline: none;
+  border-color: var(--create-accent-border);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-phase-allowlist-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0.5rem 0 0 0;
+  line-height: 1.4;
+}
+
+/* Add Phase Button — matches create flow dashed buttons */
+.nft-create-phase-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  background: transparent;
+  border: 2px dashed #252535;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.nft-create-phase-add-btn:hover {
+  color: #b8b8c8;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.nft-create-phase-add-btn:active {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Legacy classes (keep for backwards compat) */
+.nft-create-phases-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nft-create-phase-hint {
+  font-size: 0.8125rem;
+  color: #8a8a9a;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.nft-create-phase-add {
+  align-self: flex-start;
+}
+
+/* Screen-reader only (e.g. file inputs) */
+.nft-create-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

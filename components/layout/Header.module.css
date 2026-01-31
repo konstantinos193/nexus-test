@@ -1,0 +1,687 @@
+/* Desktop Header Styles */
+.desktopHeader {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .desktopHeader {
+    display: none;
+  }
+}
+
+.desktopNav {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.desktopNavContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 5rem;
+  gap: 2rem;
+}
+
+.desktopLogoContainer {
+  flex-shrink: 0;
+}
+
+.desktopLogoLink {
+  display: flex;
+  align-items: center;
+}
+
+.desktopLogoImage {
+  object-fit: contain;
+  height: 55px;
+  width: auto;
+}
+
+.desktopNavLinks {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.desktopNavLink {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+}
+
+.desktopNavLinkActive {
+  color: #00d4ff;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(124, 58, 237, 0.15));
+}
+
+.desktopNavLinkInactive {
+  color: #b8b8c8;
+}
+
+.desktopNavLinkInactive:hover {
+  color: #ffffff;
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.desktopWalletContainer {
+  flex-shrink: 0;
+}
+
+.desktopWalletContainer :global(button) {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(124, 58, 237, 0.25));
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.25);
+  white-space: nowrap;
+}
+
+.desktopWalletContainer :global(button:hover) {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.35), rgba(124, 58, 237, 0.35));
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 6px 24px rgba(0, 212, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.desktopWalletContainer :global(button:active) {
+  transform: translateY(0);
+}
+
+.desktopWalletContainer :global(button:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.desktopWalletContainer :global(button:focus) {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.4);
+}
+
+.desktopWalletContainer :global(button svg) {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+/* Mobile Header - Completely New Design */
+.mobileHeaderWrapper {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobileHeaderWrapper {
+    display: block;
+    position: relative;
+    z-index: 100;
+  }
+}
+
+/* Mobile Top Bar */
+.mobileTopBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: rgba(10, 10, 15, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s ease,
+              box-shadow 0.3s ease;
+  z-index: 90;
+  will-change: transform, opacity;
+}
+
+.mobileTopBarScrolled {
+  background: rgba(10, 10, 15, 0.95);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.mobileTopBarCollapsed {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mobileLogoLink {
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.mobileLogo {
+  object-fit: contain;
+  height: 28px;
+  width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 212, 255, 0.3));
+}
+
+.mobileTopActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobileSearchLink,
+.mobileSearchButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  color: #8a8a9a;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mobileSearchLink:hover,
+.mobileSearchButton:hover {
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.mobileSearchLink:active,
+.mobileSearchButton:active {
+  background: rgba(0, 212, 255, 0.15);
+}
+
+.mobileSearchIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 2;
+}
+
+.mobileWalletButton {
+  display: flex;
+  align-items: center;
+}
+
+.mobileWalletButton :global(button) {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(124, 58, 237, 0.2));
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.2);
+  white-space: nowrap;
+}
+
+.mobileWalletButton :global(button:hover) {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(124, 58, 237, 0.3));
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.mobileWalletButton :global(button:active) {
+  transform: translateY(0);
+}
+
+.mobileWalletButton :global(button:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mobileWalletButton :global(button svg) {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+.mobileWalletButton :global(button span) {
+  display: none;
+}
+
+@media (min-width: 360px) {
+  .mobileWalletButton :global(button span) {
+    display: inline;
+  }
+}
+
+/* Floating Action Button */
+.mobileFAB {
+  position: fixed;
+  bottom: 80px;
+  right: 1rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  border: none;
+  box-shadow: 
+    0 8px 24px rgba(0, 212, 255, 0.4),
+    0 0 40px rgba(124, 58, 237, 0.3);
+  cursor: pointer;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .mobileFAB {
+    bottom: 76px;
+  }
+}
+
+.mobileFAB:hover {
+  transform: scale(1.1);
+  box-shadow: 
+    0 12px 32px rgba(0, 212, 255, 0.5),
+    0 0 60px rgba(124, 58, 237, 0.4);
+}
+
+.mobileFABActive {
+  transform: rotate(45deg) scale(0.9);
+  background: linear-gradient(135deg, #ff006e 0%, #ff6b35 100%);
+}
+
+.mobileFABScrolled {
+  bottom: 70px;
+  transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobileFABIcon {
+  position: relative;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobileFABClose {
+  font-size: 32px;
+  font-weight: 300;
+  color: white;
+  line-height: 1;
+}
+
+.mobileFABIconSvg {
+  width: 24px;
+  height: 24px;
+  color: white;
+  stroke-width: 2;
+}
+
+.mobileFABRipple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  animation: ripple 2s ease-out infinite;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Bottom Sheet */
+.mobileBottomSheet {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 85;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.mobileBottomSheetOpen {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.mobileBottomSheetContent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, 
+    rgba(17, 17, 24, 0.98) 0%,
+    rgba(10, 10, 15, 0.98) 100%);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 24px 24px 0 0;
+  padding: 1.5rem 1rem 2rem;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  touch-action: pan-y;
+  will-change: transform;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileBottomSheetOpen .mobileBottomSheetContent {
+  transform: translateY(0);
+}
+
+.mobileSheetHandle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 0 auto 1.5rem;
+  cursor: grab;
+  touch-action: none;
+  position: relative;
+  z-index: 1;
+}
+
+.mobileSheetHandle:active {
+  cursor: grabbing;
+}
+
+/* Quick Actions Grid */
+.mobileQuickActions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.mobileQuickAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+
+.mobileQuickAction::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--action-color, #00d4ff), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.mobileQuickAction:hover {
+  transform: translateY(-4px);
+  border-color: var(--action-color, #00d4ff);
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.2);
+}
+
+.mobileQuickAction:hover::before {
+  opacity: 0.1;
+}
+
+.mobileQuickActionActive {
+  background: linear-gradient(135deg, 
+    rgba(0, 212, 255, 0.15), 
+    rgba(124, 58, 237, 0.15));
+  border-color: var(--action-color, #00d4ff);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
+}
+
+.mobileQuickActionIcon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.mobileQuickActionIcon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 2;
+}
+
+/* Menu List */
+.mobileMenuList {
+  margin-top: 1rem;
+}
+
+.mobileMenuSection {
+  margin-bottom: 1.5rem;
+}
+
+.mobileMenuSectionTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #8a8a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.mobileMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: #b8b8c8;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.mobileMenuItem:hover {
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.2);
+  color: #ffffff;
+  transform: translateX(4px);
+}
+
+.mobileMenuItemActive {
+  background: linear-gradient(135deg, 
+    rgba(0, 212, 255, 0.15), 
+    rgba(124, 58, 237, 0.15));
+  border-color: rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+}
+
+.mobileMenuItemIcon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+/* Wallet Section in Bottom Sheet */
+.mobileWalletSection {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.mobileWalletWrapper {
+  width: 100%;
+}
+
+.mobileWalletWrapper :global(button) {
+  width: 100%;
+  justify-content: center;
+  padding: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 
+    0 4px 16px rgba(0, 212, 255, 0.3),
+    0 0 30px rgba(124, 58, 237, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobileWalletWrapper :global(button:hover) {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 24px rgba(0, 212, 255, 0.4),
+    0 0 40px rgba(124, 58, 237, 0.3);
+}
+
+.mobileWalletWrapper :global(button:active) {
+  transform: translateY(0);
+}
+
+.mobileWalletWrapper :global(button:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mobileWalletWrapper :global(button svg) {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
+}
+
+/* Bottom Navigation Bar */
+.mobileBottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  z-index: 70;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  gap: 0.25rem;
+}
+
+.mobileBottomNavItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #8a8a9a;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.mobileBottomNavItem::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 32px;
+  height: 3px;
+  background: linear-gradient(90deg, #00d4ff, #7c3aed);
+  border-radius: 0 0 2px 2px;
+  transition: transform 0.2s ease;
+}
+
+.mobileBottomNavItemActive {
+  color: #00d4ff;
+}
+
+.mobileBottomNavItemActive::before {
+  transform: translateX(-50%) scaleX(1);
+}
+
+.mobileBottomNavItemIcon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+  transition: transform 0.2s ease;
+}
+
+.mobileBottomNavItemActive .mobileBottomNavItemIcon {
+  transform: scale(1.1);
+}
+
+.mobileBottomNavItemLabel {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
