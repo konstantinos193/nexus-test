@@ -18,6 +18,7 @@
 
 import { Suspense, lazy } from 'react'
 import { useFeaturedCollections } from '@/hooks/useCollections'
+import { featuredCollections as placeholderFeatured } from '@/lib/data/collections'
 
 // HeroSection loads immediately - it's above the fold and critical for LCP
 import HeroSection from './HeroSection'
@@ -54,19 +55,11 @@ export default function HomePageContent() {
     )
   }
 
-  // Show error state (optional - you can remove this if you want to show empty state)
-  if (error) {
-    return (
-      <main className="min-h-screen bg-gradient-dark">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-red-400">Error loading collections. Please try again later.</div>
-        </div>
-      </main>
-    )
-  }
-
-  // Use fetched data or empty array as fallback
-  const collections = featuredCollections || []
+  // Use fetched data; on error or empty, use placeholder data so homepage always has indexable content
+  const collections =
+    featuredCollections && featuredCollections.length > 0
+      ? featuredCollections
+      : placeholderFeatured
 
   return (
     // Main container - the wrapper for all homepage content

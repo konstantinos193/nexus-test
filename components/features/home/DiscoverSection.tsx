@@ -32,6 +32,7 @@ import Link from 'next/link'
 import { NFTCollection } from '@/types'
 import { CollectionCard } from '../collections/CollectionCard'
 import { useDiscoverCollections } from '@/hooks/useCollections'
+import { getDiscoverCollectionsByTab } from '@/lib/data/collections'
 import styles from './DiscoverSection.module.css'
 
 // Discover tab types - the different ways users can discover collections
@@ -66,16 +67,14 @@ export default function DiscoverSection() {
   // (And if they don't want to see trending, they can click another tab)
   const [activeTab, setActiveTab] = useState<DiscoverTab>('trending')
 
-  // Fetch collections from backend based on active tab
-  // Because different tabs show different collections (obviously)
-  // And we're fetching from the backend because that's where the data lives
-  // (And the backend is like a database, except it's a server, and servers are cool)
-  const { data: collections = [], isLoading } = useDiscoverCollections(activeTab)
+  // Fetch collections from backend; on empty or error use placeholder pool so we index something
+  const { data: apiCollections = [], isLoading } = useDiscoverCollections(activeTab)
+  const collections =
+    apiCollections && apiCollections.length > 0
+      ? apiCollections
+      : getDiscoverCollectionsByTab(activeTab)
 
   // Display up to MAX_DISPLAY collections
-  // Because we don't want to show everything (that would be overwhelming)
-  // And 6 is a nice number (not too many, not too few, just right)
-  // It's like a sampler platter - enough to taste, not enough to get full
   const display = collections.slice(0, MAX_DISPLAY)
 
   return (
