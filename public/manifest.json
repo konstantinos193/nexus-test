@@ -1,6 +1,6 @@
 {
-  "name": "NFT Launchpad",
-  "short_name": "NFT Launchpad",
+  "name": "Web3 Launchpad",
+  "short_name": "Web3 Launchpad",
   "description": "Create, prepare, and launch your NFT collections with professional Web3 tools.",
   "start_url": "/",
   "display": "standalone",

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
  * (And badges are like name tags, but for UI elements)
  *
  * Variants: default, secondary, outline, destructive
+ * Because variety is the spice of life (and UI design)
  *
  * @author Juan - The developer who built this badge
  * (Coded with care, humor, and probably too much coffee)
@@ -43,4 +44,5 @@ Badge.displayName = 'Badge'
 export { Badge }
 
 // Coded by Juan - because every good component needs a developer signature
-// P.S. - Badges: making labels look good since... always.
+// (Even if it's just a comment at the bottom)
+// P.S. - Badges: making labels look good since... always. 🏷️

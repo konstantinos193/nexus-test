@@ -1,0 +1,651 @@
+/**
+ * Mobile Collections Page Styles - Fully Optimized for Mobile
+ * Compact, touch-friendly design with minimal visual weight
+ * Because mobile users deserve a great experience too
+ * (Even if their screens are smaller than our ambitions)
+ * 
+ * @author Juan - The developer who made collections mobile-friendly
+ * (Styled with care, humor, and probably too much coffee)
+ */
+
+/* ============================================
+   Main Container
+   ============================================ */
+.mobileCollectionsContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 50%, #111118 100%);
+  position: relative;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto; /* Allow vertical scrolling */
+}
+
+.mobileCollectionsContent {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  padding-bottom: calc(2rem + 64px); /* Add space for bottom nav (64px height) */
+  /* Ensure sticky positioning works - no overflow hidden on this container */
+  /* Ensure content doesn't go under bottom nav */
+  margin-bottom: 0;
+}
+
+/* ============================================
+   Mobile Header Section
+   ============================================ */
+.mobileHeader {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.mobileHeaderContent {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.mobileTitle {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.02em;
+  animation: mobileFadeInUp 0.5s ease-out;
+}
+
+.mobileDescription {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  max-width: 100%;
+  margin: 0 auto;
+  font-weight: 400;
+  animation: mobileFadeInUp 0.6s ease-out;
+}
+
+/* ============================================
+   Mobile Stats Grid
+   ============================================ */
+.mobileStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.mobileStatCard {
+  background: rgba(17, 17, 24, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.625rem;
+  padding: 1rem 0.5rem;
+  text-align: center;
+  backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
+}
+
+.mobileStatValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #00d4ff;
+  margin: 0 0 0.375rem 0;
+  line-height: 1;
+}
+
+.mobileStatValueLive {
+  color: #10b981;
+}
+
+.mobileStatValueUpcoming {
+  color: #f59e0b;
+}
+
+.mobileStatValueCompleted {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mobileStatLabel {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* ============================================
+   Mobile Filter Bar
+   ============================================ */
+.mobileFilterBar {
+  position: -webkit-sticky; /* Safari support */
+  position: sticky;
+  top: 0; /* Sticks to top of scrolling container (main content area, which already has 56px padding-top for header) */
+  z-index: 60; /* Above content but below bottom nav (70) and header (90) */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  margin-top: -1.5rem; /* Offset the content padding */
+  padding: 1rem 0;
+  background: linear-gradient(135deg, rgba(10, 10, 15, 0.98) 0%, rgba(26, 26, 36, 0.98) 50%, rgba(17, 17, 24, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  /* Ensure it sticks properly */
+  will-change: transform;
+  /* Force hardware acceleration for smooth sticking */
+  transform: translateZ(0);
+  /* Ensure it has a solid background when sticky */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mobileSearchWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.mobileSearchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+
+.mobileSearchInput {
+  width: 100%;
+  padding: 0.875rem 0.875rem 0.875rem 2.75rem; /* Increased padding for better touch target */
+  background: rgba(17, 17, 24, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  min-height: 44px; /* Minimum touch target size */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobileSearchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mobileSearchInput:focus {
+  outline: none;
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.mobileFilterButton {
+  flex-shrink: 0;
+  width: 44px; /* Minimum touch target size (44x44px) */
+  height: 44px; /* Minimum touch target size */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 17, 24, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobileFilterButton:active {
+  background: rgba(17, 17, 24, 0.8);
+  border-color: rgba(0, 212, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.mobileFilterButtonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ============================================
+   Mobile Filter Drawer
+   ============================================ */
+.mobileDrawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 75; /* Above bottom nav (70) */
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.mobileDrawerBackdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mobileDrawerContent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111118;
+  padding: 1.5rem;
+  padding-bottom: calc(1.5rem + 64px + env(safe-area-inset-bottom)); /* Space for bottom nav + safe area */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+  transform: translateY(0);
+  animation: slideUp 0.3s ease-out;
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.mobileDrawerTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.mobileDrawerClose {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0.5rem; /* Increased padding for better touch target */
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px; /* Minimum touch target size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  border-radius: 0.375rem;
+}
+
+.mobileDrawerClose:active {
+  color: #ffffff;
+  transform: scale(0.95);
+}
+
+.mobileDrawerCloseIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.mobileFilterContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mobileFilterSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mobileFilterSectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.mobileCheckboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobileCheckboxItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px; /* Minimum touch target size */
+  padding: 0.5rem 0; /* Add vertical padding for better touch area */
+}
+
+.mobileCheckbox {
+  width: 1.25rem; /* Slightly larger for better touch target */
+  height: 1.25rem; /* Slightly larger for better touch target */
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  cursor: pointer;
+  accent-color: #00d4ff;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobileCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  flex: 1;
+  padding: 0.5rem 0; /* Add padding for larger touch area */
+  user-select: none; /* Prevent text selection on touch */
+}
+
+.mobileCheckboxLabel:active {
+  color: #ffffff;
+}
+
+.mobileStatusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mobileClearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 44px; /* Minimum touch target size */
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobileClearButton:active {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: scale(0.98);
+}
+
+.mobileClearIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mobileApplyButton {
+  margin-top: 1rem;
+  width: 100%;
+  min-height: 44px; /* Minimum touch target size */
+  padding: 0.875rem 1rem;
+  background: #00d4ff;
+  color: #0a0a0f;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobileApplyButton:active {
+  background: rgba(0, 212, 255, 0.9);
+  transform: scale(0.98);
+}
+
+/* ============================================
+   Results Header
+   ============================================ */
+.resultsHeader {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.resultsCount {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.resultsNumber {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.resultsTotal {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   Mobile Grid
+   ============================================ */
+/* Mobile-specific grid - 2 columns on mobile, matching homepage */
+.mobileGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 0.75rem;
+  justify-items: stretch;
+  align-items: start;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ensure grid items fit properly in their cells */
+.mobileGrid > * {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .mobileGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobileGrid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.5rem;
+  }
+}
+
+/* ============================================
+   Load More Section
+   ============================================ */
+.loadMoreSection {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================
+   Error State
+   ============================================ */
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: rgba(17, 17, 24, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(16px);
+}
+
+.errorIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.errorTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+}
+
+.errorMessage {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* ============================================
+   Mobile Animations
+   ============================================ */
+@keyframes mobileFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileStatCard {
+  animation: mobileFadeInUp 0.4s ease-out backwards;
+}
+
+.mobileStatCard:nth-child(1) { animation-delay: 0.05s; }
+.mobileStatCard:nth-child(2) { animation-delay: 0.1s; }
+.mobileStatCard:nth-child(3) { animation-delay: 0.15s; }
+.mobileStatCard:nth-child(4) { animation-delay: 0.2s; }
+
+/* ============================================
+   Extra Small Devices
+   ============================================ */
+@media (max-width: 375px) {
+  .mobileCollectionsContent {
+    padding: 1.25rem 0.875rem 1.5rem;
+  }
+
+  .mobileTitle {
+    font-size: 1.5rem;
+  }
+
+  .mobileDescription {
+    font-size: 0.8125rem;
+  }
+
+  .mobileStatsGrid {
+    gap: 0.5rem;
+  }
+
+  .mobileStatCard {
+    padding: 0.875rem 0.375rem;
+  }
+
+  .mobileStatValue {
+    font-size: 1.25rem;
+  }
+
+  .mobileStatLabel {
+    font-size: 0.625rem;
+  }
+}
+
+/* ============================================
+   Focus States for Accessibility
+   ============================================ */
+.mobileFilterButton:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+.mobileSearchInput:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+.mobileApplyButton:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+.mobileClearButton:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .mobileStatCard,
+  .mobileFilterButton,
+  .mobileApplyButton,
+  .mobileClearButton {
+    transition: none;
+    animation: none;
+  }
+
+  .mobileApplyButton:active,
+  .mobileClearButton:active,
+  .mobileFilterButton:active {
+    transform: none;
+  }
+}

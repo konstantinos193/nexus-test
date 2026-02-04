@@ -63,7 +63,7 @@ export default function FeaturedDropsGrid({ collections = [] }: FeaturedDropsGri
             const mintingPercentage = collection.totalSupply > 0
               ? ((collection.minted / collection.totalSupply) * 100).toFixed(1)
               : '0'
-            const bannerSrc = collection.bannerUrl || collection.imageUrl || placeholderBannerUrl(collection.id, collection.name, 600, 400)
+            const bannerSrc = placeholderBannerUrl(collection.id, collection.name, 600, 400)
 
             return (
               <Link
@@ -182,4 +182,4 @@ export default function FeaturedDropsGrid({ collections = [] }: FeaturedDropsGri
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - Featured drops, featured stats, featured everything.
+// P.S. - Featured drops, featured stats, featured everything! 🎯

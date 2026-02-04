@@ -1,44 +1,55 @@
 /**
  * Dashboard Layout - The wrapper for /dashboard and its children
- * Metadata, SEO, robots. Dashboard is the creator's HQ; we make sure Google knows
- * Minimal DOM, maximum discoverability
- *
- * We import dashboard-page.css here so all dashboard pages get the styles
- * We export metadata so "Dashboard" lands nicely in search and social shares
- * The layout itself is a pass-through (no extra wrapper div)
+ * Metadata, SEO, robots. Dashboard is the creator's HQ—we make sure Google knows.
+ * Minimal DOM, maximum discoverability. Same energy as Create layout.
  *
  * @author Juan - Layout architect and dashboard SEO enthusiast
  * (Coded with care, humor, and probably too much coffee)
  */
 
-// Dashboard page styles - stat cards, header, empty state, etc.
 import './dashboard-page.css'
 import type { Metadata } from 'next'
-// SEO config - pageTitle, absoluteUrl so "Dashboard" shows up when creators search
-import { absoluteUrl, pageTitle } from '@/lib/seo/config'
+import { absoluteUrl, pageTitle, ogImagePath } from '@/lib/seo/config'
 
-// Title and description - what shows in tabs and search results
 const title = 'Dashboard'
 const description =
-  'Manage your NFT collections, track minting stats, and oversee your creator dashboard on the NFT Launchpad.'
+  'Manage your NFT collections, track minting stats, and oversee your creator dashboard on the Web3 Launchpad.'
 
-// Metadata - so "Dashboard" lands nicely in search and social shares
+const keywords = [
+  'NFT dashboard',
+  'creator dashboard',
+  'manage NFT collections',
+  'minting stats',
+  'Solana NFT',
+]
+
 export const metadata: Metadata = {
   title,
   description,
+  keywords,
   alternates: { canonical: absoluteUrl('/dashboard') },
+  robots: { index: true, follow: true },
   openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: absoluteUrl('/dashboard'),
+    siteName: 'NeXus',
     title: pageTitle(title),
     description,
-    url: absoluteUrl('/dashboard'),
+    images: [
+      {
+        url: absoluteUrl(ogImagePath),
+        width: 1200,
+        height: 630,
+        alt: 'NeXus – Creator Dashboard',
+      },
+    ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: pageTitle(title),
     description,
-  },
-  robots: {
-    index: true,
-    follow: true,
+    images: [absoluteUrl(ogImagePath)],
   },
 }
 
@@ -54,6 +65,5 @@ export default function DashboardLayout({
   return <>{children}</>
 }
 
-// Coded by Juan - because every good layout needs a developer signature
-// (Even if it's just a comment at the bottom)
-// P.S. - Manage those collections. We've got the metadata. You've got the stats.
+// Layout by Juan - dashboard wrapper. SEO? Check. Extra DOM? Nope. We're efficient.
+// P.S. - Manage those collections. We've got the metadata. You've got the stats. 📊

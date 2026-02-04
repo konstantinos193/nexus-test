@@ -24,7 +24,7 @@
  * 
  * @author Juan - The developer who built this discovery masterpiece
  * (Coded with care, humor, and probably too much coffee)
- * P.S. - Discover something new, or don't. We're not your boss.
+ * P.S. - Discover something new, or don't. We're not your boss. 🔍
  */
 
 import { useState } from 'react'
@@ -152,4 +152,4 @@ export default function DiscoverSection() {
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - Discover something new, or don't. We're not your boss.
+// P.S. - Discover something new, or don't. We're not your boss. 🔍

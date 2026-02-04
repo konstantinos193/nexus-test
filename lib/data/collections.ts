@@ -1,29 +1,17 @@
 import { NFTCollection } from '@/types'
 
 /**
- * Static collection data for Milestone 1 (landing, discover).
- * Placeholder names and placehold.net images until real data exists.
- *
- * @author Juan - The developer who filled the void with placeholders
- * (Coded with care, humor, and probably too much coffee)
- */
-
-// Placehold.net – square for avatar/card, landscape for banner
-// https://placehold.net/600x600.png, https://placehold.net/800x600.png
-const PLACEHOLD_SQUARE = 'https://placehold.net/600x600.png'
-const PLACEHOLD_BANNER = 'https://placehold.net/800x600.png'
-
-/**
- * Mock collections (generic names, placehold.net images).
+ * Mock collections for /collections page (pyramid layout, filters).
+ * We don't have a backend yet — it's coming, we promise.
  */
 export const mockCollections: NFTCollection[] = [
   {
     id: '1',
-    name: 'Placeholder',
+    name: 'Collection 1',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 1',
     creatorAddress: '0x1234567890123456789012345678901234567890',
     blockchain: 'solana',
     totalSupply: 10000,
@@ -35,11 +23,11 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '2',
-    name: 'Demo Drop',
+    name: 'Collection 2',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 2',
     creatorAddress: '0x0987654321098765432109876543210987654321',
     blockchain: 'solana',
     totalSupply: 5000,
@@ -51,11 +39,11 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '3',
-    name: 'Sample',
+    name: 'Collection 3',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 3',
     creatorAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
     blockchain: 'solana',
     totalSupply: 10000,
@@ -67,11 +55,10 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '4',
-    name: 'Example',
+    name: 'Collection 4',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 4',
     creatorAddress: '0x1111111111111111111111111111111111111111',
     blockchain: 'solana',
     totalSupply: 8000,
@@ -83,11 +70,10 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '5',
-    name: 'Test Mint',
+    name: 'Collection 5',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 5',
     creatorAddress: '0x2222222222222222222222222222222222222222',
     blockchain: 'solana',
     totalSupply: 6000,
@@ -99,11 +85,10 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '6',
-    name: 'Preview',
+    name: 'Collection 6',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 6',
     creatorAddress: '0x3333333333333333333333333333333333333333',
     blockchain: 'solana',
     totalSupply: 12000,
@@ -115,11 +100,10 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '7',
-    name: 'Filler',
+    name: 'Collection 7',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 7',
     creatorAddress: '0x4444444444444444444444444444444444444444',
     blockchain: 'solana',
     totalSupply: 9000,
@@ -131,11 +115,10 @@ export const mockCollections: NFTCollection[] = [
   },
   {
     id: '8',
-    name: 'Dummy',
+    name: 'Collection 8',
     description: 'Lorem ipsum dolor sit amet.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Creator 8',
     creatorAddress: '0x5555555555555555555555555555555555555555',
     blockchain: 'solana',
     totalSupply: 7000,
@@ -149,16 +132,16 @@ export const mockCollections: NFTCollection[] = [
 
 /**
  * Featured collections for home (hero, featured grid, hot collections).
- * Generic placeholder names + placehold.net images.
+ * Placeholders until we have real featured/trending data.
  */
 export const featuredCollections: NFTCollection[] = [
   {
     id: 'f1',
-    name: 'Placeholder',
-    description: 'Lorem ipsum dolor sit amet. Placeholder description for demo.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #1',
+    description: 'Lorem ipsum dolor sit amet. Placeholder description for demo purposes only. Replace with real collection copy.',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x1234567890123456789012345678901234567890',
     blockchain: 'solana',
     totalSupply: 10000,
@@ -170,11 +153,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f2',
-    name: 'Demo Drop',
-    description: 'Consectetur adipiscing elit. Sample text for featured drop.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #2',
+    description: 'Consectetur adipiscing elit. Sample text for featured drop. Update before launch.',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x0987654321098765432109876543210987654321',
     blockchain: 'solana',
     totalSupply: 5000,
@@ -185,11 +168,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f3',
-    name: 'Sample',
-    description: 'Sed do eiusmod tempor incididunt. Demo content.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #3',
+    description: 'Sed do eiusmod tempor incididunt. [Your collection description here].',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
     blockchain: 'solana',
     totalSupply: 10000,
@@ -200,11 +183,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f4',
-    name: 'Example',
-    description: 'Ut labore et dolore magna. Demo content.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #4',
+    description: 'Ut labore et dolore magna. Demo content—swap for actual copy.',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x1111111111111111111111111111111111111111',
     blockchain: 'solana',
     totalSupply: 8000,
@@ -216,11 +199,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f5',
-    name: 'Test Mint',
-    description: 'Aliqua enim ad minim veniam. Filler text.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #5',
+    description: 'Aliqua enim ad minim veniam. Filler text until real data exists.',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x2222222222222222222222222222222222222222',
     blockchain: 'solana',
     totalSupply: 6000,
@@ -232,11 +215,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f6',
-    name: 'Preview',
-    description: 'Quis nostrud exercitation. Demo content.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #6',
+    description: 'Quis nostrud exercitation. [Add your collection pitch here].',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x3333333333333333333333333333333333333333',
     blockchain: 'solana',
     totalSupply: 12000,
@@ -248,11 +231,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f7',
-    name: 'Filler',
+    name: 'Placeholder Collection #7',
     description: 'Ullamco laboris nisi ut aliquip. Temporary demo content.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x4444444444444444444444444444444444444444',
     blockchain: 'solana',
     totalSupply: 9000,
@@ -264,11 +247,11 @@ export const featuredCollections: NFTCollection[] = [
   },
   {
     id: 'f8',
-    name: 'Dummy',
-    description: 'Ex ea commodo consequat. Demo content.',
-    imageUrl: PLACEHOLD_SQUARE,
-    bannerUrl: PLACEHOLD_BANNER,
-    creator: 'Creator',
+    name: 'Placeholder Collection #8',
+    description: 'Ex ea commodo consequat. Replace with real collection description.',
+    imageUrl: '/NeXus_Web3_Logo.png',
+    bannerUrl: '/NeXus_Web3_Logo.png',
+    creator: 'Placeholder Creator',
     creatorAddress: '0x5555555555555555555555555555555555555555',
     blockchain: 'solana',
     totalSupply: 7000,
@@ -284,7 +267,8 @@ const now = Date.now()
 const day = 24 * 60 * 60 * 1000
 
 /**
- * Discover section pool: extends featured + mock with endDate, varied createdAt, free mints.
+ * Discover section pool: Trending | New | Ending Soon | Free Mint.
+ * Extends featured + mock with endDate, varied createdAt, and free mints.
  */
 export const discoverCollections: NFTCollection[] = [
   ...featuredCollections.map((c, i) => ({
@@ -303,6 +287,3 @@ export const discoverCollections: NFTCollection[] = [
     ...([2, 5].includes(i) ? { price: 0 as number } : {}),
   })),
 ]
-
-// Coded by Juan - because every good data file needs a developer signature
-// P.S. - Placehold.net: making "no image yet" less sad. We stand with them.

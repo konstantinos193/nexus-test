@@ -1,7 +1,10 @@
 /**
- * Tools Page – Standalone CSS
- * Scoped to /tools. All classes under .tools-page.
- * Creator toolkit: snapshot, airdrop, burn, etc.
+ * app/tools/tools-page.css
+ * Standalone CSS for /tools. All classes under .tools-page.
+ * Defines --tools-* vars so the NFT Layer Generator can inherit them and not cry.
+ * Creator toolkit: snapshot, airdrop, burn, etc. (We'll add them. Maybe. The backlog is dark.)
+ *
+ * @author Juan – CSS variable hoarder and gradient enthusiast (same guy, different file)
  */
 
 .tools-page {
@@ -14,13 +17,13 @@
   --tools-text-muted: #b8b8c8;
   --tools-text-dim: #8a8a9a;
   min-height: 100vh;
-  background: var(--tools-bg);
+  background: var(--background-image-gradient-dark, var(--tools-bg));
   color: var(--tools-text);
   position: relative;
   overflow-x: hidden;
 }
 
-/* Subtle gradient mesh for depth */
+/* Subtle gradient mesh: "there is hope" (there isn't) */
 .tools-page::before {
   content: '';
   position: fixed;
@@ -33,6 +36,7 @@
   z-index: 0;
 }
 
+/* Subtle gradient mesh: "and also purple" */
 .tools-page::after {
   content: '';
   position: fixed;
@@ -274,3 +278,5 @@
   border-color: var(--tools-text-dim);
   color: var(--tools-text-muted);
 }
+
+/* — Juan. The gradient was the only joy left. (Same signature, different file.) */

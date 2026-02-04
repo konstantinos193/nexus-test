@@ -1,19 +1,14 @@
 'use client'
 
-/**
- * LaunchpadScrollbar - Applies launchpad class to html/body when on /collections
- * So launchpad-specific scrollbar styles take effect on the collections page
- * Because even scrollbars deserve a little flair
- *
- * @author Juan - The developer who styled the scrollbar
- * (Coded with care, humor, and probably too much coffee)
- */
-
 import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 
 const LAUNCHPAD_CLASS = 'launchpad'
 
+/**
+ * Applies the launchpad class to html/body when on /collections
+ * so launchpad-specific scrollbar styles take effect.
+ */
 export default function LaunchpadScrollbar() {
   const pathname = usePathname()
   const isLaunchpad = pathname === '/collections'
@@ -34,6 +29,3 @@ export default function LaunchpadScrollbar() {
 
   return null
 }
-
-// Coded by Juan - because every good component needs a developer signature
-// P.S. - Scrollbars: the unsung heroes of the page.

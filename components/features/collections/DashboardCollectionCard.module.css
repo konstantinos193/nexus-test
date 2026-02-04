@@ -1,0 +1,68 @@
+/**
+ * DashboardCollectionCard - Edit button, draft badge
+ * Extends CollectionCard for dashboard grid
+ */
+
+.dashboardCard {
+  position: relative;
+}
+
+.cardLink {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.editButton {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.375rem;
+  color: #00d4ff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.editButton:hover {
+  background: rgba(0, 212, 255, 0.2);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.editIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.editLabel {
+  line-height: 1;
+}
+
+.badgeDraft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(138, 138, 154, 0.4);
+  background: rgba(138, 138, 154, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}

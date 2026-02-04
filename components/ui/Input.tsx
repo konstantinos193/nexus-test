@@ -2,9 +2,6 @@
  * Input Component - The text input that users type in
  * Because sometimes users need to type things
  * (And sometimes they type the wrong things, but that's not our problem)
- *
- * @author Juan - The developer who built this input
- * (Coded with care, humor, and probably too much coffee)
  */
 
 import { InputHTMLAttributes, forwardRef } from 'react'
@@ -49,4 +46,5 @@ Input.displayName = 'Input'
 export default Input
 
 // Coded by Juan - because every good component needs a developer signature
-// P.S. - Inputs: where dreams become (hopefully valid) text.
+// (Even if it's just a comment at the bottom)
+// P.S. - Inputs: where dreams become (hopefully valid) text. ⌨️

@@ -1,0 +1,186 @@
+/* CustomDropdown – Standalone module. No global dependency. */
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdownFullWidth {
+  width: 100%;
+  display: block;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px 10px 16px;
+  min-width: 140px;
+  width: 100%;
+  height: 40px;
+  background: #0a0a0f;
+  border: 1px solid #252535;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  color: #ffffff;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.triggerSm {
+  height: 36px;
+  padding: 8px 12px 8px 14px;
+  font-size: 13px;
+  gap: 10px;
+}
+
+.triggerMd {
+  height: 40px;
+  padding: 10px 14px 10px 16px;
+  font-size: 14px;
+  gap: 12px;
+}
+
+.triggerLg {
+  height: 44px;
+  padding: 12px 16px 12px 18px;
+  font-size: 15px;
+  gap: 12px;
+}
+
+.triggerDefault {
+  background: #0a0a0f;
+}
+
+.triggerDark {
+  background: #0a0a0f;
+}
+
+.trigger:hover {
+  border-color: #3a3a4a;
+  background: #111118;
+}
+
+.trigger:focus {
+  border-color: #3a3a4a;
+  background: #111118;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
+}
+
+.trigger:active {
+  background: #1a1a24;
+}
+
+.triggerText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 18px;
+  height: 18px;
+  color: #b8b8c8;
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.trigger:hover .chevron {
+  color: #ffffff;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #111118;
+  border: 1px solid #252535;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 100%;
+}
+
+.menuDefault {
+  background: #111118;
+}
+
+.menuDark {
+  background: #0a0a0f;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  color: #ffffff;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.15s ease;
+}
+
+.option:hover {
+  background: #1a1a24;
+}
+
+.option:focus {
+  background: #1a1a24;
+}
+
+.optionSelected {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00d4ff;
+}
+
+.optionSelected:hover {
+  background: rgba(0, 212, 255, 0.25);
+}
+
+/* Custom scrollbar for dropdown menu */
+.menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  background: #252535;
+  border-radius: 3px;
+}
+
+.menu::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4a;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .trigger,
+  .chevron,
+  .option {
+    transition: none;
+  }
+}

@@ -217,4 +217,5 @@ export default function RootLayout({
 }
 
 // Coded by Juan - because every good layout needs a developer signature
-// P.S. - This is the foundation. Don't break it.
+// (Even if it's just a comment at the bottom)
+// P.S. - This is the foundation. Don't break it. 🏗️

@@ -23,7 +23,7 @@
 // Because we need a URL, and if we don't have one, we're just a bunch of files floating in space
 // Use ternary instead of ?? to avoid SWC nullish_coalescing transformer bug (Next 16 / swc_ecma_transformer)
 export const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL != null ? process.env.NEXT_PUBLIC_SITE_URL : 'https://nexus-web3.com'
+  process.env.NEXT_PUBLIC_SITE_URL != null ? process.env.NEXT_PUBLIC_SITE_URL : 'https://nexus-nft-launchpad.vercel.app'
 
 // Site name - what we call ourselves
 // Because every site needs a name (and "Untitled Document" is taken)
@@ -38,13 +38,13 @@ export const siteTitleDefault = 'NeXus – Create & Launch Your NFT Collections'
 // So it better be good (or at least not terrible)
 // It's like a Tinder bio, but for search results
 export const siteDescription =
-  'Professional Solana NFT launchpad for creators. Create, prepare, and launch NFT collections on Solana with Web3 tools, IPFS storage, and seamless wallet integration.'
+  'Professional Solana Web3 launchpad for creators. Create, prepare, and launch NFT collections on Solana with Web3 tools, IPFS storage, and seamless wallet integration.'
 
 // Site keywords - the words we want to rank for
 // Because keywords are like wishes - if you say them enough, maybe they'll come true
 // (Except keywords actually work, unlike wishes, which are just hopes and dreams)
 export const siteKeywords = [
-  'Solana NFT launchpad',
+  'Solana Web3 launchpad',
   'Solana NFT',
   'NFT creator',
   'create NFT collection',
@@ -52,6 +52,9 @@ export const siteKeywords = [
   'Solana',
   'mint NFT',
   'NFT tools',
+  'NFT layer generator',
+  'NFT rarity',
+  'Solana NFT rarity',
   'Phantom',
 ]
 

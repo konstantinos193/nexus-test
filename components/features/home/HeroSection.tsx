@@ -245,7 +245,7 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
                       <div className={styles.bannerContainer}>
                         <div className={styles.bannerImageWrapper}>
                           <img
-                            src={collection.bannerUrl || collection.imageUrl || placeholderBannerUrl(collection.id, collection.name, 1200, 400)}
+                            src={placeholderBannerUrl(collection.id, collection.name, 1200, 400)}
                             alt="Featured drop banner"
                             className={styles.bannerImage}
                             fetchPriority="high"
@@ -394,4 +394,4 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - If you're reading this, you've made it to the end. Congrats.
+// P.S. - If you're reading this, you've made it to the end. Congrats! 🎉

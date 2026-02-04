@@ -12,9 +12,7 @@
  */
 
 import type { Metadata } from 'next'
-// SEO config - titles, descriptions, canonical URLs. The whole shebang.
-// Google's gotta know we exist. Otherwise we're just a URL in the void.
-import { siteDescription, siteTitleDefault, absoluteUrl } from '@/lib/seo/config'
+import { siteDescription, siteTitleDefault, absoluteUrl, ogImagePath, siteName } from '@/lib/seo/config'
 // Layout - header, footer, the scaffolding that holds our beautiful content
 // Without it we're just a div floating in space (literally and metaphorically)
 import Layout from '@/components/layout/Layout'
@@ -39,21 +37,27 @@ export const metadata: Metadata = {
   // Because duplicate content is a sin (and Google will punish us for it)
   alternates: { canonical: absoluteUrl('/') },
   
-  // Open Graph - for when people share us on social media
-  // This is what shows up in those fancy preview cards
-  // Because we want to look good when people share us
   openGraph: {
-    title: siteTitleDefault,
-    description: siteDescription,
+    type: 'website',
+    locale: 'en_US',
     url: absoluteUrl('/'),
-  },
-  
-  // Twitter Card - same as Open Graph, but for Twitter
-  // Because Twitter users deserve nice previews too
-  // (Even if the platform has its quirks)
-  twitter: {
+    siteName,
     title: siteTitleDefault,
     description: siteDescription,
+    images: [
+      {
+        url: absoluteUrl(ogImagePath),
+        width: 1200,
+        height: 630,
+        alt: `${siteName} – Create & launch NFT collections`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteTitleDefault,
+    description: siteDescription,
+    images: [absoluteUrl(ogImagePath)],
   },
 }
 

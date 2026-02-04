@@ -1,43 +1,30 @@
 /**
- * Collections Page - Browse placeholder collections (Milestone 1)
- * Static grid of CollectionCards from mockCollections.
- * Styles: collections.module.css (standalone, no global dependency).
- *
+ * Collections Page – The grand bazaar of NFT collections
+ * Wireframe spec: Header + Search, Filter Bar, Grid, Pagination
+ * This is where users discover and browse all collections
+ * Because browsing is half the fun (the other half is actually minting)
+ * 
+ * Complete redesign with modern dark theme and glassmorphism effects
+ * Uses its own CSS module - no global dependencies (because we're independent like that)
+ * 
+ * Now with mobile support! Because mobile users deserve a great experience too
+ * (Even if their screens are smaller than our ambitions)
+ * 
  * @author Juan - The developer who built this collections page
  * (Coded with care, humor, and probably too much coffee)
  */
 
 import Layout from '@/components/layout/Layout'
-import { CollectionCard } from '@/components/features/collections/CollectionCard'
-import { mockCollections } from '@/lib/data/collections'
-import styles from './collections.module.css'
+import CollectionsPageContent from '@/components/features/collections/CollectionsPageContent'
 
 export default function CollectionsPage() {
   return (
     <Layout>
-      <div className={styles.page}>
-        <header className={styles.hero}>
-          <div className={styles.heroContainer}>
-            <div className={styles.heroContent}>
-              <h1 className={styles.heroTitle}>Browse Collections</h1>
-              <p className={styles.heroDescription}>
-                Placeholder collections. Real data in a later milestone.
-              </p>
-            </div>
-          </div>
-        </header>
-        <section className={styles.content}>
-          <div className={styles.contentContainer}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {mockCollections.map((collection) => (
-                <CollectionCard key={collection.id} collection={collection} />
-              ))}
-            </div>
-          </div>
-        </section>
-      </div>
+      <CollectionsPageContent />
     </Layout>
   )
 }
 
-// P.S. - Browse. Filter. Discover. Repeat.
+// Coded by Juan - because every good component needs a developer signature
+// (Even if it's just a comment at the bottom)
+// P.S. - Browse. Filter. Discover. Repeat. 🔍

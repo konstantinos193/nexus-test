@@ -2,9 +2,6 @@
  * Textarea Component - For when one line isn't enough
  * Because sometimes users need to write more than a sentence
  * (And sometimes they write novels, but we limit that)
- *
- * @author Juan - The developer who built this textarea
- * (Coded with care, humor, and probably too much coffee)
  */
 
 import { TextareaHTMLAttributes, forwardRef } from 'react'
@@ -47,6 +44,3 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 Textarea.displayName = 'Textarea'
 
 export default Textarea
-
-// Coded by Juan - because every good component needs a developer signature
-// P.S. - More than one line. Still not a novel.

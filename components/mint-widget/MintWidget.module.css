@@ -1,0 +1,636 @@
+/**
+ * MintWidget Styles - The minting machine that looks good
+ * Because minting widgets need style too (and we're not going to make it ugly)
+ * (And CSS modules keep our styles safe from global style chaos)
+ */
+
+/* Widget Container */
+.widget {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #252535;
+  background: #111118;
+}
+
+/* Header */
+.header {
+  border-bottom: 1px solid #252535;
+  background: #1a1a24;
+  padding: 1rem 1.5rem;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #b8b8c8;
+}
+
+.liveIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #10b981;
+}
+
+.liveDot {
+  position: relative;
+  display: flex;
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.liveDotPing {
+  position: absolute;
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #10b981;
+  opacity: 0.75;
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.liveDotSolid {
+  position: relative;
+  display: inline-flex;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* Content */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+/* Phase Selector - Strategic placement at top when multiple phases active */
+.phaseSelectorSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.phaseSelectorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phaseSelectorLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #b8b8c8;
+}
+
+.phaseSelectorBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.phaseSelectorContainer {
+  position: relative;
+}
+
+.phaseSelectorButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.05);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.phaseSelectorButton:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+.phaseSelectorButtonText {
+  flex: 1;
+  text-align: left;
+}
+
+.phaseSelectorChevron {
+  width: 1rem;
+  height: 1rem;
+  color: #00d4ff;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.phaseSelectorChevronOpen {
+  transform: rotate(180deg);
+}
+
+.phaseSelectorDropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(37, 37, 53, 0.8);
+  background: #111118;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.phaseOption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(37, 37, 53, 0.5);
+  background: #1a1a24;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.phaseOption:hover:not(.phaseOptionDisabled) {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.phaseOptionSelected {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
+}
+
+.phaseOptionDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.phaseOptionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.phaseOptionName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.phaseOptionPrice {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #00d4ff;
+  white-space: nowrap;
+}
+
+.phaseOptionDescription {
+  font-size: 0.75rem;
+  color: rgba(184, 184, 200, 0.7);
+  line-height: 1.4;
+}
+
+.phaseOptionNotEligible {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+/* Price Section */
+.priceSection {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.priceLabel {
+  font-size: 0.875rem;
+  color: #b8b8c8;
+}
+
+.priceValue {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.priceAmount {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.priceSolanaIcon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* Progress Section */
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.progressLabel {
+  color: #b8b8c8;
+}
+
+.progressValue {
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.progressBarContainer {
+  height: 0.5rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #1a1a24;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #00d4ff, #7c3aed);
+  transition: width 0.5s ease;
+}
+
+.progressFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #b8b8c8;
+}
+
+/* Quantity Section */
+.quantitySection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quantityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quantityLabel {
+  font-size: 0.875rem;
+  color: #b8b8c8;
+}
+
+.quantityMax {
+  font-size: 0.75rem;
+  color: #b8b8c8;
+}
+
+.quantitySelector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.quantityControls {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.5rem;
+  border: 1px solid #252535;
+  background: #1a1a24;
+  padding: 0.25rem;
+}
+
+.quantityButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.quantityButton:disabled {
+  cursor: not-allowed;
+  color: rgba(184, 184, 200, 0.5);
+}
+
+.quantityButton:not(:disabled) {
+  color: #ffffff;
+}
+
+.quantityButton:not(:disabled):hover {
+  background: #111118;
+}
+
+.quantityValue {
+  min-width: 3rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Total Section */
+.totalSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.5rem;
+  background: #1a1a24;
+  padding: 0.75rem 1rem;
+}
+
+.totalLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #b8b8c8;
+}
+
+.totalValue {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.totalAmount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.totalSolanaIcon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* Connect Wallet Prompt (when not connected) */
+.connectWalletPrompt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #b8b8c8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+}
+
+.connectWalletIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 0.8;
+}
+
+/* Mint Button */
+.mintButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mintButtonDisabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Upcoming State */
+.upcomingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Countdown Section */
+.countdownSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-radius: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 1.25rem 1rem;
+}
+
+.countdownHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.countdownIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #f59e0b;
+}
+
+.countdownLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #f59e0b;
+  text-align: center;
+}
+
+.countdownGrid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.countdownItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 3.5rem;
+}
+
+.countdownValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdownUnit {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.countdownSeparator {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f59e0b;
+  padding-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.countdownDate {
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(245, 158, 11, 0.8);
+  margin-top: 0.25rem;
+}
+
+.countdownDateValue {
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.upcomingNotice {
+  border-radius: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 0.75rem 1rem;
+}
+
+.upcomingText {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #f59e0b;
+}
+
+.upcomingDate {
+  font-weight: 600;
+}
+
+.upcomingButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background: #1a1a24;
+  color: #b8b8c8;
+  border: none;
+  cursor: not-allowed;
+}
+
+/* Ended State */
+.endedContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.endedNotice {
+  border-radius: 0.5rem;
+  background: #1a1a24;
+  padding: 0.75rem 1rem;
+}
+
+.endedText {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #b8b8c8;
+}
+
+.endedButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background: #1a1a24;
+  color: #b8b8c8;
+  border: none;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid #252535;
+  background: #1a1a24;
+  padding: 1rem 1.5rem;
+}
+
+.footerContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #b8b8c8;
+}
+
+.footerDivider {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: rgba(184, 184, 200, 0.5);
+}

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
  * (And we're not going to make users upload photos - that's too much work)
  *
  * Supports images, fallback initials, and custom sizes
+ * Because flexibility is key (unlike my joints after sitting all day)
  *
  * @author Juan - The developer who built this avatar
  * (Coded with care, humor, and probably too much coffee)
@@ -66,4 +67,5 @@ AvatarFallback.displayName = 'AvatarFallback'
 export { Avatar, AvatarImage, AvatarFallback }
 
 // Coded by Juan - because every good component needs a developer signature
-// P.S. - Avatars: making users look good since... always.
+// (Even if it's just a comment at the bottom)
+// P.S. - Avatars: making users look good since... always. 👤

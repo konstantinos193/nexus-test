@@ -193,4 +193,4 @@ export default CollectionCard;
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - Cards: making collections look good since... today.
+// P.S. - Cards: making collections look good since... today. 🎴

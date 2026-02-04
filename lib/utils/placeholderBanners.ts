@@ -24,18 +24,26 @@ export function getBannerPalette(collectionId: string): [string, string] {
   return BANNER_PALETTES[idx % BANNER_PALETTES.length]
 }
 
-/** Build placeholder image URL (width × height).
- * Milestone 1: use placehold.net directly so homepage images work without /api/images.
- * Next.js images.remotePatterns already allows placehold.net. */
+/** Build local API URL for collection banner (width × height, palette, name).
+ * Uses our own API route instead of placehold.co for better performance.
+ * Because external domains are slow, and we're not about that life. */
 export function placeholderBannerUrl(
-  _collectionId: string,
-  _collectionName: string,
+  collectionId: string,
+  collectionName: string,
   width: number,
   height: number
 ): string {
-  return `https://placehold.net/${width}x${height}.png`
+  // Use local API route - eliminates DNS/TLS delays
+  // Next.js will optimize this via Image Optimization API
+  const params = new URLSearchParams({
+    id: collectionId,
+    name: collectionName,
+    w: width.toString(),
+    h: height.toString(),
+  })
+  return `/api/images/banner?${params.toString()}`
 }
 
 // Coded by Juan - because every good util needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - Placeholders: making "no image yet" less sad.
+// P.S. - Placeholders: making "no image yet" less sad. 🖼️

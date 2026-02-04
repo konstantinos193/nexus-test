@@ -7,14 +7,20 @@
  */
 
 /**
- * Generate placeholder avatar image URL.
- * Milestone 1: use placehold.net so avatars show without /api/images/avatar.
+ * Generate local API URL for avatar image
+ * Uses our own API route instead of placehold.co for better performance
  */
 export function avatarUrl(
-  _text: string,
+  text: string,
   size: number = 16,
-  _bgColor: string = '00d4ff',
-  _textColor: string = 'ffffff'
+  bgColor: string = '00d4ff',
+  textColor: string = 'ffffff'
 ): string {
-  return `https://placehold.net/${size}x${size}.png`
+  const params = new URLSearchParams({
+    text,
+    size: size.toString(),
+    bg: bgColor,
+    textColor,
+  })
+  return `/api/images/avatar?${params.toString()}`
 }

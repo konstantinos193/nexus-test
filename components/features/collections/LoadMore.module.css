@@ -1,0 +1,59 @@
+/* LoadMore – Standalone module. No global dependency. */
+
+.wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 48px;
+  margin-bottom: 32px;
+}
+
+.button {
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #ffffff;
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+}
+
+.button:active:not(:disabled) {
+  opacity: 0.75;
+  transform: translateY(0);
+}
+
+.button:focus {
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.5), 0 0 40px rgba(0, 212, 255, 0.4);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .button:active:not(:disabled) {
+    transform: none;
+  }
+}

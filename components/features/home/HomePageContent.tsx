@@ -110,4 +110,4 @@ export default function HomePageContent() {
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - This is the homepage. Make it count.
+// P.S. - This is the homepage. Make it count. 🎯

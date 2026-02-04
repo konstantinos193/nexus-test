@@ -13,38 +13,27 @@ const nextConfig = {
   allowedDevOrigins: ['192.168.1.140'],
   // Enable production optimizations (swcMinify removed – default in Next.js 16)
   compress: true,
-  // Add caching and performance headers
+  // Add caching and performance headers (production only – in dev we avoid caching so HMR/live reload works)
   async headers() {
+    const isDev = process.env.NODE_ENV === 'development'
+    if (isDev) {
+      // In dev: disable caching so file changes show up without changing browser or hard refresh
+      return [
+        { source: '/:path*', headers: [{ key: 'Cache-Control', value: 'no-store, must-revalidate' }] },
+      ]
+    }
     return [
       {
-        // Cache static assets aggressively
         source: '/api/images/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
       {
-        // Cache Next.js static files
         source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
       {
-        // Cache fonts
         source: '/_next/static/media/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
     ]
   },
@@ -54,12 +43,6 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'placehold.net',
         port: '',
         pathname: '/**',
       },
@@ -162,7 +145,7 @@ const nextConfig = {
             // This helps since Web3 libraries are heavy but not always used
             web3: {
               name: 'web3',
-              test: /[\\/]node_modules[\\/](@solana|@phantom)[\\/]/,
+              test: /[\\/]node_modules[\\/](@?wagmi|viem|ethers|@web3modal|@phantom)[\\/]/,
               priority: 20,
               reuseExistingChunk: true,
               chunks: 'async', // Only load when needed (dynamic imports)

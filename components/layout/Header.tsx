@@ -294,4 +294,4 @@ export default function Header() {
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - This header is smarter than my GPS. It actually knows where you are.
+// P.S. - This header is smarter than my GPS. It actually knows where you are. 🧭

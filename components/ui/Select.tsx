@@ -2,9 +2,6 @@
  * Select Component - The dropdown that gives users choices
  * Because sometimes you need to pick from a list
  * (And sometimes the list is too long, but that's life)
- *
- * @author Juan - The developer who built this select
- * (Coded with care, humor, and probably too much coffee)
  */
 
 import { SelectHTMLAttributes, forwardRef } from 'react'
@@ -56,4 +53,5 @@ Select.displayName = 'Select'
 export default Select
 
 // Coded by Juan - because every good component needs a developer signature
-// P.S. - Dropdowns: making choices slightly less overwhelming.
+// (Even if it's just a comment at the bottom)
+// P.S. - Dropdowns: making choices slightly less overwhelming. 📋

@@ -37,7 +37,7 @@ import styles from './HotCollections.module.css'
  * 
  * @author Juan - The developer who built this hot collections display
  * (Coded with care, humor, and probably too much coffee)
- * P.S. - Hot collections, hot presentation, hot everything.
+ * P.S. - Hot collections, hot presentation, hot everything! 🔥
  */
 
 interface HotCollectionsProps {
@@ -106,7 +106,7 @@ export default function HotCollections({ collections = [] }: HotCollectionsProps
             {displayCollections.map((collection, index) => {
               // Calculate rank (because position matters, and we're ranking them)
               const rank = index + 1
-              const bannerSrc = collection.imageUrl || collection.bannerUrl || placeholderBannerUrl(collection.id, collection.name, 64, 64)
+              const bannerSrc = placeholderBannerUrl(collection.id, collection.name, 64, 64)
 
               return (
                 <Link
@@ -161,4 +161,4 @@ export default function HotCollections({ collections = [] }: HotCollectionsProps
 
 // Coded by Juan - because every good component needs a developer signature
 // (Even if it's just a comment at the bottom)
-// P.S. - Hot collections, hot presentation, hot everything.
+// P.S. - Hot collections, hot presentation, hot everything! 🔥

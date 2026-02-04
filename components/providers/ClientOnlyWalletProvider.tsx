@@ -1,31 +1,25 @@
 'use client'
 
-/**
- * ClientOnlyWalletProvider - Gate so wallet code only runs on the client
- * SSR doesn't run useEffect; we show a loading shell until mounted
- * Then WalletProviderShell + children. No hydration mismatch
- * Because a hydration mismatch is like promising breakfast and serving silence
- *
- * We keep initial state false so server and first client render match
- * (Using sessionStorage or module state for initial value would cause mismatch on return visits)
- *
- * @author Juan - The developer who waited for the client
- * (Coded with care, humor, and probably too much coffee)
- */
-
 import { useState, useEffect, type ReactNode } from 'react'
-// Shell - the actual wallet adapters + React Query wallet context
 import WalletProviderShell from './WalletProviderShell'
 
+/**
+ * Gate: only mount wallet providers on the client (SSR doesn't run useEffect).
+ * Shows a brief loading shell until mounted, then WalletProviderShell + children.
+ * Shell renders immediately with wallets=[]; adapters load async (no chunk wait).
+ * The loading state shows only on initial mount until useEffect runs.
+ *
+ * IMPORTANT: Initial state must always be false to match server render and avoid
+ * hydration mismatch. Using sessionStorage or module state for initial value
+ * would cause client to render differently than server (e.g. on return visits).
+ */
 export default function ClientOnlyWalletProvider({ children }: { children: ReactNode }) {
-  // Mounted = have we run on the client yet? false on server and first client paint
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Not mounted - show a simple loading spinner (no wallet UI yet)
   if (!mounted) {
     return (
       <div className="min-h-screen bg-dark-bg-primary flex items-center justify-center" aria-busy="true" aria-label="Loading">
@@ -34,10 +28,5 @@ export default function ClientOnlyWalletProvider({ children }: { children: React
     )
   }
 
-  // Mounted - render the wallet shell + children
   return <WalletProviderShell>{children}</WalletProviderShell>
 }
-
-// Coded by Juan - because every good component needs a developer signature
-// (Even if it's just a comment at the bottom)
-// P.S. - Server: no wallet. Client: wallet. We don't mix.
