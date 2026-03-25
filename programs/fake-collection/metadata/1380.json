@@ -1,0 +1,53 @@
+{
+  "name": "Fake Test Collection #1380",
+  "symbol": "FAKE",
+  "description": "A unique Fake Test Collection NFT. Token ID: 1380. This is a test collection for IPFS uploads.",
+  "image": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/1380.png",
+  "external_url": "https://nexus-launchpad.com/collection/fake-test-collection/1380",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Power Level",
+      "value": "6"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "None"
+    },
+    {
+      "trait_type": "Body",
+      "value": "Robot"
+    },
+    {
+      "trait_type": "Accessory",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Glowing"
+    },
+    {
+      "trait_type": "Background",
+      "value": "Neon City"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/1380.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "11111111111111111111111111111111",
+        "share": 100
+      }
+    ]
+  },
+  "seller_fee_basis_points": 500
+}

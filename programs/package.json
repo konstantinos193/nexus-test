@@ -2,19 +2,32 @@
   "name": "nexus-smart-contracts",
   "version": "0.1.0",
   "description": "NeXus NFT Launchpad Smart Contracts",
+  "license": "UNLICENSED",
   "scripts": {
-    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+    "build": "anchor build",
+    "test": "anchor test",
+    "test:skip-build": "anchor test --skip-build",
+    "test:only": "bash scripts/test-specific.sh",
+    "test:mint": "bash scripts/test-specific.sh \"Mint\"",
+    "test:collection": "bash scripts/test-specific.sh \"Collection\"",
+    "generate-fake-collection": "ts-node scripts/generate-fake-collection.ts",
+    "update-metadata-ipfs": "ts-node scripts/update-metadata-ipfs.ts",
+    "verify-metadata-ipfs": "ts-node scripts/verify-metadata-ipfs.ts",
+    "upload-images-ipfs": "ts-node scripts/upload-images-to-ipfs.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",
+    "js-sha3": "^0.9.3",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
     "chai": "^4.3.0",
     "mocha": "^10.0.0",
     "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.0"
   }
 }

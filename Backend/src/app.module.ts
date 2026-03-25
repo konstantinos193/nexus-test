@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CollectionsModule } from './collections/collections.module';
-import { PrismaModule } from './database/prisma.module';
+import { DatabaseModule } from './database/database.module';
 import { SolanaModule } from './solana/solana.module';
+import { IpfsModule } from './ipfs/ipfs.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -11,9 +12,10 @@ import { HealthController } from './health/health.controller';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    PrismaModule,
+    DatabaseModule,
     CollectionsModule,
     SolanaModule,
+    IpfsModule,
   ],
   controllers: [HealthController],
 })

@@ -9,6 +9,7 @@ target/types/
 
 # Test keypairs
 test-ledger/
+keypairs/
 .DS_Store
 
 # Anchor

@@ -19,17 +19,28 @@ nexus_payment = "8VLcrDKmzMXM1hDBzEU9ifRvaYSbuC4kfAF2tNa1qU9Z"
 url = "https://api.apr.anchor.fm"
 
 [provider]
-cluster = "localnet"
+# Use explicit URL so Windows connects to 127.0.0.1:8899 (avoids 0.0.0.0:8900 error)
+cluster = "http://127.0.0.1:8899"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
+# Production build: smallest binary (no-idl, no-log-ix-name are now defaults)
 build = "anchor build"
+# Development build: with logging enabled for debugging
+build-dev = "anchor build -- --features logs"
+# IDL generation: needed when updating client SDK (run separately, not for deployment)
+build-idl = "anchor build -- --no-default-features --features idl-build"
 deploy = "anchor deploy --provider.cluster devnet"
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts --reporter spec --bail"
 
 [hooks]
+post-build = "bash scripts/strip-binaries.sh || powershell -ExecutionPolicy Bypass -File scripts/strip-binaries.ps1 || echo 'Warning: Could not strip binaries. Install llvm-strip or strip tool.'"
 
 [test]
-startup_wait = 10000
+startup_wait = 30000
 shutdown_wait = 2000
 upgradeable = false
+
+# Use port 8900 so anchor test doesn't conflict with localnet on 8899
+[test.validator]
+rpc_port = 8900

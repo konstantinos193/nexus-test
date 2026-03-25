@@ -5,7 +5,7 @@
 
 import { Cluster, Connection } from '@solana/web3.js';
 
-export type SolanaNetwork = 'devnet' | 'testnet' | 'mainnet-beta';
+export type SolanaNetwork = 'devnet' | 'testnet' | 'mainnet-beta' | 'localnet';
 
 export interface SolanaConfig {
   network: SolanaNetwork;
@@ -37,6 +37,11 @@ export function getSolanaConfig(): SolanaConfig {
       network: 'mainnet-beta',
       rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
       cluster: 'mainnet-beta',
+    },
+    localnet: {
+      network: 'localnet',
+      rpcUrl: process.env.SOLANA_RPC_URL || 'http://127.0.0.1:8899',
+      cluster: 'devnet', // Use devnet cluster type for localnet compatibility
     },
   };
 
@@ -73,4 +78,11 @@ export function isDevnet(): boolean {
  */
 export function isMainnet(): boolean {
   return getCurrentNetwork() === 'mainnet-beta';
+}
+
+/**
+ * Check if we're on localnet
+ */
+export function isLocalnet(): boolean {
+  return getCurrentNetwork() === 'localnet';
 }

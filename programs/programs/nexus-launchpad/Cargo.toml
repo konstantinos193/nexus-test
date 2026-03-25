@@ -14,7 +14,13 @@ no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 idl-build = ["anchor-lang/idl-build"]
-default = []
+logs = []
+# Production defaults: no-idl (saves ~20-50KB), no-log-ix-name (saves CU)
+# IDL is only needed for client generation, not runtime
+default = ["no-idl", "no-log-ix-name"]
 
 [dependencies]
-anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-lang = { version = "0.32.1", default-features = false, features = ["init-if-needed"] }
+sha3 = { version = "0.10", default-features = false }
+# NOTE: Add mpl-core when implementing Metaplex Freeze Delegate CPI
+# mpl-core = { version = "0.11.1", features = ["anchor"] }

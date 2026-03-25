@@ -1,13 +1,15 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { PrismaService } from '../database/prisma.service';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { SolanaService } from '../solana/solana.service';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
   constructor(
-    private prisma: PrismaService,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private solana: SolanaService,
   ) {}
 
@@ -23,7 +25,7 @@ export class HealthController {
 
     try {
       // Test database connection
-      await this.prisma.$queryRaw`SELECT 1`;
+      await this.dataSource.query('SELECT 1');
       health.database = 'connected';
     } catch (error) {
       health.status = 'error';

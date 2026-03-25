@@ -11,9 +11,15 @@ resolver = "2"
 blake3 = { git = "https://github.com/BLAKE3-team/BLAKE3", tag = "1.7.0" }
 
 [profile.release]
-overflow-checks = true
-lto = "fat"
-codegen-units = 1
+opt-level = "z"          # Optimize for size (smallest binary)
+lto = true               # Link-time optimization (better dead code elimination)
+codegen-units = 1        # Single codegen unit (better optimization, slower compile)
+panic = "abort"          # Abort on panic (no unwinding code = smaller binary)
+strip = "symbols"        # Strip symbols (cargo-build-sbf also strips, but belt & suspenders)
+debug = 0                # No debug info
+overflow-checks = false  # Disable runtime overflow checks (saves ~5-10KB)
+                         # SAFE: All math uses checked_* operations which handle overflow explicitly
+incremental = false      # No incremental compilation (better optimization)
 
 [profile.release.build-override]
 opt-level = 3

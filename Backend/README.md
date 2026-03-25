@@ -148,6 +148,14 @@ npm run docker:prod
 
 See `DOCKER.md` for detailed Docker instructions.
 
+**Solana localnet (Docker):** The dev stack uses `SOLANA_RPC_URL=http://host.docker.internal:8899` so the backend in Docker talks to a validator on your host. **Start the validator before (or with) the stack**, e.g.:
+
+```bash
+solana-test-validator
+```
+
+If you see `ECONNREFUSED` to port 8899, the validator isn’t running or isn’t reachable; start it and ensure nothing else is using port 8899.
+
 ---
 
 ## Next Steps

@@ -1,4 +1,24 @@
-# WSL SSL/TLS Troubleshooting
+# WSL Troubleshooting Guide
+
+## Quick Reference: Windows Path Conversion
+
+When working in WSL bash, Windows paths need to be converted:
+- **Windows:** `E:\programming\Martech\programs`
+- **WSL:** `/mnt/e/programming/Martech/programs`
+
+**Rule:** `DRIVE:\` becomes `/mnt/DRIVE/` (lowercase drive letter)
+
+```bash
+# Example: Navigate to your project
+cd /mnt/e/programming/Martech/programs
+
+# Run scripts
+./scripts/start-localnet.sh
+```
+
+---
+
+## SSL/TLS Troubleshooting
 
 If you're getting SSL errors when installing Solana/Anchor in WSL, try these solutions:
 

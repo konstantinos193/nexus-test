@@ -1,0 +1,49 @@
+{
+  "name": "Fake Test Collection #171",
+  "symbol": "FAKE",
+  "description": "A unique Fake Test Collection NFT. Token ID: 171. This is a test collection for IPFS uploads.",
+  "image": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/171.png",
+  "external_url": "https://nexus-launchpad.com/collection/fake-test-collection/171",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Power Level",
+      "value": "1"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Metal"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "X-Ray"
+    },
+    {
+      "trait_type": "Hat",
+      "value": "Mask"
+    },
+    {
+      "trait_type": "Background",
+      "value": "Galaxy"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/171.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "11111111111111111111111111111111",
+        "share": 100
+      }
+    ]
+  },
+  "seller_fee_basis_points": 500
+}

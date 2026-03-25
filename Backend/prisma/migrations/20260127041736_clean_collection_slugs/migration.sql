@@ -9,6 +9,7 @@ WITH cleaned_slugs AS (
   -- e.g., "preparing-launch-1ef372e8" -> "preparing-launch"
   SELECT 
     id,
+    "createdAt",
     CASE 
       -- Check if slug ends with pattern: -[8 hex chars]
       WHEN slug ~ '^(.+)-[0-9a-f]{8}$' THEN

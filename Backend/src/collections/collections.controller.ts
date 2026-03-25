@@ -3,18 +3,23 @@ import {
   Get,
   Param,
   Query,
+  Post,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CollectionsService } from './collections.service';
+import { CollectionsSyncService } from './collections-sync.service';
 import { NFTCollection } from './dto/collection.dto';
 import { ApiResponseDto } from './dto/api-response.dto';
 
 @ApiTags('collections')
 @Controller('api/collections')
 export class CollectionsController {
-  constructor(private readonly collectionsService: CollectionsService) {}
+  constructor(
+    private readonly collectionsService: CollectionsService,
+    private readonly syncService: CollectionsSyncService,
+  ) {}
 
   @Get('featured')
   @ApiOperation({ summary: 'Get featured collections' })
@@ -53,12 +58,14 @@ export class CollectionsController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'sortBy', enum: ['newest', 'oldest', 'name', 'minted'], required: false })
   @ApiQuery({ name: 'limit', required: false, description: 'Max results (1–50). Default 15 when search is used.' })
+  @ApiQuery({ name: 'creator', required: false, description: 'Filter by creator wallet address (for dashboard)' })
   @ApiResponse({ status: 200, description: 'Collections retrieved successfully' })
   async getAll(
     @Query('status') status?: string,
     @Query('search') search?: string,
     @Query('sortBy') sortBy?: string,
     @Query('limit') limitStr?: string,
+    @Query('creator') creatorAddress?: string,
   ): Promise<ApiResponseDto<NFTCollection[]>> {
     try {
       let limit: number | undefined;
@@ -71,6 +78,7 @@ export class CollectionsController {
         search: search?.trim() || undefined,
         sortBy,
         limit,
+        creatorAddress: creatorAddress?.trim() || undefined,
       });
       return { success: true, data: collections };
     } catch (error) {
@@ -101,6 +109,55 @@ export class CollectionsController {
       }
       throw new HttpException(
         { success: false, error: 'Failed to fetch collection' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('sync')
+  @ApiOperation({ summary: 'Manually trigger collection sync from blockchain' })
+  @ApiResponse({ status: 200, description: 'Sync started successfully' })
+  async syncCollections(): Promise<ApiResponseDto<{ message: string }>> {
+    try {
+      // Run sync in background (don't await - return immediately)
+      this.syncService.syncCollections().catch((error) => {
+        // Log error but don't throw (sync runs in background)
+        console.error('Background sync failed:', error);
+      });
+
+      return {
+        success: true,
+        data: { message: 'Collection sync started in background' },
+      };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, error: 'Failed to start sync' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('onchain/:address')
+  @ApiOperation({ summary: 'Get collection data directly from blockchain' })
+  @ApiResponse({ status: 200, description: 'Collection data retrieved from blockchain' })
+  async getCollectionOnChain(
+    @Param('address') address: string,
+  ): Promise<ApiResponseDto<any>> {
+    try {
+      const collection = await this.syncService.getCollectionOnChain(address);
+      if (!collection) {
+        throw new HttpException(
+          { success: false, error: 'Collection not found on-chain' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return { success: true, data: collection };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        { success: false, error: 'Failed to fetch collection from blockchain' },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

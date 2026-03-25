@@ -1,11 +1,19 @@
 # Development Dockerfile
-FROM node:20-alpine
+# Debian base: Node 20 LTS (>=20.18), OpenSSL and Prisma work without Alpine compat packages
+FROM node:20-bookworm-slim
 
 WORKDIR /app
+
+# OpenSSL and CA certs for Prisma / HTTPS
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies first (for better caching)
 COPY package*.json ./
 RUN npm install
+
+# Generate Prisma client (helps catch issues early)
+COPY prisma ./prisma
+RUN npx prisma generate || true
 
 # Copy everything else
 COPY . .

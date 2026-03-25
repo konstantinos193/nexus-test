@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/yourusername/martech-frontend:production
+    environment:
+      NEXT_PUBLIC_API_URL: https://yourdomain.com/api
+      NEXT_PUBLIC_APP_URL: https://yourdomain.com
+      NEXT_PUBLIC_WEB3_NETWORK: mainnet
+    networks:
+      - martech-production
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  martech-production:
+    external: true

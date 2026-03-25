@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: nexus123
       POSTGRES_DB: nexus_db
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Host 5433 to avoid conflict with local PostgreSQL on 5432
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
@@ -18,6 +18,33 @@ services:
       retries: 5
     networks:
       - nexus-network-dev
+
+  # IPFS Node (Kubo)
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: nexus-ipfs-dev
+    ports:
+      - "4001:4001"  # Swarm port
+      - "5001:5001"  # API port (backend connects via service name ipfs:5001)
+      - "8080:8080"  # Gateway port
+    volumes:
+      - ipfs_data_dev:/data/ipfs
+      - ipfs_staging_dev:/data/ipfs/staging
+    environment:
+      - IPFS_PROFILE=server
+      # Listen on all interfaces so backend container can reach API (default can be localhost-only)
+      - IPFS_ADDRESSES_API=/ip4/0.0.0.0/tcp/5001
+      - IPFS_ADDRESSES_GATEWAY=/ip4/0.0.0.0/tcp/8080
+      # Note: sysctls don't work on Windows Docker Desktop; IPFS will still function
+    healthcheck:
+      test: ["CMD-SHELL", "ipfs id || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s  # Give IPFS time to initialize
+    networks:
+      - nexus-network-dev
+    restart: unless-stopped
 
   # NestJS Backend (Development)
   backend:
@@ -30,10 +57,26 @@ services:
       PORT: 8000
       FRONTEND_URL: http://localhost:3000
       NODE_ENV: development
+      # IPFS Configuration (using Docker service name)
+      IPFS_MODE: http
+      IPFS_API_URL: http://ipfs:5001
+      IPFS_GATEWAY_URL: http://ipfs:8080
+      IPFS_PUBLIC_GATEWAY_URL: http://localhost:8080/ipfs/
+      IPFS_AUTO_PIN: "true"
+      IPFS_PIN_TIMEOUT: "30000"
+      IPFS_GATEWAY_CORS: "true"
+      # Solana localnet (backend in Docker → validator on host via host.docker.internal)
+      SOLANA_NETWORK: localnet
+      SOLANA_RPC_URL: http://host.docker.internal:8899
+      MINTING_PROGRAM_ID: w6ELig1b3oETMQmiJkvPtyu99fnPwAGMJYSnaTXphma
+      PAYMENT_PROGRAM_ID: 8VLcrDKmzMXM1hDBzEU9ifRvaYSbuC4kfAF2tNa1qU9Z
+      COLLECTION_PROGRAM_ID: BUkDSb56YuM9Q1BsiokLKPfaUYP84AzE7xLfVXtqQzTi
     ports:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      ipfs:
         condition: service_healthy
     volumes:
       - .:/app
@@ -46,16 +89,14 @@ services:
       sh -c "
         echo 'Installing dependencies...' &&
         npm install &&
-        echo 'Generating Prisma Client...' &&
-        npx prisma generate &&
-        echo 'Running migrations...' &&
-        npx prisma migrate deploy || npx prisma migrate dev --name init &&
         echo 'Starting dev server...' &&
         npx nest start --watch
       "
 
 volumes:
   postgres_data_dev:
+  ipfs_data_dev:
+  ipfs_staging_dev:
 
 networks:
   nexus-network-dev:

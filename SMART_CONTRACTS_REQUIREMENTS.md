@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document outlines all smart contracts (Solana programs) that will be needed to transform NeXus from an off-chain preparation platform (Phase 1) into a fully functional on-chain NFT launchpad with minting and payment capabilities. This is a pure launchpad platform (similar to LaunchMyNFT) focused on helping creators launch their NFT collections.
+This document outlines all smart contracts (Solana programs) that will be needed to transform NeXus from an off-chain preparation platform (Phase 1) into a fully functional on-chain NFT launchpad with minting and payment capabilities. This is a pure launchpad platform focused on helping creators deploy and manage their NFT collections.
 
 ---
 

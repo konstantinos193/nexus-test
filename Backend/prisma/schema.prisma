@@ -25,9 +25,14 @@ model Collection {
   price         Float?
   status        String   @default("draft") // draft, preparing, ready, minting, completed, paused
   featured      Boolean  @default(false)
-  endDate       DateTime?
+  mintStart     DateTime? // When minting starts (for countdown and phase calculation)
+  endDate       DateTime? // When minting ends
   traits        Json?    // NFT traits/attributes stored as JSON
   ipfsHash      String?  // IPFS hash for metadata
+  // Royalty percentage (seller fee basis points, e.g., 500 = 5%) - only indexed for tradable collections
+  royaltyBasisPoints Int?
+  // Platform fee percentage (basis points, e.g., 500 = 5%) - only indexed for tradable collections
+  platformFeeBasisPoints Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

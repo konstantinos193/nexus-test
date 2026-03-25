@@ -35,6 +35,15 @@ async function bootstrap() {
     .setDescription('Backend API for NeXus NFT Launchpad')
     .setVersion('1.0')
     .addBearerAuth()
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'x-api-key',
+        in: 'header',
+        description: 'API key for authenticating requests to IPFS endpoints',
+      },
+      'ApiKeyAuth',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);

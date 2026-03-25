@@ -1,0 +1,49 @@
+{
+  "name": "Fake Test Collection #81",
+  "symbol": "FAKE",
+  "description": "A unique Fake Test Collection NFT. Token ID: 81. This is a test collection for IPFS uploads.",
+  "image": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/81.png",
+  "external_url": "https://nexus-launchpad.com/collection/fake-test-collection/81",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Power Level",
+      "value": "10"
+    },
+    {
+      "trait_type": "Accessory",
+      "value": "Gun"
+    },
+    {
+      "trait_type": "Body",
+      "value": "Human"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "X-Ray"
+    },
+    {
+      "trait_type": "Background",
+      "value": "Neon City"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/81.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "11111111111111111111111111111111",
+        "share": 100
+      }
+    ]
+  },
+  "seller_fee_basis_points": 500
+}

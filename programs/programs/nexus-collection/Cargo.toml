@@ -14,8 +14,12 @@ no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 idl-build = ["anchor-lang/idl-build"]
-default = []
+logs = []
+token-metadata = ["mpl-token-metadata"]
+# Production defaults: no-idl (saves ~20-50KB), no-log-ix-name (saves CU)
+# IDL is only needed for client generation, not runtime
+default = ["no-idl", "no-log-ix-name"]
 
 [dependencies]
-anchor-lang = "0.32.1"
-mpl-token-metadata = "4.1.1"
+anchor-lang = { version = "0.32.1", default-features = false, features = ["init-if-needed"] }
+mpl-token-metadata = { version = "4.1.1", default-features = false, optional = true }

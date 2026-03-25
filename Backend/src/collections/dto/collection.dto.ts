@@ -50,8 +50,17 @@ export class NFTCollection {
   updatedAt: string;
 
   @ApiProperty({ required: false })
+  mintStart?: string;
+
+  @ApiProperty({ required: false })
   endDate?: string;
 
   @ApiProperty({ required: false })
   featured?: boolean;
+
+  @ApiProperty({ required: false, description: 'Royalty percentage (seller fee basis points, e.g., 500 = 5%) - only indexed for tradable collections' })
+  royaltyBasisPoints?: number;
+
+  @ApiProperty({ required: false, description: 'Platform fee percentage (basis points, e.g., 500 = 5%) - only indexed for tradable collections' })
+  platformFeeBasisPoints?: number;
 }

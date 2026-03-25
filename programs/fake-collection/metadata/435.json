@@ -1,0 +1,53 @@
+{
+  "name": "Fake Test Collection #435",
+  "symbol": "FAKE",
+  "description": "A unique Fake Test Collection NFT. Token ID: 435. This is a test collection for IPFS uploads.",
+  "image": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/435.png",
+  "external_url": "https://nexus-launchpad.com/collection/fake-test-collection/435",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Background",
+      "value": "Space"
+    },
+    {
+      "trait_type": "Body",
+      "value": "Alien"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Fangs"
+    },
+    {
+      "trait_type": "Accessory",
+      "value": "Gun"
+    },
+    {
+      "trait_type": "Power Level",
+      "value": "10"
+    },
+    {
+      "trait_type": "Hat",
+      "value": "Antenna"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://gateway.lighthouse.storage/ipfs/bafybeia4un2wbforwcycyvagvynvds7246adcbxbtudk256qp3uehdzdce/435.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "11111111111111111111111111111111",
+        "share": 100
+      }
+    ]
+  },
+  "seller_fee_basis_points": 500
+}
