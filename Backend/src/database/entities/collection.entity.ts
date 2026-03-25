@@ -77,6 +77,11 @@ export class Collection {
   @Column('int', { nullable: true })
   platformFeeBasisPoints?: number;
 
+  /** On-chain mint address for the collection */
+  @Column({ nullable: true })
+  @Index()
+  mintAddress?: string;
+
   @CreateDateColumn()
   @Index()
   createdAt: Date;

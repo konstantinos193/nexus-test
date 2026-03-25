@@ -1,0 +1,194 @@
+{
+  "address": "8VLcrDKmzMXM1hDBzEU9ifRvaYSbuC4kfAF2tNa1qU9Z",
+  "metadata": {
+    "name": "nexus_payment",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "NeXus NFT Launchpad - Payment & Revenue Sharing"
+  },
+  "instructions": [
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize payment splitter for a collection",
+        "",
+        "This is where payment splitters are born - setting up the splitter account",
+        "Think of this as the birth certificate for your payment splitter",
+        "(Except instead of a baby, you get a way to split money between creators and platforms)",
+        "",
+        "We validate the fee percentage because we don't trust users",
+        "(Because taking more than 100% would be... creative accounting)"
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "splitter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  108,
+                  105,
+                  116,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "platform",
+          "docs": [
+            "This is where the platform gets paid",
+            "(We don't validate it here, we just trust that it's correct)"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "split_payment",
+      "docs": [
+        "Split payment between creator and platform (direct transfer, no escrow)",
+        "",
+        "This is where the magic happens - splitting money between creator and platform",
+        "(Or at least, that's what we tell ourselves. Reality is more complicated.)",
+        "",
+        "We calculate fees and transfer money directly - no escrow, no delays, just results.",
+        "Because if we don't, people won't get paid (and that's bad)"
+      ],
+      "discriminator": [
+        142,
+        211,
+        58,
+        150,
+        156,
+        255,
+        35,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "splitter"
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator",
+          "docs": [
+            "This is where the creator gets paid (minus platform fee)",
+            "(We don't validate it here, we just trust that it's correct)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "platform",
+          "docs": [
+            "This is where the platform gets paid (their fee)",
+            "(We don't validate it here, we just trust that it's correct)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Splitter",
+      "discriminator": [
+        187,
+        177,
+        147,
+        182,
+        44,
+        155,
+        130,
+        202
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidFee",
+      "msg": "Invalid fee"
+    },
+    {
+      "code": 6001,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Splitter",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import { SolanaService } from './solana.service';
 import { getCurrentNetwork } from './solana.config';
+import { PROGRAM_IDS, PDA_SEEDS } from './constants';
 
 @Injectable()
 export class ContractsService {
@@ -15,56 +16,35 @@ export class ContractsService {
   constructor(private solana: SolanaService) {}
 
   /**
-   * Get program ID from environment
+   * Get minting program ID (nexus_launchpad)
    */
-  getProgramId(programName: 'minting' | 'payment' | 'collection'): PublicKey | null {
-    const envKey = `${programName.toUpperCase()}_PROGRAM_ID`;
-    const programId = process.env[envKey];
-
-    if (!programId) {
-      this.logger.warn(`${envKey} not configured`);
-      return null;
-    }
-
-    try {
-      return new PublicKey(programId);
-    } catch (error) {
-      this.logger.error(`Invalid program ID for ${programName}:`, error);
-      return null;
-    }
+  getMintingProgramId(): PublicKey {
+    return new PublicKey(PROGRAM_IDS.MINTING_PROGRAM);
   }
 
   /**
-   * Get minting program ID
+   * Get payment program ID (nexus_payment)
    */
-  getMintingProgramId(): PublicKey | null {
-    return this.getProgramId('minting');
+  getPaymentProgramId(): PublicKey {
+    return new PublicKey(PROGRAM_IDS.PAYMENT_PROGRAM);
   }
 
   /**
-   * Get payment program ID
+   * Get collection program ID (nexus_collection)
    */
-  getPaymentProgramId(): PublicKey | null {
-    return this.getProgramId('payment');
-  }
-
-  /**
-   * Get collection program ID
-   */
-  getCollectionProgramId(): PublicKey | null {
-    return this.getProgramId('collection');
+  getCollectionProgramId(): PublicKey {
+    return new PublicKey(PROGRAM_IDS.COLLECTION_PROGRAM);
   }
 
   /**
    * Find collection PDA
    */
   async findCollectionPDA(authority: string): Promise<PublicKey | null> {
-    const programId = this.getMintingProgramId();
-    if (!programId) return null;
+    const programId = this.getCollectionProgramId();
 
     try {
       const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('collection'), new PublicKey(authority).toBuffer()],
+        [Buffer.from(PDA_SEEDS.COLLECTION), new PublicKey(authority).toBuffer()],
         programId
       );
       return pda;
@@ -79,11 +59,10 @@ export class ContractsService {
    */
   async findPaymentSplitterPDA(creator: string): Promise<PublicKey | null> {
     const programId = this.getPaymentProgramId();
-    if (!programId) return null;
 
     try {
       const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('splitter'), new PublicKey(creator).toBuffer()],
+        [Buffer.from(PDA_SEEDS.SPLITTER), new PublicKey(creator).toBuffer()],
         programId
       );
       return pda;
@@ -123,8 +102,21 @@ export class ContractsService {
    * Verify contract deployment
    */
   async verifyContractDeployment(programName: 'minting' | 'payment' | 'collection'): Promise<boolean> {
-    const programId = this.getProgramId(programName);
-    if (!programId) return false;
+    let programId: PublicKey;
+
+    switch (programName) {
+      case 'minting':
+        programId = this.getMintingProgramId();
+        break;
+      case 'payment':
+        programId = this.getPaymentProgramId();
+        break;
+      case 'collection':
+        programId = this.getCollectionProgramId();
+        break;
+      default:
+        return false;
+    }
 
     try {
       const connection = this.solana.getConnection();
@@ -146,15 +138,15 @@ export class ContractsService {
       network,
       contracts: {
         minting: {
-          programId: this.getMintingProgramId()?.toString() || 'Not configured',
+          programId: this.getMintingProgramId().toString(),
           deployed: await this.verifyContractDeployment('minting'),
         },
         payment: {
-          programId: this.getPaymentProgramId()?.toString() || 'Not configured',
+          programId: this.getPaymentProgramId().toString(),
           deployed: await this.verifyContractDeployment('payment'),
         },
         collection: {
-          programId: this.getCollectionProgramId()?.toString() || 'Not configured',
+          programId: this.getCollectionProgramId().toString(),
           deployed: await this.verifyContractDeployment('collection'),
         },
       },

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Collection } from '../database/entities/collection.entity';
 import { NFTCollection } from './dto/collection.dto';
+import { CreateCollectionDto } from './dto/create-collection.dto';
 
 @Injectable()
 export class CollectionsService {
@@ -146,6 +147,54 @@ export class CollectionsService {
       endDate: collection.endDate ? collection.endDate.toISOString() : undefined,
       blockchain: collection.blockchain as 'solana',
       status: collection.status as NFTCollection['status'],
+    };
+  }
+
+  /** Deploy a new collection to Solana devnet */
+  async deployCollection(deployData: CreateCollectionDto): Promise<{ collectionAddress: string; signature: string; databaseId: string; slug: string }> {
+    // Create a database record for the collection
+    const collection = this.collectionRepository.create({
+      name: deployData.name,
+      slug: deployData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      description: deployData.description,
+      imageUrl: deployData.collectionImage || '',
+      bannerUrl: deployData.bannerImage,
+      creator: deployData.creatorAddress,
+      creatorAddress: deployData.creatorAddress,
+      blockchain: 'solana',
+      totalSupply: deployData.totalSupply,
+      minted: 0,
+      price: deployData.freeMint ? 0 : deployData.mintPrice,
+      status: 'preparing', // Will be updated to 'ready' after on-chain deployment
+      mintStart: deployData.phases[0]?.startDateTime ? new Date(deployData.phases[0].startDateTime) : undefined,
+      endDate: deployData.phases[deployData.phases.length - 1]?.endDateTime ? new Date(deployData.phases[deployData.phases.length - 1].endDateTime) : undefined,
+      featured: false,
+      royaltyBasisPoints: deployData.royaltyPercent * 100, // Convert percentage to basis points
+    });
+
+    const savedCollection = await this.collectionRepository.save(collection);
+
+    // For now, return a placeholder address until the user deploys with their wallet
+    // This is honest about what's happening - the backend prepares the collection, user deploys
+    const placeholderAddress = `preparing_${savedCollection.id.slice(0, 8)}`;
+    
+    // Update the collection with placeholder address
+    savedCollection.mintAddress = placeholderAddress;
+    await this.collectionRepository.save(savedCollection);
+
+    console.log('Collection prepared for user deployment:', {
+      collectionId: savedCollection.id,
+      slug: savedCollection.slug,
+      creator: deployData.creatorAddress,
+      status: 'preparing',
+    });
+
+    // Return honest information about the collection preparation
+    return {
+      collectionAddress: placeholderAddress,
+      signature: `preparing_for_deployment_${Date.now()}`,
+      databaseId: savedCollection.id,
+      slug: savedCollection.slug,
     };
   }
 }

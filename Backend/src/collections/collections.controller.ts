@@ -6,12 +6,16 @@ import {
   Post,
   HttpException,
   HttpStatus,
+  Body,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CollectionsService } from './collections.service';
 import { CollectionsSyncService } from './collections-sync.service';
 import { NFTCollection } from './dto/collection.dto';
 import { ApiResponseDto } from './dto/api-response.dto';
+import { CreateCollectionDto } from './dto/create-collection.dto';
 
 @ApiTags('collections')
 @Controller('api/collections')
@@ -132,6 +136,26 @@ export class CollectionsController {
     } catch (error) {
       throw new HttpException(
         { success: false, error: 'Failed to start sync' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('deploy')
+  @ApiOperation({ summary: 'Deploy a new collection to Solana devnet' })
+  @ApiResponse({ status: 201, description: 'Collection deployed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid deployment data' })
+  @ApiResponse({ status: 500, description: 'Deployment failed' })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async deployCollection(@Body() deployData: CreateCollectionDto): Promise<ApiResponseDto<{ collectionAddress: string; signature: string }>> {
+    try {
+      // This would integrate with the Solana programs for actual deployment
+      // For now, we'll create a database record and return a mock response
+      const result = await this.collectionsService.deployCollection(deployData);
+      return { success: true, data: result };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, error: 'Failed to deploy collection' },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -1,0 +1,376 @@
+{
+  "address": "BUkDSb56YuM9Q1BsiokLKPfaUYP84AzE7xLfVXtqQzTi",
+  "metadata": {
+    "name": "nexus_collection",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "NeXus NFT Launchpad - Collection Management"
+  },
+  "instructions": [
+    {
+      "name": "create_collection",
+      "docs": [
+        "Create a new NFT collection",
+        "",
+        "RENT OPTIMIZATION: We store only authority, mint, metadata_uri, created_at, bump, status, featured.",
+        "Full metadata (name, description, image, attributes, etc.) lives off-chain at metadata_uri.",
+        "Validate metadata client-side and upload to Arweave/IPFS/HTTPS before calling this.",
+        "",
+        "Registers the collection in the global registry for fast querying (if initialized)."
+      ],
+      "discriminator": [
+        156,
+        251,
+        92,
+        54,
+        233,
+        2,
+        16,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "This is the mint for the NFT collection",
+            "(We don't validate it here because we're trusting you not to mess this up)",
+            "(Please don't mess this up)"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize_registry",
+      "docs": [
+        "Initialize the global collection registry",
+        "",
+        "This must be called once before creating any collections.",
+        "The registry stores all collection addresses for fast querying.",
+        "",
+        "WHY SEPARATE? Because Solana limits account reallocations in CPI to 10KB,",
+        "but the registry needs ~320KB (10000 collections * 32 bytes each).",
+        "By initializing it separately, we avoid the CPI reallocation limit."
+      ],
+      "discriminator": [
+        189,
+        181,
+        20,
+        17,
+        174,
+        57,
+        249,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_collection_status",
+      "docs": [
+        "Update collection status (draft, preparing, ready, minting, completed, paused)",
+        "Status is stored as u8: 0=draft, 1=preparing, 2=ready, 3=minting, 4=completed, 5=paused",
+        "(Because storing strings wastes bytes, and we're not made of money)"
+      ],
+      "discriminator": [
+        96,
+        11,
+        220,
+        208,
+        77,
+        166,
+        74,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "status",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "update_featured",
+      "docs": [
+        "Update featured flag (only platform authority - because we don't trust randos)",
+        "Featured collections appear in the homepage hero section",
+        "(Because being featured is a privilege, not a right)"
+      ],
+      "discriminator": [
+        224,
+        235,
+        195,
+        128,
+        231,
+        70,
+        1,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "platform_authority",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "featured",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_metadata",
+      "docs": [
+        "Update collection metadata URI (authority only).",
+        "New metadata must already be uploaded off-chain at the new URI."
+      ],
+      "discriminator": [
+        170,
+        182,
+        43,
+        239,
+        97,
+        78,
+        225,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_metadata_uri",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Collection",
+      "discriminator": [
+        48,
+        160,
+        232,
+        205,
+        191,
+        207,
+        26,
+        141
+      ]
+    },
+    {
+      "name": "CollectionRegistry",
+      "discriminator": [
+        103,
+        157,
+        231,
+        9,
+        181,
+        43,
+        15,
+        106
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidStatus",
+      "msg": "Invalid status"
+    },
+    {
+      "code": 6002,
+      "name": "RegistryFull",
+      "msg": "Registry is full - maximum 300 collections supported"
+    },
+    {
+      "code": 6003,
+      "name": "MetadataUriTooLong",
+      "msg": "Metadata URI exceeds maximum length (128 bytes)"
+    }
+  ],
+  "types": [
+    {
+      "name": "Collection",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "featured",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollectionRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "collections",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

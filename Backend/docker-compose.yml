@@ -30,6 +30,16 @@ services:
       PORT: 8000
       FRONTEND_URL: http://localhost:3000
       NODE_ENV: production
+      # Solana Configuration
+      SOLANA_NETWORK: devnet
+      SOLANA_RPC_URL: https://api.devnet.solana.com
+      SOLANA_COMMITMENT: confirmed
+      # Smart Contract Program IDs
+      MINTING_PROGRAM_ID: 3W4M5Mgd1rwaEHxLa8csRtUt4SGyZQzGennyV3HBEz5T
+      PAYMENT_PROGRAM_ID: HvpsXKFSSznqurbDCCp9AhQosGMsE4L6HfQDfUwXsnfb
+      COLLECTION_PROGRAM_ID: BUkDSb56YuM9Q1BsiokLKPfaUYP84AzE7xLfVXtqQzTi
+      # API Key
+      API_KEY: 543ef675f15bf0d12b03e88a0f7026b3806c76cb447f2b3787e0039259785cad
     ports:
       - "8000:8000"
     depends_on:

@@ -1,0 +1,1374 @@
+{
+  "address": "w6ELig1b3oETMQmiJkvPtyu99fnPwAGMJYSnaTXphma",
+  "metadata": {
+    "name": "nexus_launchpad",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "NeXus NFT Launchpad - Minting Program"
+  },
+  "instructions": [
+    {
+      "name": "close_collection_uri",
+      "docs": [
+        "Close CollectionUri PDA and reclaim rent to authority. Call when mint ended or URI no longer needed."
+      ],
+      "discriminator": [
+        148,
+        25,
+        192,
+        183,
+        198,
+        172,
+        92,
+        165
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        },
+        {
+          "name": "collection_uri",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  114,
+                  105
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_mint_split_config",
+      "docs": [
+        "Close MintSplitConfig PDA and reclaim rent to authority. Clear has_split on collection. Call when mint ended or splits no longer needed."
+      ],
+      "discriminator": [
+        208,
+        89,
+        10,
+        100,
+        86,
+        135,
+        12,
+        121
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        },
+        {
+          "name": "mint_split_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  108,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "get_collection_freeze_state",
+      "docs": [
+        "Batch check: Should all NFTs in collection be frozen/thawed?",
+        "Returns the current freeze state based on collection settings",
+        "Use this to determine if you need to batch freeze or thaw all NFTs",
+        "",
+        "This tells you the freeze state for the entire collection",
+        "(Useful when you need to batch update all NFTs in a collection)"
+      ],
+      "discriminator": [
+        111,
+        118,
+        100,
+        63,
+        33,
+        128,
+        175,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "docs": [
+            "We just need to read the collection config to check freeze status",
+            "(No authority required, because checking status doesn't modify anything)"
+          ]
+        }
+      ],
+      "args": [],
+      "returns": "bool"
+    },
+    {
+      "name": "init_mint_split_config",
+      "docs": [
+        "Create MintSplitConfig PDA (only authority). Call before setting splits with update_mint_fund_splits."
+      ],
+      "discriminator": [
+        96,
+        166,
+        148,
+        114,
+        131,
+        94,
+        23,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        },
+        {
+          "name": "mint_split_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  108,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_collection",
+      "docs": [
+        "Initialize a new collection launchpad",
+        "Platform fee only applies to mints, not trading (because we're not a marketplace, we're a launchpad)",
+        "",
+        "This is where it all begins - setting up a new collection for launch",
+        "Think of this as the birth certificate for your NFT collection",
+        "(Except instead of a baby, you get a digital collectible that may or may not be worth anything)",
+        "",
+        "We validate everything because we don't trust users to not mess things up",
+        "Start times, supply limits, fee percentages - all checked here",
+        "Because if we don't validate, chaos ensues (and chaos is expensive on Solana)"
+      ],
+      "discriminator": [
+        112,
+        62,
+        53,
+        139,
+        173,
+        152,
+        98,
+        93
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint_authority",
+          "docs": [
+            "This is the account that has permission to mint NFTs",
+            "(We don't validate it here, we just trust that it's correct)"
+          ]
+        },
+        {
+          "name": "creator_wallet",
+          "docs": [
+            "This is where the creator gets paid when NFTs are minted",
+            "(Because creators need to get paid, or they won't create)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "platform_wallet",
+          "docs": [
+            "This is where the platform gets its cut of mint fees",
+            "(Because even platforms need to pay the bills)"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "collection_config",
+          "type": {
+            "defined": {
+              "name": "CollectionConfig"
+            }
+          }
+        },
+        {
+          "name": "platform_fee_basis_points",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "is_trading_frozen",
+      "docs": [
+        "Check if trading is currently frozen for this collection",
+        "Returns true if trading should be frozen (either by date or until sold out)",
+        "This is a view function - doesn't modify state, just checks conditions",
+        "Can be called by anyone to check trading status",
+        "",
+        "This is like asking \"can I trade this NFT right now?\"",
+        "(And the answer might be \"no, because we said so\")"
+      ],
+      "discriminator": [
+        98,
+        84,
+        90,
+        103,
+        60,
+        250,
+        134,
+        72
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "docs": [
+            "We just need to read the collection config to check freeze status",
+            "(No authority required, because checking status doesn't modify anything)"
+          ]
+        }
+      ],
+      "args": [],
+      "returns": "bool"
+    },
+    {
+      "name": "mint",
+      "docs": [
+        "Mint an NFT from the collection.",
+        "When allowlist is active: pass proof (len <= 24) and leaf_index. When public mint: pass empty vec and 0."
+      ],
+      "discriminator": [
+        51,
+        57,
+        225,
+        47,
+        182,
+        146,
+        137,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator_wallet",
+          "docs": [
+            "This is where the creator gets paid (minus our platform fee)",
+            "(Because creators need to get paid, or they won't create)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "platform_wallet",
+          "docs": [
+            "This is where we get our cut of the mint price",
+            "(Because even platforms need to pay the bills)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "wallet_tracker",
+          "docs": [
+            "Wallet mint tracker - tracks how many NFTs this wallet has minted",
+            "RENT-OPTIMIZED: Only stores u8 count - PDA seeds prove wallet+collection ownership",
+            "PDA derived from collection and buyer to ensure one tracker per wallet per collection",
+            "This is how we enforce per-wallet mint limits",
+            "(Because we can't let whales hoard all the NFTs - fairness matters, even in crypto)",
+            "",
+            "The PDA seeds prove ownership, so we don't need to store wallet/collection again",
+            "(Because storing data we can derive is wasteful, and we're not wasteful)",
+            "This saves us 64 bytes per tracker, which adds up FAST",
+            "(For 1000 minters, that's 64KB saved - which is a lot of SOL in rent)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "split_config",
+          "docs": [
+            "Optional MintSplitConfig PDA; required when collection.has_split(). Seed = [\"split\", collection].",
+            "When collection.has_split(), client must pass MintSplitConfig PDA. Omitted otherwise."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  108,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "quantity",
+          "type": "u8"
+        },
+        {
+          "name": "allowlist_proof",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        },
+        {
+          "name": "allowlist_leaf_index",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "pause",
+      "docs": [
+        "Pause minting",
+        "This stops all minting activity (usually because something broke)",
+        "Use this when you need to stop the mint without ending it permanently",
+        "(Because sometimes you need a break, and mints are no exception)"
+      ],
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "resume",
+      "docs": [
+        "Resume minting",
+        "This un-pauses minting (usually after you fixed whatever broke)",
+        "Use this to restart the mint after pausing it",
+        "(Because all good things must continue, especially mints)"
+      ],
+      "discriminator": [
+        1,
+        166,
+        51,
+        170,
+        127,
+        32,
+        141,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "should_freeze_nft",
+      "docs": [
+        "Validate that an NFT should be frozen based on collection freeze settings",
+        "Returns true if NFT should be frozen, false otherwise",
+        "",
+        "Use this during NFT minting to determine if FreezeDelegate should be applied",
+        "The actual freeze is applied via Metaplex Core CPI during mint or separately",
+        "",
+        "This tells you whether to freeze an NFT when minting it",
+        "(Because frozen NFTs can't be traded, which is the whole point)"
+      ],
+      "discriminator": [
+        170,
+        124,
+        202,
+        105,
+        60,
+        144,
+        62,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "docs": [
+            "We just need to read the collection config to check freeze status",
+            "(No authority required, because checking status doesn't modify anything)"
+          ]
+        }
+      ],
+      "args": [],
+      "returns": "bool"
+    },
+    {
+      "name": "transfer_nft",
+      "docs": [
+        "Transfer NFT - enforces trading freeze on-chain",
+        "This function checks if trading is frozen and blocks transfers if so",
+        "NOTE: With Metaplex Freeze Delegate, frozen NFTs cannot be transferred at all",
+        "This function provides an additional check for custom transfer flows",
+        "",
+        "This is where we actually enforce the trading freeze",
+        "(Because checking is one thing, but blocking is another)"
+      ],
+      "discriminator": [
+        190,
+        28,
+        194,
+        8,
+        194,
+        218,
+        78,
+        78
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "docs": [
+            "We need this to check if trading is frozen",
+            "(Because we can't allow transfers if trading is frozen)"
+          ]
+        },
+        {
+          "name": "nft_mint",
+          "docs": [
+            "In a real implementation, you'd verify the NFT belongs to the collection",
+            "(For now, we just trust that it's correct)"
+          ]
+        },
+        {
+          "name": "from",
+          "docs": [
+            "This is who's sending the NFT",
+            "(They need to have the NFT, or the transfer will fail)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "to",
+          "docs": [
+            "This is who's receiving the NFT",
+            "(They'll own it after the transfer, if we allow it)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "docs": [
+            "This is who's authorizing the transfer",
+            "(Usually the current owner, but could be a delegate)"
+          ],
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "docs": [
+            "This is the program that handles the actual token transfer",
+            "(Because we don't handle transfers ourselves, we delegate to SPL Token)"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_allowlist_root",
+      "docs": [
+        "Update allowlist Merkle root (only authority).",
+        "Set root to enforce allowlist-phase mints; set to [0u8;32] for public mint.",
+        "",
+        "This is how you switch between allowlist and public mint phases",
+        "Set a root to enable allowlist-only minting",
+        "Clear it ([0u8;32]) to open up public minting",
+        "(Because sometimes you want exclusivity, and sometimes you want volume)"
+      ],
+      "discriminator": [
+        146,
+        254,
+        137,
+        203,
+        195,
+        234,
+        252,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_base_uri",
+      "docs": [
+        "Set/update base URI in optional CollectionUri PDA (only authority). Creates PDA only when used; collections without URI pay zero rent."
+      ],
+      "discriminator": [
+        124,
+        52,
+        206,
+        52,
+        58,
+        207,
+        42,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        },
+        {
+          "name": "collection_uri",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  114,
+                  105
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_base_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Update collection configuration (only authority)",
+        "This lets you change the collection config after initialization",
+        "(Because sometimes you need to adjust things, and that's okay)",
+        "Use this to update prices, times, limits, etc.",
+        "(But be careful - changing things mid-mint can confuse users)"
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_config",
+          "type": {
+            "defined": {
+              "name": "CollectionConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_mint_fund_splits",
+      "docs": [
+        "Update mint fund splits (only authority). Pass num 0 to clear (single creator_wallet). When num > 0, MintSplitConfig PDA must exist (call init_mint_split_config first)."
+      ],
+      "discriminator": [
+        68,
+        57,
+        173,
+        83,
+        67,
+        133,
+        118,
+        90
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        },
+        {
+          "name": "mint_split_config",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  108,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collection"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "recipients",
+          "type": {
+            "array": [
+              "pubkey",
+              10
+            ]
+          }
+        },
+        {
+          "name": "shares",
+          "type": {
+            "array": [
+              "u8",
+              10
+            ]
+          }
+        },
+        {
+          "name": "num",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "update_platform_fee",
+      "docs": [
+        "Update platform fee percentage (only authority)",
+        "This only affects mints, not trading - because we're a launchpad, not a marketplace",
+        "Fee is in basis points (e.g., 500 = 5%, 10000 = 100%)",
+        "",
+        "Use this to adjust the platform fee (usually to make more money)",
+        "(Or less money, if you're feeling generous)"
+      ],
+      "discriminator": [
+        162,
+        97,
+        186,
+        47,
+        93,
+        113,
+        176,
+        243
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_platform_fee_basis_points",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "update_trading_freeze",
+      "docs": [
+        "Update trading freeze settings (only authority)",
+        "Can freeze trading until a date or until sold out.",
+        "",
+        "This lets you control when people can trade the NFTs",
+        "Freeze until a date, or until sold out, or both",
+        "(Because sometimes you want to prevent secondary sales until everyone gets a chance to mint)"
+      ],
+      "discriminator": [
+        255,
+        42,
+        29,
+        215,
+        0,
+        229,
+        1,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "collection"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "freeze_trading_until_date",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "freeze_trading_until_sold_out",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Collection",
+      "discriminator": [
+        48,
+        160,
+        232,
+        205,
+        191,
+        207,
+        26,
+        141
+      ]
+    },
+    {
+      "name": "CollectionUri",
+      "discriminator": [
+        121,
+        25,
+        60,
+        243,
+        46,
+        133,
+        5,
+        64
+      ]
+    },
+    {
+      "name": "MintSplitConfig",
+      "discriminator": [
+        169,
+        57,
+        103,
+        31,
+        150,
+        143,
+        133,
+        25
+      ]
+    },
+    {
+      "name": "WalletMintTracker",
+      "discriminator": [
+        182,
+        5,
+        180,
+        20,
+        177,
+        226,
+        48,
+        20
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidStartTime",
+      "msg": "Invalid start time"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidSupply",
+      "msg": "Invalid supply"
+    },
+    {
+      "code": 6002,
+      "name": "MintingPaused",
+      "msg": "Minting is paused"
+    },
+    {
+      "code": 6003,
+      "name": "MintingNotStarted",
+      "msg": "Minting has not started yet"
+    },
+    {
+      "code": 6004,
+      "name": "MintingEnded",
+      "msg": "Minting has ended"
+    },
+    {
+      "code": 6005,
+      "name": "SupplyExceeded",
+      "msg": "Supply exceeded"
+    },
+    {
+      "code": 6006,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidMetadataStandard",
+      "msg": "Metadata standard cannot be changed"
+    },
+    {
+      "code": 6008,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6009,
+      "name": "MintLimitExceeded",
+      "msg": "Mint limit per wallet exceeded"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidFeePercentage",
+      "msg": "Invalid fee percentage (must be 0-10000 basis points)"
+    },
+    {
+      "code": 6011,
+      "name": "TradingFrozen",
+      "msg": "Trading is frozen - transfers are blocked until conditions are met"
+    },
+    {
+      "code": 6012,
+      "name": "TradingNotFrozen",
+      "msg": "Trading is not frozen - cannot perform freeze operation"
+    },
+    {
+      "code": 6013,
+      "name": "AllowlistRequired",
+      "msg": "Allowlist phase active: valid Merkle proof and leaf index required"
+    },
+    {
+      "code": 6014,
+      "name": "AllowlistInvalid",
+      "msg": "Allowlist proof invalid or wallet not in allowlist"
+    },
+    {
+      "code": 6015,
+      "name": "AllowlistNotRequired",
+      "msg": "Public mint: do not pass allowlist proof or leaf index"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidMintSplitCount",
+      "msg": "Invalid mint fund split count (must be 0-10)"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidMintSplitSum",
+      "msg": "Invalid mint fund split: shares must total 100"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidMintSplitAccounts",
+      "msg": "Invalid mint fund split: pass recipient wallets in order as remaining_accounts"
+    }
+  ],
+  "types": [
+    {
+      "name": "Collection",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_supply",
+            "type": "u64"
+          },
+          {
+            "name": "minted",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "freeze_until",
+            "type": "i64"
+          },
+          {
+            "name": "platform_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "mint_limit_per_wallet",
+            "type": "u8"
+          },
+          {
+            "name": "metadata_standard",
+            "type": "u8"
+          },
+          {
+            "name": "flags",
+            "type": "u8"
+          },
+          {
+            "name": "allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollectionConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "max_supply",
+            "type": "u64"
+          },
+          {
+            "name": "price_per_nft",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "mint_limit_per_wallet",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "metadata_standard",
+            "type": {
+              "defined": {
+                "name": "MetadataStandard"
+              }
+            }
+          },
+          {
+            "name": "freeze_trading_until_date",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "freeze_trading_until_sold_out",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollectionUri",
+      "docs": [
+        "Optional base URI PDA. Only created when creator sets URI; collections without URI pay zero rent. Seed = [\"uri\", collection]."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "base_uri",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MetadataStandard",
+      "docs": [
+        "Metadata standard for the collection. Set by creator at creation; all mints use this.",
+        "",
+        "THE COMPLETE REALITY MAP: All NFT/digital asset standards on Solana that developers actually encounter.",
+        "This is the future-proof enum that matches reality - because we're coding during a transition era.",
+        "",
+        "Cost estimates (on-chain costs; we don't add fees):",
+        "- Legacy: ~0.021 SOL (expensive but universal)",
+        "- Programmable: ~0.021 SOL + rule set costs (enforced royalties)",
+        "- Core: ~0.008 SOL (cheaper, future-proof)",
+        "- Compressed: ~0.005 SOL (dirt cheap, millions possible)",
+        "- SemiFungible: ~0.021 SOL (NFT metadata + fungible supply)",
+        "- Token2022: Variable (newer, more features)",
+        "- NativeMetadata: Variable (SPL native, no Metaplex)",
+        "- Custom: Variable (private implementations)",
+        "",
+        "NOTE: Stored as u8 in Collection struct to save space",
+        "(Because storing the full enum wastes bytes, and we're not about that wasteful lifestyle)",
+        "We use #[repr(u8)] to ensure the enum values match their u8 representation",
+        "(Because we want predictable conversions, not surprises)",
+        "",
+        "Migration path: Legacy → pNFT → Core → Token-2022 Native Assets",
+        "(You're literally coding during a transition era - embrace it)"
+      ],
+      "repr": {
+        "kind": "rust"
+      },
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Legacy"
+          },
+          {
+            "name": "Programmable"
+          },
+          {
+            "name": "Core"
+          },
+          {
+            "name": "Compressed"
+          },
+          {
+            "name": "SemiFungible"
+          },
+          {
+            "name": "Token2022"
+          },
+          {
+            "name": "NativeMetadata"
+          },
+          {
+            "name": "Custom"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MintSplitConfig",
+      "docs": [
+        "Mint split config in separate PDA; only created when splits are used. Seed = [\"split\", collection]."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "num",
+            "type": "u8"
+          },
+          {
+            "name": "recipients",
+            "type": {
+              "array": [
+                "pubkey",
+                10
+              ]
+            }
+          },
+          {
+            "name": "shares",
+            "type": {
+              "array": [
+                "u8",
+                10
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "WalletMintTracker",
+      "docs": [
+        "Tracks how many NFTs a specific wallet has minted from a collection",
+        "RENT-OPTIMIZED: Only stores the count - PDA seeds prove wallet+collection ownership",
+        "",
+        "This is how we enforce per-wallet mint limits",
+        "(Because we can't let whales hoard all the NFTs - fairness matters, even in crypto)",
+        "",
+        "MASSIVE SAVINGS: Removed wallet (32 bytes) + collection (32 bytes) = 64 bytes saved per tracker",
+        "PDA derivation already proves ownership, so we don't need to store it again",
+        "(Because storing data we can derive is wasteful, and we're not wasteful)",
+        "",
+        "Before: 73 bytes per tracker (32 + 32 + 8 + 1)",
+        "After: ~9 bytes per tracker (1 byte + discriminator)",
+        "Savings: ~64 bytes per tracker, which adds up FAST when you have many minters",
+        "(For 1000 minters, that's 64KB saved - which is a lot of SOL in rent)",
+        "",
+        "We use u8 instead of u64 because mint limits are typically small (max 255)",
+        "(Because if someone needs to mint more than 255 NFTs, they can use multiple wallets)",
+        "(And because we're not about to let one wallet hoard everything anyway)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "minted",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
