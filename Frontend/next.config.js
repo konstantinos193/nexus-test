@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Enable production optimizations (swcMinify removed – default in Next.js 16)
   compress: true,
-  // Add caching and performance headers
   async headers() {
     return [
       {
@@ -69,9 +67,6 @@ const nextConfig = {
     // framer-motion removed as it's not used in source code
     optimizePackageImports: ['lucide-react'],
   },
-  // Turbopack configuration (Next.js 16+ uses Turbopack by default)
-  // Empty config to silence the warning - Turbopack handles code splitting automatically
-  turbopack: {},
   // Webpack configuration for better code splitting
   // Note: Next.js has excellent default code splitting, so we only enhance it
   // This will be used when running with --webpack flag

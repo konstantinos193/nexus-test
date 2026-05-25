@@ -29,6 +29,7 @@ model Collection {
   endDate       DateTime? // When minting ends
   traits        Json?    // NFT traits/attributes stored as JSON
   ipfsHash      String?  // IPFS hash for metadata
+  mintAddress   String?  // On-chain mint address for the collection
   // Royalty percentage (seller fee basis points, e.g., 500 = 5%) - only indexed for tradable collections
   royaltyBasisPoints Int?
   // Platform fee percentage (basis points, e.g., 500 = 5%) - only indexed for tradable collections

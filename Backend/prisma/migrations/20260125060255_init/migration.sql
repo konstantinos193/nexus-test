@@ -1,5 +1,6 @@
--- CreateTable
-CREATE TABLE "Collection" (
+-- Idempotent re-init: safe to run after 20250101000000_init
+-- Uses IF NOT EXISTS so it's a no-op on an already-initialized database
+CREATE TABLE IF NOT EXISTS "Collection" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -17,25 +18,14 @@ CREATE TABLE "Collection" (
     "traits" JSONB,
     "ipfsHash" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Collection_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "Collection_status_idx" ON "Collection"("status");
-
--- CreateIndex
-CREATE INDEX "Collection_featured_idx" ON "Collection"("featured");
-
--- CreateIndex
-CREATE INDEX "Collection_createdAt_idx" ON "Collection"("createdAt");
-
--- CreateIndex
-CREATE INDEX "Collection_minted_idx" ON "Collection"("minted");
-
--- CreateIndex
-CREATE INDEX "Collection_creatorAddress_idx" ON "Collection"("creatorAddress");
-
--- CreateIndex
-CREATE INDEX "Collection_name_idx" ON "Collection"("name");
+CREATE INDEX IF NOT EXISTS "Collection_status_idx" ON "Collection"("status");
+CREATE INDEX IF NOT EXISTS "Collection_featured_idx" ON "Collection"("featured");
+CREATE INDEX IF NOT EXISTS "Collection_createdAt_idx" ON "Collection"("createdAt");
+CREATE INDEX IF NOT EXISTS "Collection_minted_idx" ON "Collection"("minted");
+CREATE INDEX IF NOT EXISTS "Collection_creatorAddress_idx" ON "Collection"("creatorAddress");
+CREATE INDEX IF NOT EXISTS "Collection_name_idx" ON "Collection"("name");
