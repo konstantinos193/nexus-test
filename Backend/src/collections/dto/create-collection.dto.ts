@@ -1,6 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsBoolean, IsArray, IsEnum, IsOptional, ValidateNested } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsArray, IsEnum, IsOptional, ValidateNested, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class FundReceiverDto {
+  @ApiProperty()
+  @IsString()
+  address: string;
+
+  @ApiProperty()
+  @IsString()
+  share: string;
+}
 
 export class MintPhaseDto {
   @ApiProperty()
@@ -56,41 +66,58 @@ export class CreateCollectionDto {
 
   @ApiProperty()
   @IsString()
-  uri: string; // Base URI from IPFS
+  creatorAddress: string;
 
-  @ApiProperty()
-  @IsNumber()
-  totalSupply: number;
-
-  @ApiProperty()
-  @IsNumber()
-  mintPrice: number;
-
-  @ApiProperty()
-  @IsBoolean()
-  freeMint: boolean;
-
-  @ApiProperty()
-  @IsNumber()
-  royaltyPercent: number;
-
-  @ApiProperty()
+  // uri/metadataUri — IPFS base URI, optional until media is uploaded in step 2
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  royaltyWallet: string;
+  uri?: string;
 
-  @ApiProperty({ type: [MintPhaseDto] })
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  metadataUri?: string;
+
+  // Supply + pricing — optional at step 1, required before on-chain deploy
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  totalSupply?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  mintPrice?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  freeMint?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  royaltyPercent?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  royaltyWallet?: string;
+
+  // Phases — optional at step 1; step 3 fills these in
+  @ApiProperty({ type: [MintPhaseDto], required: false })
+  @IsOptional()
   @ValidateNested({ each: true })
   @IsArray()
   @Type(() => MintPhaseDto)
-  phases: MintPhaseDto[];
+  phases?: MintPhaseDto[];
 
-  @ApiProperty()
-  @IsString()
-  creatorAddress: string;
-
-  @ApiProperty({ enum: ['Core', 'Metaplex', 'CNFT'] })
-  @IsEnum(['Core', 'Metaplex', 'CNFT'])
-  metadataStandard: 'Core' | 'Metaplex' | 'CNFT';
+  // Metadata standard — defaults to Core (best for mainnet)
+  @ApiProperty({ enum: ['Core', 'Legacy', 'Metaplex', 'Programmable', 'CNFT', 'Compressed'], required: false })
+  @IsOptional()
+  @IsEnum(['Core', 'Legacy', 'Metaplex', 'Programmable', 'CNFT', 'Compressed'])
+  metadataStandard?: 'Core' | 'Legacy' | 'Metaplex' | 'Programmable' | 'CNFT' | 'Compressed';
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -101,6 +128,13 @@ export class CreateCollectionDto {
   @IsOptional()
   @IsString()
   bannerImage?: string;
+
+  @ApiProperty({ type: [FundReceiverDto], required: false })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => FundReceiverDto)
+  fundReceivers?: FundReceiverDto[];
 
   @ApiProperty({ required: false })
   @IsOptional()
