@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { FilterState } from "@/types";
 import CustomDropdown from "./CustomDropdown";
+import { mapDisplayStatusToInternal, mapInternalStatusToDisplay } from "@/lib/type-utils";
 import styles from "./CollectionsFilter.module.css";
 
 interface CollectionsFilterProps {
@@ -25,28 +26,6 @@ interface CollectionsFilterProps {
   onStatusChange: (status: string[]) => void;
   onFilterChange: (filters: FilterState) => void;
   currentFilters?: FilterState;
-}
-
-/**
- * Maps display status to internal CollectionStatus
- * Because users think in "live/upcoming/ended" but we think in "minting/ready/completed"
- */
-function mapDisplayStatusToInternal(displayStatus: string): string | undefined {
-  if (displayStatus === "live") return "minting";
-  if (displayStatus === "upcoming") return "ready"; // or "preparing"
-  if (displayStatus === "ended") return "completed";
-  return undefined;
-}
-
-/**
- * Maps internal CollectionStatus to display status
- * Because we need to show users what they understand
- */
-function mapInternalStatusToDisplay(internalStatus?: string): string {
-  if (internalStatus === "minting") return "live";
-  if (internalStatus === "ready" || internalStatus === "preparing") return "upcoming";
-  if (internalStatus === "completed") return "ended";
-  return "";
 }
 
 export function CollectionsFilter({
@@ -81,7 +60,7 @@ export function CollectionsFilter({
     
     onFilterChange({
       ...currentFilters,
-      status: internalStatus as any,
+      status: internalStatus,
     });
   };
 

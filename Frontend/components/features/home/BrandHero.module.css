@@ -1,0 +1,28 @@
+/**
+ * Brand Hero Styles - 3:1 Banner
+ * Image as CSS background; responsive full-width hero
+ */
+
+.brandHero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  overflow: hidden;
+  background-color: #000000;
+  background-image: url('/3_1.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+@media (min-width: 768px) {
+  .brandHero {
+    aspect-ratio: 3 / 1.1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .brandHero {
+    aspect-ratio: 3 / 1;
+  }
+}

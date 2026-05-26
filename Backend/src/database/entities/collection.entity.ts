@@ -66,6 +66,12 @@ export class Collection {
   @Column('jsonb', { nullable: true })
   traits?: Record<string, any>; // NFT traits/attributes stored as JSON
 
+  @Column('jsonb', { nullable: true })
+  phases?: Record<string, any>[];
+
+  @Column('jsonb', { nullable: true })
+  fundReceivers?: Record<string, any>[];
+
   @Column({ nullable: true })
   ipfsHash?: string; // IPFS hash for metadata
 

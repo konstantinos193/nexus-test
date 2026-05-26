@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { NFTCollection } from '@/types'
 import { CollectionCard } from '../collections/CollectionCard'
 import { useDiscoverCollections } from '@/hooks/useCollections'
+import { getDiscoverCollectionsByTab } from '@/lib/data/collections'
 import styles from './DiscoverSection.module.css'
 
 type DiscoverTab = 'trending' | 'new' | 'ending_soon' | 'free_mint'
@@ -18,17 +19,15 @@ const TABS: { id: DiscoverTab; label: string }[] = [
 
 const MAX_DISPLAY = 6
 
-/**
- * Discover Section - Minimal curated picks below Hot Collections.
- * Tabs + small grid (max 6) + "Browse all" — no endless scroll.
- */
 export default function DiscoverSection() {
   const [activeTab, setActiveTab] = useState<DiscoverTab>('trending')
 
-  // Fetch collections from backend based on active tab
-  const { data: collections = [], isLoading } = useDiscoverCollections(activeTab)
+  const { data: apiCollections = [], isLoading } = useDiscoverCollections(activeTab)
+  const collections =
+    apiCollections && apiCollections.length > 0
+      ? apiCollections
+      : getDiscoverCollectionsByTab(activeTab)
 
-  // Display up to MAX_DISPLAY collections
   const display = collections.slice(0, MAX_DISPLAY)
 
   return (
@@ -36,6 +35,7 @@ export default function DiscoverSection() {
       <div className={styles.container}>
         <div className={styles.header}>
           <h3 className={styles.title}>Discover</h3>
+
           <div className={styles.tabs} role="tablist">
             {TABS.map(({ id, label }) => (
               <button
@@ -50,6 +50,7 @@ export default function DiscoverSection() {
             ))}
           </div>
         </div>
+
         <div className={styles.grid} role="tabpanel">
           {display.length === 0 ? (
             <p className={styles.empty}>
@@ -61,6 +62,7 @@ export default function DiscoverSection() {
             ))
           )}
         </div>
+
         <div className={styles.footer}>
           <Link href="/collections" className={styles.browseAll}>
             Browse all collections

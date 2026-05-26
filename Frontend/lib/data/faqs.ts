@@ -8,7 +8,7 @@ import { FAQItemData } from '@/components/features/faq/FAQPageContent'
 export const faqs: FAQItemData[] = [
   {
     question: 'What is NeXus?',
-    answer: 'NeXus is a professional Solana NFT launchpad that helps creators create, prepare, and launch NFT collections on Solana. We provide Web3 tools, IPFS storage, and seamless wallet integration to make NFT creation accessible to everyone.',
+    answer: 'NeXus is the Solana NFT launchpad built for creators. Upload your art, go live on-chain, and reach collectors — no smart-contract experience needed. We handle the technical complexity so you can focus on building your drop.',
   },
   {
     question: 'How do I create an NFT collection?',
@@ -40,7 +40,7 @@ export const faqs: FAQItemData[] = [
   },
   {
     question: 'What tools are available on NeXus?',
-    answer: 'NeXus provides various tools including Snapshot (to capture collection states), Trade (for NFT trading), Airdrop (to send NFTs to multiple addresses), Update NFT metadata, Burn NFTs, and more. Check out our Tools page for the full list.',
+    answer: 'NeXus provides a full creator toolkit: Holder Export (snapshot your holders), NFT Exchange (swap and trade), Batch Distribute (multi-wallet drops), Edit Metadata, Incinerator (burn supply), Quick Mint, and Inscriptions Studio for Bitcoin Ordinals. Head to the Tools page for the full list.',
   },
   {
     question: 'How do I contact support?',

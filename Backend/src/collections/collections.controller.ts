@@ -142,20 +142,39 @@ export class CollectionsController {
   }
 
   @Post('deploy')
-  @ApiOperation({ summary: 'Deploy a new collection to Solana devnet' })
-  @ApiResponse({ status: 201, description: 'Collection deployed successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid deployment data' })
-  @ApiResponse({ status: 500, description: 'Deployment failed' })
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async deployCollection(@Body() deployData: CreateCollectionDto): Promise<ApiResponseDto<{ collectionAddress: string; signature: string }>> {
+  @ApiOperation({ summary: 'Save collection to DB after frontend signs and confirms the on-chain tx' })
+  @ApiResponse({ status: 201, description: 'Collection saved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid collection data' })
+  @ApiResponse({ status: 500, description: 'Failed to save collection' })
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async deployCollection(
+    @Body() deployData: CreateCollectionDto,
+  ): Promise<ApiResponseDto<{ collectionId: string; collectionAddress: string; slug: string }>> {
     try {
-      // This would integrate with the Solana programs for actual deployment
-      // For now, we'll create a database record and return a mock response
       const result = await this.collectionsService.deployCollection(deployData);
       return { success: true, data: result };
     } catch (error) {
       throw new HttpException(
-        { success: false, error: 'Failed to deploy collection' },
+        { success: false, error: error instanceof Error ? error.message : 'Failed to save collection' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/confirm')
+  @ApiOperation({ summary: 'Confirm on-chain deployment — called by frontend after tx is confirmed' })
+  @ApiResponse({ status: 200, description: 'Collection marked as ready' })
+  @ApiResponse({ status: 404, description: 'Collection not found' })
+  async confirmDeployment(
+    @Param('id') collectionId: string,
+    @Body() body: { signature: string },
+  ): Promise<ApiResponseDto<NFTCollection>> {
+    try {
+      const collection = await this.collectionsService.confirmDeployment(collectionId, body.signature);
+      return { success: true, data: collection };
+    } catch (error) {
+      throw new HttpException(
+        { success: false, error: 'Failed to confirm deployment' },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

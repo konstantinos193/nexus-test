@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Dashboard Page - The creator's command center
  * This is where creators manage their collections and see their stats
  * Because everyone needs a dashboard (even if they don't know what to do with it)
@@ -11,8 +11,6 @@
 'use client'
 
 import { useState } from 'react'
-// Layout - header, footer. Dashboard needs a frame like everyone else.
-import Layout from '@/components/layout/Layout'
 // Card, CardHeader, CardTitle, CardContent - the boxes we put stats and collections in
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 // Button - for "Create Collection" and such. Clickable. Fancy.
@@ -54,7 +52,7 @@ export default function DashboardPage() {
   const activeCollections = collections.filter((c) => c.status === 'minting').length
 
   return (
-    <Layout>
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Page header - Because every page needs a title */}
         <div className="flex items-center justify-between mb-8">
@@ -166,10 +164,11 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-    </Layout>
+    </>
   )
 }
 
 // Coded by Juan - dashboard architect and "numbers are fun" truther
 // (Even if they don't know what to do with it, they've got a dashboard. We tried.)
 // P.S. - Manage those collections. Track those stats. You've got this. 📊
+

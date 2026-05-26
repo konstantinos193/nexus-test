@@ -3,6 +3,20 @@
 /* Completely self-contained, no dependencies on global styles */
 
 /* ============================================
+   BACKDROP (background behind carousel)
+   ============================================ */
+
+.heroSectionBackdrop {
+  position: relative;
+  width: 100%;
+  background-color: #000000;
+  background-image: url('/3_1.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ============================================
    MAIN CONTAINER
    ============================================ */
 
@@ -17,7 +31,6 @@
   padding: 0.5rem 1rem;
   padding-top: 0.75rem;
 }
-
 
 @media (min-width: 640px) {
   .heroSection {
@@ -79,7 +92,6 @@
 }
 
 /* Disable transition for instant jump when resetting from clone (infinite loop) */
-/* Using !important to ensure it overrides any other transition rules */
 .carouselTrackNoTransition {
   transition: none !important;
 }
@@ -159,12 +171,10 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* On desktop, use cover for better visual impact */
 @media (min-width: 768px) {
   .bannerImage {
     object-fit: cover;
   }
-  
   .carouselWrapper:hover .bannerImage {
     transform: scale(1.05);
     opacity: 0.5;
@@ -172,7 +182,7 @@
 }
 
 /* ============================================
-   TOP OVERLAY (Solana Logo & Live Badge)
+   TOP OVERLAY
    ============================================ */
 
 .topOverlay {
@@ -188,87 +198,6 @@
   padding: 1.25rem 1.5rem;
   gap: 1rem;
   z-index: 5;
-}
-
-.solanaBadge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  border-radius: 0.75rem;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.solanaIcon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: currentColor;
-}
-
-.liveBadgeContainer {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-@media (min-width: 640px) {
-  .liveBadgeContainer {
-    display: none;
-  }
-}
-
-.liveBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: rgba(16, 185, 129, 0.15);
-  backdrop-filter: blur(10px);
-  color: #10b981;
-  transition: all 0.2s ease;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
-}
-
-.liveDotContainer {
-  position: relative;
-  width: 0.5rem;
-  height: 0.5rem;
-}
-
-.liveDot {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0.375rem;
-  height: 0.375rem;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.liveDotPing {
-  position: absolute;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: currentColor;
-  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes ping {
-  75%, 100% {
-    transform: scale(2);
-    opacity: 0;
-  }
 }
 
 /* ============================================
@@ -393,46 +322,39 @@
 }
 
 /* ============================================
-   MINTING STATISTICS
+   LIVE BADGE
    ============================================ */
 
-.mintingStats {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1rem;
+.liveDotContainer {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
 }
 
-.mintingStatItem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.liveDot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.375rem;
+  height: 0.375rem;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: currentColor;
 }
 
-.mintingStatLabel {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.6);
+.liveDotPing {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-.mintingStatValue {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.2;
-}
-
-@media (min-width: 640px) {
-  .mintingStatValue {
-    font-size: 1.125rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .mintingStatValue {
-    font-size: 1.25rem;
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
   }
 }
 
@@ -501,15 +423,6 @@
   outline-offset: 2px;
 }
 
-.navButton:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.navButton:enabled:hover {
-  color: currentColor;
-}
-
 @media (min-width: 768px) {
   .navButton {
     display: flex;
@@ -560,7 +473,6 @@
   white-space: nowrap;
   border-width: 0;
 }
-
 
 /* ============================================
    ACCESSIBILITY

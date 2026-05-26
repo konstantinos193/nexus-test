@@ -1,0 +1,104 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: read
+
+env:
+  NODE_VERSION: 20
+  PNPM_VERSION: 10.33.0
+  IMAGE: ghcr.io/martechnetworks/nexus-frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint || true
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE }}:latest
+          cache-to: type=inline
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          timeout: 300s
+          command_timeout: 240s
+          script: |
+            set -e
+            IMAGE="ghcr.io/martechnetworks/nexus-frontend"
+            ENV_FILE="/var/www/nexus-frontend/.env.staging"
+
+            echo "=== Pulling image ==="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull $IMAGE:${{ github.sha }}
+
+            DOCKER_ENV="/tmp/nexus-frontend.env"
+            grep -v '^#' $ENV_FILE | grep -v '^$' | sed "s/^export //; s/='\(.*\)'$/=\1/; s/=\"\(.*\)\"$/=\1/" > $DOCKER_ENV
+
+            echo "=== Restarting container ==="
+            docker stop nexus-frontend || true
+            docker rm nexus-frontend || true
+            docker run -d \
+              --name nexus-frontend \
+              --restart unless-stopped \
+              --network host \
+              --env-file $DOCKER_ENV \
+              $IMAGE:${{ github.sha }}
+
+            echo "=== Health check ==="
+            sleep 15
+            for i in $(seq 1 10); do
+              curl -sf http://localhost:3000 && echo "Healthy" && break
+              echo "Attempt $i/10 failed..."
+              sleep 10
+              [ $i -eq 10 ] && docker logs nexus-frontend --tail 30 && exit 1
+            done
+
+            docker image prune -f
+            echo "=== Done ==="

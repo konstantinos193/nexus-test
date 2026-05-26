@@ -1,20 +1,21 @@
 /**
- * Create Page Header Component
- * The title and copy that greet users on the create page
- * Because context matters (and "Create Collection" without explanation is vague)
+ * CreatePageHeader - Heading block for the create page.
+ * Kept around for layouts that need it standalone.
+ * The main CreatePageContent uses the sidebar heading now — this is the backup.
+ * (Redundancy isn't always bad. Lawyers would agree.)
  *
- * @author Juan - The developer who built this header
+ * @author Juan - The developer who renamed "Launch Your Drop" into something original
  * (Coded with care, humor, and probably too much coffee)
  */
 export default function CreatePageHeader() {
   return (
     <div className="mb-8">
       <h1 className="text-4xl font-bold text-dark-text-primary mb-2">
-        Create Collection
+        New Collection
       </h1>
       <p className="text-dark-text-secondary">
-        Start your NFT journey here. It's easier than you think
-        (or harder, depending on your technical skills)
+        Set up your Solana collection, upload your artwork, and go live —
+        all from one place. No smart-contract experience required.
       </p>
     </div>
   )

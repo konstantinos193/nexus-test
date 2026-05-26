@@ -1,0 +1,588 @@
+/* ── Connect button (not connected) ──────────────────────────────────── */
+.connectBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(124, 58, 237, 0.2));
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 212, 255, 0.2);
+  white-space: nowrap;
+}
+
+.connectBtn:hover {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(124, 58, 237, 0.3));
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.connectBtn:active {
+  transform: translateY(0);
+}
+
+.connectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+/* Hide text on very small mobile screens (icon-only) */
+.btnText {
+  display: inline;
+}
+
+@media (max-width: 359px) {
+  .btnText {
+    display: none;
+  }
+}
+
+/* ── Connected state wrapper ─────────────────────────────────────────── */
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* ── Address button (connected) ──────────────────────────────────────── */
+.addressBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e0e0f0;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.addressBtn:hover,
+.addressBtnActive {
+  background: rgba(0, 212, 255, 0.14);
+  border-color: rgba(0, 212, 255, 0.45);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
+  color: #8a8a9a;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+/* ── Dropdown ────────────────────────────────────────────────────────── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: rgba(14, 14, 20, 0.97);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 1rem;
+  padding: 0.875rem;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 212, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 200;
+  animation: dropIn 0.15s ease;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdownTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.networkBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.connectedLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #22c55e;
+  letter-spacing: 0.02em;
+}
+
+.addressRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem;
+}
+
+.addressText {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #c8c8d8;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #8a8a9a;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.copyBtn:hover {
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.copyIcon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.5;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0.75rem 0;
+}
+
+.disconnectBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #f87171;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  text-align: left;
+}
+
+.disconnectBtn:hover {
+  background: rgba(248, 113, 113, 0.1);
+  color: #ff6b6b;
+}
+
+.disconnectIcon {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+/* ── Wallet selection modal ──────────────────────────────────────────────── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayIn 0.15s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  background: rgba(12, 12, 18, 0.98);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  width: min(420px, calc(100vw - 2rem));
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(0, 212, 255, 0.06);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.375rem;
+}
+
+.modalTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #f0f0ff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #6a6a8a;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.modalClose:hover {
+  color: #c0c0d8;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.modalClose svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.5;
+}
+
+.modalSubtitle {
+  font-size: 0.8125rem;
+  color: #6a6a8a;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Wallet sections ─────────────────────────────────────────────────────── */
+
+.walletSection {
+  margin-bottom: 1rem;
+}
+
+.sectionLabel {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a4a6a;
+  margin-bottom: 0.5rem;
+}
+
+.walletList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.walletBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #c8c8e0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  text-align: left;
+  text-decoration: none;
+}
+
+.walletBtn:hover {
+  background: rgba(0, 212, 255, 0.07);
+  border-color: rgba(0, 212, 255, 0.22);
+  transform: translateX(2px);
+}
+
+/* Featured Solflare button — gets extra padding and a cyan glow */
+.walletBtnFeatured {
+  background: rgba(0, 212, 255, 0.05);
+  border-color: rgba(0, 212, 255, 0.28);
+  padding: 1.25rem;
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.12);
+}
+
+.walletBtnFeatured:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.48);
+  box-shadow: 0 0 18px rgba(0, 212, 255, 0.08);
+  transform: translateX(2px);
+}
+
+.walletIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.walletIconPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.walletName {
+  flex: 1;
+  font-weight: 600;
+}
+
+/* "Recommended" badge on the Solflare button */
+.walletBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* "Get it →" hint when wallet isn't installed */
+.walletInstallHint {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8aa8;
+  white-space: nowrap;
+}
+
+/* ── Modal footnote ──────────────────────────────────────────────────────── */
+
+.modalFootnote {
+  margin: 1.25rem 0 0;
+  font-size: 0.8rem;
+  color: #5a5a7a;
+  text-align: center;
+}
+
+.modalLink {
+  color: #00d4ff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.modalLink:hover {
+  color: #66e8ff;
+}
+
+/* ── Dropdown identity section ───────────────────────────────────────────── */
+
+.dropdownIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.identityInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.identityAddressRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.dropdownActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #8a8a9a;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.actionBtn:hover {
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.walletRow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.walletRowIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.walletRowName {
+  font-size: 0.75rem;
+  color: #6a6a8a;
+  font-weight: 500;
+}
+
+/* ── Balance section ─────────────────────────────────────────────────────── */
+
+.balanceSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.125rem 0;
+}
+
+.sectionMeta {
+  font-size: 0.6875rem;
+  color: #5a5a7a;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.balanceSol {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f0f0ff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.solIcon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* ── Network section ─────────────────────────────────────────────────────── */
+
+.networkSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.125rem 0;
+}
+
+.networkPill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8a9a;
+  letter-spacing: 0.02em;
+}
+
+.networkPill[data-network="mainnet-beta"] { color: #22c55e; }
+.networkPill[data-network="devnet"]       { color: #f59e0b; }
+.networkPill[data-network="testnet"]      { color: #f97316; }
+.networkPill[data-network="localnet"]     { color: #94a3b8; }
+
+/* Responsive: stack balance/network on very small screens */
+@media (max-width: 359px) {
+  .balanceSection,
+  .networkSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}

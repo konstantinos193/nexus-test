@@ -13,18 +13,11 @@ export class CollectionsService {
   ) {}
 
   async findFeatured(): Promise<NFTCollection[]> {
-    // Get featured collections, prefer minting status
     const collections = await this.collectionRepository.find({
-      where: {
-        featured: true,
-      },
-      order: {
-        status: 'ASC', // 'minting' comes before others alphabetically
-        minted: 'DESC',
-      },
+      where: { featured: true },
+      order: { status: 'ASC', minted: 'DESC' },
       take: 10,
     });
-    // Convert dates to ISO strings
     return collections.map(this.formatCollection);
   }
 
@@ -59,10 +52,7 @@ export class CollectionsService {
 
       case 'free_mint':
         collections = await this.collectionRepository.find({
-          where: [
-            { price: 0 },
-            { price: null },
-          ],
+          where: [{ price: 0 }, { price: null }],
           take: 6,
         });
         break;
@@ -81,54 +71,37 @@ export class CollectionsService {
     limit?: number;
     creatorAddress?: string;
   }): Promise<NFTCollection[]> {
-    const queryBuilder = this.collectionRepository.createQueryBuilder('collection');
+    const qb = this.collectionRepository.createQueryBuilder('collection');
 
     if (filters.creatorAddress) {
-      queryBuilder.where('collection.creatorAddress = :creatorAddress', {
-        creatorAddress: filters.creatorAddress,
-      });
+      qb.where('collection.creatorAddress = :creatorAddress', { creatorAddress: filters.creatorAddress });
     }
-
     if (filters.status) {
-      queryBuilder.andWhere('collection.status = :status', { status: filters.status });
+      qb.andWhere('collection.status = :status', { status: filters.status });
     }
 
     const search = filters.search?.trim();
     if (search) {
-      queryBuilder.andWhere(
+      qb.andWhere(
         '(collection.name ILIKE :search OR collection.description ILIKE :search)',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
-    // Default limit when searching (e.g. header dropdown) for faster, smaller responses
     const take = filters.limit ?? (search ? 15 : undefined);
-    if (take != null) {
-      queryBuilder.take(take);
-    }
+    if (take != null) qb.take(take);
 
     switch (filters.sortBy) {
-      case 'newest':
-        queryBuilder.orderBy('collection.createdAt', 'DESC');
-        break;
-      case 'oldest':
-        queryBuilder.orderBy('collection.createdAt', 'ASC');
-        break;
-      case 'name':
-        queryBuilder.orderBy('collection.name', 'ASC');
-        break;
-      case 'minted':
-        queryBuilder.orderBy('collection.minted', 'DESC');
-        break;
-      default:
-        queryBuilder.orderBy('collection.createdAt', 'DESC');
+      case 'newest':  qb.orderBy('collection.createdAt', 'DESC'); break;
+      case 'oldest':  qb.orderBy('collection.createdAt', 'ASC');  break;
+      case 'name':    qb.orderBy('collection.name',      'ASC');  break;
+      case 'minted':  qb.orderBy('collection.minted',    'DESC'); break;
+      default:        qb.orderBy('collection.createdAt', 'DESC');
     }
 
-    const collections = await queryBuilder.getMany();
-    return collections.map(this.formatCollection);
+    return (await qb.getMany()).map(this.formatCollection);
   }
 
-  /** Resolve by slug (e.g. "nexus-genesis") or by id (UUID). */
   async findOne(idOrSlug: string): Promise<NFTCollection | null> {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
     const collection = await this.collectionRepository.findOne({
@@ -137,64 +110,71 @@ export class CollectionsService {
     return collection ? this.formatCollection(collection) : null;
   }
 
-  // Format collection dates to ISO strings for API response
   private formatCollection(collection: any): NFTCollection {
     return {
       ...collection,
-      createdAt: collection.createdAt.toISOString(),
-      updatedAt: collection.updatedAt.toISOString(),
-      mintStart: collection.mintStart ? collection.mintStart.toISOString() : undefined,
-      endDate: collection.endDate ? collection.endDate.toISOString() : undefined,
+      createdAt:  collection.createdAt.toISOString(),
+      updatedAt:  collection.updatedAt.toISOString(),
+      mintStart:  collection.mintStart  ? collection.mintStart.toISOString()  : undefined,
+      endDate:    collection.endDate    ? collection.endDate.toISOString()    : undefined,
       blockchain: collection.blockchain as 'solana',
-      status: collection.status as NFTCollection['status'],
+      status:     collection.status     as NFTCollection['status'],
     };
   }
 
-  /** Deploy a new collection to Solana devnet */
-  async deployCollection(deployData: CreateCollectionDto): Promise<{ collectionAddress: string; signature: string; databaseId: string; slug: string }> {
-    // Create a database record for the collection
+  /**
+   * Save a new collection to the DB after the frontend has signed and confirmed
+   * the on-chain tx. Status goes straight to 'ready' — no separate confirm step.
+   */
+  async deployCollection(data: CreateCollectionDto): Promise<{
+    collectionId: string;
+    collectionAddress: string;
+    slug: string;
+  }> {
+    const base = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const slug = `${base}-${Date.now().toString(36)}`;
+
+    const firstPhase = data.phases?.[0];
+    const lastPhase  = data.phases?.at(-1);
+
     const collection = this.collectionRepository.create({
-      name: deployData.name,
-      slug: deployData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-      description: deployData.description,
-      imageUrl: deployData.collectionImage || '',
-      bannerUrl: deployData.bannerImage,
-      creator: deployData.creatorAddress,
-      creatorAddress: deployData.creatorAddress,
-      blockchain: 'solana',
-      totalSupply: deployData.totalSupply,
-      minted: 0,
-      price: deployData.freeMint ? 0 : deployData.mintPrice,
-      status: 'preparing', // Will be updated to 'ready' after on-chain deployment
-      mintStart: deployData.phases[0]?.startDateTime ? new Date(deployData.phases[0].startDateTime) : undefined,
-      endDate: deployData.phases[deployData.phases.length - 1]?.endDateTime ? new Date(deployData.phases[deployData.phases.length - 1].endDateTime) : undefined,
-      featured: false,
-      royaltyBasisPoints: deployData.royaltyPercent * 100, // Convert percentage to basis points
+      name:               data.name,
+      slug,
+      description:        data.description,
+      imageUrl:           data.collectionImage || '',
+      bannerUrl:          data.bannerImage,
+      creator:            data.creatorAddress,
+      creatorAddress:     data.creatorAddress,
+      blockchain:         'solana',
+      totalSupply:        data.totalSupply        ?? 0,
+      minted:             0,
+      price:              data.freeMint ? 0 : (data.mintPrice ?? 0),
+      status:             'ready',
+      mintStart:          firstPhase?.startDateTime ? new Date(firstPhase.startDateTime) : undefined,
+      endDate:            lastPhase?.endDateTime    ? new Date(lastPhase.endDateTime)    : undefined,
+      featured:           false,
+      royaltyBasisPoints: Math.round((data.royaltyPercent ?? 0) * 100),
+      mintAddress:        data.collectionAddress,
+      ipfsHash:           data.txSignature,
+      phases:             data.phases,
+      fundReceivers:      data.fundReceivers,
     });
 
-    const savedCollection = await this.collectionRepository.save(collection);
+    const saved = await this.collectionRepository.save(collection);
 
-    // For now, return a placeholder address until the user deploys with their wallet
-    // This is honest about what's happening - the backend prepares the collection, user deploys
-    const placeholderAddress = `preparing_${savedCollection.id.slice(0, 8)}`;
-    
-    // Update the collection with placeholder address
-    savedCollection.mintAddress = placeholderAddress;
-    await this.collectionRepository.save(savedCollection);
-
-    console.log('Collection prepared for user deployment:', {
-      collectionId: savedCollection.id,
-      slug: savedCollection.slug,
-      creator: deployData.creatorAddress,
-      status: 'preparing',
-    });
-
-    // Return honest information about the collection preparation
     return {
-      collectionAddress: placeholderAddress,
-      signature: `preparing_for_deployment_${Date.now()}`,
-      databaseId: savedCollection.id,
-      slug: savedCollection.slug,
+      collectionId:     saved.id,
+      collectionAddress: saved.mintAddress ?? '',
+      slug:             saved.slug,
     };
+  }
+
+  async confirmDeployment(collectionId: string, txSignature: string): Promise<NFTCollection> {
+    await this.collectionRepository.update(
+      { id: collectionId },
+      { status: 'ready', ipfsHash: txSignature },
+    );
+    const updated = await this.collectionRepository.findOne({ where: { id: collectionId } });
+    return this.formatCollection(updated!);
   }
 }

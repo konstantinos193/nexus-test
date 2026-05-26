@@ -28,6 +28,8 @@ model Collection {
   mintStart     DateTime? // When minting starts (for countdown and phase calculation)
   endDate       DateTime? // When minting ends
   traits        Json?    // NFT traits/attributes stored as JSON
+  phases        Json?    // Mint phases array
+  fundReceivers Json?    // Fund split receivers array
   ipfsHash      String?  // IPFS hash for metadata
   mintAddress   String?  // On-chain mint address for the collection
   // Royalty percentage (seller fee basis points, e.g., 500 = 5%) - only indexed for tradable collections

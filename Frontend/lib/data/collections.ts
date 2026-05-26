@@ -287,3 +287,20 @@ export const discoverCollections: NFTCollection[] = [
     ...([2, 5].includes(i) ? { price: 0 as number } : {}),
   })),
 ]
+
+export function getDiscoverCollectionsByTab(tab: 'trending' | 'new' | 'ending_soon' | 'free_mint'): NFTCollection[] {
+  switch (tab) {
+    case 'trending':
+      return [...discoverCollections].sort((a, b) => b.minted - a.minted)
+    case 'new':
+      return [...discoverCollections].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+    case 'ending_soon':
+      return discoverCollections.filter((c) => (c as any).endDate).sort(
+        (a, b) => new Date((a as any).endDate).getTime() - new Date((b as any).endDate).getTime()
+      )
+    case 'free_mint':
+      return discoverCollections.filter((c) => c.price === 0)
+  }
+}

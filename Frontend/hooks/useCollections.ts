@@ -1,5 +1,11 @@
+// React Query - because we need to fetch data without going insane
+// Without it, we'd be writing useEffect spaghetti code (nobody wants that)
 import { useQuery } from '@tanstack/react-query'
+// API client - the thing that talks to our backend
+// Because frontend can't live in a vacuum (it needs data)
 import { collectionsApi } from '@/lib/api/client'
+// Types - because TypeScript needs to know what we're working with
+// Otherwise it gets confused (and so do we)
 import { NFTCollection } from '@/types'
 
 /**
@@ -56,7 +62,7 @@ export function useAllCollections(params?: {
   sortBy?: string
 }) {
   return useQuery({
-    queryKey: ['collections', 'all', params],
+    queryKey: ['collections', 'all', params?.status, params?.search, params?.sortBy],
     queryFn: async () => {
       const response = await collectionsApi.getAll(params)
       if (!response.success || !response.data) {

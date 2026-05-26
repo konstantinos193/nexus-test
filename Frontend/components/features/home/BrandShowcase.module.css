@@ -1,0 +1,67 @@
+/**
+ * Brand Showcase Styles - 1.5:1 Logo
+ * Responsive logo showcase that works on mobile and desktop
+ * Maintains 1.5:1 aspect ratio with appropriate sizing
+ */
+
+.brandShowcase {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+  background: transparent;
+}
+
+@media (min-width: 640px) {
+  .brandShowcase {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .brandShowcase {
+    padding: 3rem 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .brandShowcase {
+    padding: 4rem 2rem;
+  }
+}
+
+.logoWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 1.5 / 1;
+  margin: 0 auto;
+}
+
+.logoImage {
+  object-fit: contain;
+  object-position: center;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 639px) {
+  .logoWrapper {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .logoWrapper {
+    max-width: 500px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .logoWrapper {
+    max-width: 600px;
+  }
+}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Terms of Service Page - The Rules We All Agree To
  * Where we lay down the law (or at least try to)
  * Because every platform needs rules (even if nobody reads them)
@@ -11,8 +11,6 @@
 import type { Metadata } from 'next'
 // SEO config - pageTitle, URLs. Google's gotta know we have terms. We do. We have *many*.
 import { pageTitle, absoluteUrl } from '@/lib/seo/config'
-// Layout - header, footer. Legal pages need frames too. We're consistent like that.
-import Layout from '@/components/layout/Layout'
 // Terms page content with mobile/desktop detection
 import TermsPageContent from '@/components/features/terms/TermsPageContent'
 
@@ -142,8 +140,9 @@ const sections = [
  */
 export default function TermsPage() {
   return (
-    <Layout>
+    <>
       <TermsPageContent sections={sections} />
-    </Layout>
+    </>
   )
 }
+

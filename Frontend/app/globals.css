@@ -39,24 +39,26 @@
   --shadow-glow-lg: 0 0 40px rgba(0, 212, 255, 0.4);
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  background: #0a0a0f;
-  color: #ffffff;
-}
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    background: #0a0a0f;
+    color: #ffffff;
+  }
 
-body {
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 /* Custom scrollbar for dark theme */

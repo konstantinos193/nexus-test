@@ -9,7 +9,7 @@ const faqs = [
   {
     question: 'What is NeXus?',
     answer:
-      'NeXus is a professional Solana NFT launchpad that helps creators create, prepare, and launch NFT collections on Solana. We provide Web3 tools, IPFS storage, and seamless wallet integration to make NFT creation accessible to everyone.',
+      'NeXus is the Solana NFT launchpad built for creators. Upload your art, go live on-chain, and reach collectors — no smart-contract experience needed. We handle the technical complexity so you can focus on building your drop.',
   },
   {
     question: 'How do I create an NFT collection?',

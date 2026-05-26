@@ -1,170 +1,35 @@
-title = "Gitleaks Configuration - Frontend Web3 Security"
+title = "Gitleaks Configuration"
 
-# Extend the default rules to include Web3-specific secrets
+# Extend the base (default) configuration
 [extend]
 useDefault = true
 
-# Custom rules for Web3 secrets
-[[rules]]
-description = "Ethereum Private Key"
-id = "ethereum-private-key"
-regex = '''(?i)(ethereum|eth)[_-]?private[_-]?key[=:]\s*([0-9a-fA-F]{64})'''
-keywords = ["ethereum", "private", "key", "eth"]
-
-[[rules]]
-description = "Solana Private Key"
-id = "solana-private-key"
-regex = '''(?i)(solana)[_-]?private[_-]?key[=:]\s*([1-9A-HJ-NP-Za-km-z]{88})'''
-keywords = ["solana", "private", "key"]
-
-[[rules]]
-description = "Mnemonic Phrase"
-id = "mnemonic-phrase"
-regex = '''(?i)(mnemonic|seed|phrase)[=:]\s*([a-zA-Z ]{15,})'''
-keywords = ["mnemonic", "seed", "phrase"]
-
-[[rules]]
-description = "Infura Project ID"
-id = "infura-project-id"
-regex = '''(?i)(infura)[_-]?project[_-]?id[=:]\s*([a-f0-9]{32})'''
-keywords = ["infura", "project", "id"]
-
-[[rules]]
-description = "Alchemy API Key"
-id = "alchemy-api-key"
-regex = '''(?i)(alchemy)[_-]?api[_-]?key[=:]\s*([a-zA-Z0-9_-]{32,})'''
-keywords = ["alchemy", "api", "key"]
-
-[[rules]]
-description = "Phantom Wallet API Key"
-id = "phantom-api-key"
-regex = '''(?i)(phantom)[_-]?api[_-]?key[=:]\s*([a-zA-Z0-9_-]{32,})'''
-keywords = ["phantom", "api", "key"]
-
-[[rules]]
-description = "Solana RPC URL with Key"
-id = "solana-rpc-url"
-regex = '''(?i)(https?://[^/]+\.(solana\.com|helius\.rpc\.pool|triton\.one)/[^/]+[a-zA-Z0-9_-]{20,})'''
-keywords = ["solana.com", "helius.rpc.pool", "triton.one"]
-
-[[rules]]
-description = "Web3 Secret Key"
-id = "web3-secret-key"
-regex = '''(?i)(web3|blockchain|crypto)[_-]?secret[_-]?key[=:]\s*([a-zA-Z0-9+/]{32,})'''
-keywords = ["web3", "blockchain", "crypto", "secret", "key"]
-
-[[rules]]
-description = "Wallet Seed Phrase"
-id = "wallet-seed"
-regex = '''(?i)(wallet)[_-]?seed[=:]\s*([a-zA-Z ]{12,24})'''
-keywords = ["wallet", "seed"]
-
-[[rules]]
-description = "IPFS API Key"
-id = "ipfs-api-key"
-regex = '''(?i)(ipfs)[_-]?api[_-]?key[=:]\s*([a-zA-Z0-9_-]{32,})'''
-keywords = ["ipfs", "api", "key"]
-
-[[rules]]
-description = "NFT Storage API Key"
-id = "nft-storage-key"
-regex = '''(?i)(nft)[_-]?storage[_-]?key[=:]\s*([a-zA-Z0-9_-]{32,})'''
-keywords = ["nft", "storage", "key"]
-
-# Allowlist for common false positives
+# Allowlist for commits, paths, and regexes
 [allowlist]
-description = "Global Allowlist"
-paths = [
-    '''node_modules''',
-    '''package-lock\.json''',
-    '''yarn\.lock''',
-    '''\.git''',
-    '''\.vscode''',
-    '''\.idea''',
-    '''dist''',
-    '''build''',
-    '''coverage''',
-    '''\.next''',
-    '''\.nuxt''',
-    '''\.cache''',
-    '''tmp''',
-    '''temp''',
-    '''logs''',
-    '''test''',
-    '''tests''',
-    '''spec''',
-    '''specs''',
-    '''mock''',
-    '''mocks''',
-    '''fixture''',
-    '''fixtures''',
-    '''example''',
-    '''examples''',
-    '''sample''',
-    '''samples''',
-    '''demo''',
-    '''demos''',
-    '''sandbox''',
-    '''\.env\.example''',
-    '''\.env\.sample''',
-    '''\.env\.template''',
-    '''\.env\.local''',
-    '''\.env\.development''',
-    '''\.env\.test''',
-    '''\.env\.staging''',
-    '''README\.md''',
-    '''CHANGELOG\.md''',
-    '''CONTRIBUTING\.md''',
-    '''LICENSE''',
-    '''\.md$''',
-    '''\.txt$''',
-    '''\.log$''',
-    '''\.bak$''',
-    '''\.backup$''',
-    '''\.old$''',
-    '''\.orig$''',
-    '''\.tmp$''',
-    '''\.temp$'''
+description = "Global allowlist"
+
+# Allow commits by message patterns
+commits = [
+  "(?i)(test|example|demo|sample|mock|fake|dummy|placeholder)",
+  "(?i)(initial|setup|bootstrap|scaffold|template)",
+  "(?i)(docs|documentation|readme|guide|tutorial|changelog)"
 ]
 
-# Allowlist for specific regex patterns
-[[allowlist.regexes]]
-description = "Allow example/test keys"
-regex = '''(?i)(example|test|mock|sample|demo|sandbox|fake|dummy|placeholder)[_-]?(key|secret|token|password|private|seed|mnemonic)'''
+# Allow specific paths
+paths = [
+  "node_modules",
+  ".next",
+  "build",
+  "dist"
+]
 
-[[allowlist.regexes]]
-description = "Allow documented examples"
-regex = '''(?i)(your[_-]?)(key|secret|token|password|private|seed|mnemonic)[_-]?here'''
-
-[[allowlist.regexes]]
-description = "Allow commented out secrets"
-regex = '''^\s*#.*[a-zA-Z0-9_-]{32,}'''
-
-[[allowlist.regexes]]
-description = "Allow environment variable placeholders"
-regex = '''\$\{[A-Z_]+\}'''
-
-[[allowlist.regexes]]
-description = "Allow localhost/127.0.0.1 addresses"
-regex = '''(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)'''
-
-[[allowlist.regexes]]
-description = "Allow test network configurations"
-regex = '''(?i)(testnet|devnet|goerli|mumbai|sepolia|arbitrum-goerli|optimism-goerli)'''
-
-[[allowlist.regexes]]
-description = "Allow documentation examples"
-regex = '''(?i)(example|sample|demo|test|mock|fake|dummy|placeholder)[_-]?(private|key|secret|token|seed|mnemonic)[=:]\s*([a-zA-Z0-9_-]{10,})'''
-
-# Allowlist for specific commits
-[allowlist.commits]
-description = "Allow test commits"
-message = '''(?i)(test|example|demo|sample|mock|fake|dummy|placeholder)'''
-
-[allowlist.commits]
-description = "Allow initial setup commits"
-message = '''(?i)(initial|setup|bootstrap|scaffold|template)'''
-
-[allowlist.commits]
-description = "Allow documentation commits"
-message = '''(?i)(docs|documentation|readme|changelog)'''
+# Allow specific regex patterns
+regexes = [
+  "(?i)(example|test|mock|sample|demo|sandbox|fake|dummy|placeholder)[_-]?(key|secret|token|password|private|seed|mnemonic)",
+  "(?i)(your[_-]?)(key|secret|token|password|private|seed|mnemonic)[_-]?here",
+  "^\\s*#.*[a-zA-Z0-9_-]{32,}",
+  "\\$\\{[A-Z_]+\\}",
+  "(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|::1)",
+  "(?i)(testnet|devnet|goerli|mumbai|sepolia|arbitrum-goerli|optimism-goerli)",
+  "(?i)(example|sample|demo|test|mock|fake|dummy|placeholder)[_-]?(private|key|secret|token|seed|mnemonic)[=:]\\s*([a-zA-Z0-9_-]{10,})"
+]

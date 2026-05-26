@@ -145,4 +145,15 @@ export class CreateCollectionDto {
   @IsOptional()
   @IsString()
   freezeUntilDate?: string;
+
+  // Set by frontend after the on-chain tx is signed and confirmed
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  txSignature?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  collectionAddress?: string;
 }

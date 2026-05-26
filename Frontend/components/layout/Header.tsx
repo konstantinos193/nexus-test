@@ -32,19 +32,20 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useEffect, Suspense, lazy } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useSelectedLayoutSegment } from 'next/navigation'
 import { FolderKanban, Plus, LayoutDashboard, Wrench, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import styles from './Header.module.css'
 
-// Lazy load heavy components to reduce initial bundle size
-// These are not critical for first paint
-const WalletConnect = lazy(() => import('@/components/wallet/WalletConnect'))
-const HeaderSearch = lazy(() => import('@/components/layout/HeaderSearch'))
-const MobileSearchOverlay = lazy(() => import('@/components/layout/MobileSearchOverlay'))
+// Static imports — removing dynamic({ ssr: false }) stops Next.js 16 from injecting
+// a streaming Suspense boundary (HeaderFooterSkeleton) around the entire Header.
+// WalletConnect handles its own SSR safety via a mounted check.
+import WalletConnect from '@/components/wallet/WalletConnect'
+import HeaderSearch from '@/components/layout/HeaderSearch'
+import MobileSearchOverlay from '@/components/layout/MobileSearchOverlay'
 
-// Loading fallback for lazy components
+// Loading fallback for dynamic components
 const ComponentSkeleton = () => <div className="w-8 h-8 bg-dark-bg-secondary animate-pulse rounded" />
 
 export default function Header() {
@@ -63,9 +64,9 @@ export default function Header() {
   // (Unlike my GPS, this actually works)
   const [lastScrollY, setLastScrollY] = useState(0)
   
-  // Current pathname - for active route highlighting
-  // Because users need to know where they are
-  const pathname = usePathname()
+  // Active segment - for highlighting current nav item
+  // useSelectedLayoutSegment avoids the usePathname Suspense boundary in Next.js 16
+  const segment = useSelectedLayoutSegment()
 
   // Scroll handler - makes the header smart about when to show/hide
   // Because a header that doesn't respond to scrolling is like a door that doesn't open
@@ -115,9 +116,9 @@ export default function Header() {
   // Because navigation without links is like a map without destinations
   // Each item has an icon and color for the mobile quick actions
   const navigation = [
-    { name: 'Collections', href: '/collections', icon: FolderKanban, color: '#00d4ff' },
-    { name: 'Create', href: '/create', icon: Plus, color: '#7c3aed' },
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: '#00d4ff' },
+    { name: 'Explore', href: '/collections', icon: FolderKanban, color: '#00d4ff' },
+    { name: 'Launch', href: '/create', icon: Plus, color: '#7c3aed' },
+    { name: 'Portfolio', href: '/dashboard', icon: LayoutDashboard, color: '#00d4ff' },
     { name: 'Tools', href: '/tools', icon: Wrench, color: '#7c3aed' },
   ]
 
@@ -127,7 +128,7 @@ export default function Header() {
   // Check if a route is active - for highlighting current page
   // Because users need to know where they are
   // (And active states are like breadcrumbs, but for navigation)
-  const isActive = (href: string) => pathname === href
+  const isActive = (href: string) => href === '/' ? segment === null : segment === href.slice(1)
 
   return (
     <>
@@ -135,6 +136,7 @@ export default function Header() {
           Because desktop users deserve a proper navigation bar
           (And hamburger menus on desktop are a crime against humanity) */}
       <header className={styles.desktopHeader} role="banner">
+        <div className={styles.topAccentBar} aria-hidden="true" />
         <nav className={styles.desktopNav} aria-label="Main navigation">
           <div className={styles.desktopNavContainer}>
             {/* Logo - the brand identity
@@ -202,40 +204,36 @@ export default function Header() {
             Collapses when scrolling down (because screen space matters)
             Expands when scrolling up (because navigation matters) */}
         <div className={cn(
-          styles.mobileTopBar, 
+          styles.mobileTopBar,
           scrolled && styles.mobileTopBarScrolled,
           headerCollapsed && styles.mobileTopBarCollapsed
         )}>
-          {/* Mobile Logo - smaller version for mobile
-              Because mobile screens are small (obviously)
-              And we don't want the logo taking up the whole header */}
-          <Link href="/" className={styles.mobileLogoLink}>
-            <Image
-              src="/nexuslogo_nobg.png"
-              alt="NeXus"
-              width={120}
-              height={40}
-              className={styles.mobileLogo}
-              priority
-            />
-          </Link>
-          
-          {/* Mobile Top Actions - search + wallet
-              Tap search → overlay with pill + live results (same UX as desktop) */}
-          <div className={styles.mobileTopActions}>
-            <button
-              type="button"
-              onClick={() => setMobileSearchOpen(true)}
-              className={styles.mobileSearchButton}
-              aria-label="Search collections"
-              title="Search"
-            >
-              <Search className={styles.mobileSearchIcon} aria-hidden />
-            </button>
-            <div className={styles.mobileWalletButton}>
-              <Suspense fallback={<ComponentSkeleton />}>
-                <WalletConnect />
-              </Suspense>
+          <div className={styles.mobileTopBarInner}>
+            <Link href="/" className={styles.mobileLogoLink}>
+              <Image
+                src="/nexuslogo_nobg.png"
+                alt="NeXus"
+                width={120}
+                height={40}
+                className={styles.mobileLogo}
+                priority
+              />
+            </Link>
+            <div className={styles.mobileTopActions}>
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(true)}
+                className={styles.mobileSearchButton}
+                aria-label="Search"
+                title="Search"
+              >
+                <Search className={styles.mobileSearchIcon} aria-hidden />
+              </button>
+              <div className={styles.mobileWalletButton}>
+                <Suspense fallback={<ComponentSkeleton />}>
+                  <WalletConnect />
+                </Suspense>
+              </div>
             </div>
           </div>
         </div>

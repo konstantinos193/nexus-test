@@ -71,6 +71,12 @@ const nextConfig = {
   // Note: Next.js has excellent default code splitting, so we only enhance it
   // This will be used when running with --webpack flag
   webpack: (config, { isServer, dev }) => {
+    // Suppress spurious dynamic-require warning from ox/viem/walletconnect transitive dep
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      { module: /virtualMasterPool/, message: /Critical dependency/ },
+    ]
+
     if (!isServer && !dev) {
       // Only optimize in production builds
       // Enhance Next.js's default splitChunks for better caching

@@ -19,6 +19,9 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import JsonLd from '@/components/seo/JsonLd'
 import QueryProvider from '@/components/providers/QueryProvider'
+import PhantomProviderClient from '@/components/providers/PhantomProviderClient'
+import Layout from '@/components/layout/Layout'
+import Footer from '@/components/layout/Footer'
 
 // Font configuration - because default fonts are basic
 // Plus Jakarta Sans - a modern, clean font that doesn't look like Comic Sans
@@ -31,11 +34,6 @@ const plusJakarta = Plus_Jakarta_Sans({
   preload: true, // Preload font for faster rendering
   adjustFontFallback: true, // Adjust fallback font metrics for better CLS
 })
-
-// PhantomProvider - temporarily disabled for testing
-// Because sometimes you need to test without wallet connections
-// (And sometimes you just need a break from Web3 complexity)
-// import PhantomProvider from '@/components/providers/PhantomProvider'
 
 // SEO Configuration imports - all the stuff Google cares about
 // Because if Google doesn't know we exist, we're just screaming into the void
@@ -116,7 +114,7 @@ export const metadata: Metadata = {
         url: absoluteUrl(ogImagePath), // The image that shows up in shares
         width: 1200, // Standard OG image size
         height: 630, // Standard OG image size
-        alt: `${siteName} – Create & launch NFT collections`, // Alt text for accessibility
+        alt: `${siteName} – The Web3 Launchpad for Solana Creators`, // Alt text for accessibility
         // Because even social media previews need alt text
       },
     ],
@@ -199,23 +197,12 @@ export default function RootLayout({
             This enables all the useQuery hooks throughout the app
             Because fetching data shouldn't be complicated */}
         <QueryProvider>
-          {/* PhantomProvider - temporarily disabled for testing
-              This would wrap the app to provide wallet connection
-              But we disabled it because sometimes you need to test without wallets
-              (And sometimes wallets are just annoying) */}
-          {/* <PhantomProvider> */}
-          
-          {/* JSON-LD structured data - for SEO
-              This helps search engines understand what we are
-              Because Google needs all the help it can get */}
-          <JsonLd />
-          
-          {/* Children - the actual page content
-              This is where each page's content gets rendered
-              Because the layout is just the frame, this is the painting */}
-          {children}
-          
-          {/* </PhantomProvider> */}
+          {/* SolanaWalletProvider - custom in-house wallet context (Solflare + Phantom)
+              Handles mounted check internally so SSR never sees browser-only APIs */}
+          <PhantomProviderClient>
+            <JsonLd />
+            <Layout footer={<Footer />}>{children}</Layout>
+          </PhantomProviderClient>
         </QueryProvider>
       </body>
     </html>

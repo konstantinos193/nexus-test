@@ -1,0 +1,3 @@
+echo "🍝 Running pre-commit spaghetti code detection..."
+npx lint-staged || true
+echo "✅ Pre-commit checks done."

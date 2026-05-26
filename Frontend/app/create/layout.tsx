@@ -11,9 +11,9 @@ import type { Metadata } from 'next'
 // SEO config - pageTitle, absoluteUrl. So "Create Collection" shows up nice in search and shares.
 import { absoluteUrl, pageTitle } from '@/lib/seo/config'
 
-const title = 'Create Collection'
+const title = 'New Collection'
 const description =
-  'Create your NFT collection in minutes. Upload artwork, set blockchain, add metadata, and launch on Ethereum, Solana, or Polygon with our creator tools.'
+  'Create and deploy your Solana NFT collection. Set your metadata, upload artwork, configure mint phases, and go live on-chain — no smart-contract experience needed.'
 
 // Metadata - Google and social cards need to know /create is where the magic happens
 export const metadata: Metadata = {

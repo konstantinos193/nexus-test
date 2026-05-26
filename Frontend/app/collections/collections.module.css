@@ -1,13 +1,13 @@
 /**
- * Collections Page Styles - The visual identity of our collections page
- * Complete standalone CSS module - no global dependencies
- * Because we're independent like that (and we don't want style conflicts)
- * 
- * Dark theme with glassmorphism effects, smooth animations, and modern aesthetics
- * Following the design system but with its own unique flair
- * 
- * @author Juan - The developer who styled this page
- * (Styled with care, humor, and probably too much coffee)
+ * Collections Page Styles - Redesigned to match the homepage visual language
+ * Full-width layout, sticky filter bar, no sidebar
+ * Because this is a marketplace, not a tax filing form
+ *
+ * Design language: dark glass, cyan accents, restrained animations
+ * Matching the editorial feel of the homepage sections
+ *
+ * @author Juan - The developer who styled this page (twice)
+ * (Styled with care, humor, and the scars of a sidebar removed)
  */
 
 /* ============================================
@@ -15,286 +15,333 @@
    ============================================ */
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 50%, #111118 100%);
+  background: #0a0a0f;
   display: flex;
   flex-direction: column;
 }
 
 /* ============================================
-   Hero Section
+   Page Header - slim and editorial
+   Just a title and a subtitle. That's it.
+   No stats grid. No hero image. Just vibes.
    ============================================ */
-.hero {
-  position: relative;
-  padding: 3rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(180deg, rgba(17, 17, 24, 0.5) 0%, transparent 100%);
+.header {
+  padding: 2.5rem 1rem 2rem;
+  background: linear-gradient(180deg, rgba(17, 17, 24, 0.9) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.heroContainer {
+.headerContainer {
   max-width: 1280px;
   margin: 0 auto;
   width: 100%;
 }
 
-.heroContent {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.heroTitle {
-  font-size: 2rem;
+.title {
+  font-size: 1.75rem;
   font-weight: 700;
   color: #ffffff;
-  margin: 0 0 1rem 0;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.heroDescription {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.5;
-}
-
-/* Stats Grid */
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1.5rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.statCard {
-  background: rgba(17, 17, 24, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  backdrop-filter: blur(16px);
-  transition: all 0.3s ease;
-}
-
-.statCard:hover {
-  background: rgba(26, 26, 36, 0.8);
-  border-color: rgba(0, 212, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.1);
-}
-
-.statValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #00d4ff;
   margin: 0 0 0.5rem 0;
-  line-height: 1;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
 }
 
-.statValueLive {
-  color: #10b981;
-}
-
-.statValueUpcoming {
-  color: #f59e0b;
-}
-
-.statValueCompleted {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.statLabel {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.subtitle {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.45);
   margin: 0;
+  max-width: 500px;
+  line-height: 1.55;
 }
 
-/* ============================================
-   Content Section
-   ============================================ */
-.content {
-  flex: 1;
-  padding: 2rem 1rem;
-}
-
-.contentContainer {
-  max-width: 1280px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* Main Layout - Sidebar + Content */
-.mainLayout {
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
-}
-
-.mainContent {
-  flex: 1;
-  min-width: 0; /* Prevents flex item from overflowing */
-}
-
-/* Carousel Section */
-.carouselSection {
-  margin-bottom: 3rem;
-}
-
-/* Filter Section */
-.filterSection {
-  margin-bottom: 2rem;
-}
-
-/* Results Header */
-.resultsHeader {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.resultsCount {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-}
-
-.resultsNumber {
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.resultsTotal {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Load More Section */
-.loadMoreSection {
-  margin-top: 3rem;
-  display: flex;
-  justify-content: center;
-}
-
-/* ============================================
-   Error State
-   ============================================ */
-.errorContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  background: rgba(17, 17, 24, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  backdrop-filter: blur(16px);
-}
-
-.errorIcon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.errorTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 0.5rem 0;
-}
-
-.errorMessage {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0;
-}
-
-/* ============================================
-   Responsive Design
-   ============================================ */
-
-/* Tablet */
 @media (min-width: 640px) {
-  .hero {
-    padding: 4rem 1.5rem;
+  .header {
+    padding: 3rem 1.5rem 2.5rem;
   }
 
-  .heroTitle {
-    font-size: 2.5rem;
-  }
-
-  .heroDescription {
-    font-size: 1.125rem;
-  }
-
-  .statsGrid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-  }
-
-  .statCard {
-    padding: 2rem 1.5rem;
-  }
-
-  .statValue {
-    font-size: 2.5rem;
-  }
-
-  .content {
-    padding: 3rem 1.5rem;
+  .title {
+    font-size: 2.25rem;
   }
 }
 
-/* Desktop */
 @media (min-width: 768px) {
-  .hero {
-    padding: 5rem 2rem;
+  .header {
+    padding: 3.5rem 2rem 2.75rem;
   }
 
-  .heroTitle {
-    font-size: 3rem;
+  .title {
+    font-size: 2.75rem;
   }
 
-  .heroDescription {
-    font-size: 1.25rem;
-  }
-
-  .content {
-    padding: 4rem 2rem;
-  }
-
-  .resultsHeader {
-    margin-bottom: 2rem;
-  }
-
-  .resultsCount {
+  .subtitle {
     font-size: 1rem;
   }
 }
 
-/* Large Desktop */
 @media (min-width: 1024px) {
-  .heroTitle {
-    font-size: 3.5rem;
-  }
-
-  .statsGrid {
-    max-width: 1000px;
-  }
-
-  .statValue {
+  .title {
     font-size: 3rem;
   }
 }
 
-/* Extra Large Desktop */
-@media (min-width: 1280px) {
-  .heroTitle {
-    font-size: 4rem;
+/* ============================================
+   Sticky Filter Bar
+   Glassmorphism bar that stays at the top while
+   users scroll through the grid below
+   ============================================ */
+.filterBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(10, 10, 15, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0.625rem 1rem;
+}
+
+.filterBarContainer {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── Status Tabs ──────────────────────────── */
+/* Horizontal scrollable pill row */
+/* Hides scrollbar because scrollbars on filter rows look wrong */
+.statusTabs {
+  display: flex;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.statusTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.tab:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Active tab - cyan accent glow */
+.tabActive {
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.tabActive:hover {
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.14);
+  border-color: rgba(0, 212, 255, 0.45);
+}
+
+/* Pulsing dot for the Live tab */
+.liveDot {
+  display: inline-block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ── Right-side Controls ──────────────────── */
+.filterRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Search input with icon */
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.625rem;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem 0.375rem 2rem;
+  font-size: 0.8125rem;
+  color: #ffffff;
+  width: 180px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, width 0.2s ease;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.searchInput:focus {
+  border-color: rgba(0, 212, 255, 0.35);
+  background: rgba(0, 212, 255, 0.04);
+  width: 220px;
+}
+
+/* Sort select - custom wrapper hides the browser default arrow */
+.sortWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sortSelect {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 0.5rem;
+  padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.sortSelect:focus,
+.sortSelect:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.sortSelect option {
+  background: #111118;
+  color: #ffffff;
+}
+
+/* Custom chevron icon overlaid on the select */
+.sortChevron {
+  position: absolute;
+  right: 0.5rem;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* ── Filter Bar Responsive ────────────────── */
+@media (min-width: 640px) {
+  .filterBar {
+    padding: 0.75rem 1.5rem;
+  }
+
+  .searchInput {
+    width: 200px;
+  }
+
+  .searchInput:focus {
+    width: 240px;
+  }
+}
+
+@media (min-width: 768px) {
+  .filterBar {
+    padding: 0.75rem 2rem;
+  }
+}
+
+/* On very small screens, hide the sort (not critical) */
+@media (max-width: 479px) {
+  .sortWrapper {
+    display: none;
+  }
+
+  .searchInput {
+    width: 130px;
+  }
+
+  .searchInput:focus {
+    width: 155px;
+  }
+}
+
+/* ============================================
+   Grid Section
+   Full-width, padded, max-width container
+   ============================================ */
+.gridSection {
+  flex: 1;
+  padding: 2rem 1rem 4rem;
+}
+
+.gridContainer {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Results count - small, quiet, just informing */
+.resultsRow {
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.resultsCount {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+.resultsTotal {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+@media (min-width: 640px) {
+  .gridSection {
+    padding: 2.5rem 1.5rem 4rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .gridSection {
+    padding: 3rem 2rem 5rem;
   }
 }
 
@@ -302,11 +349,17 @@
    Reduced Motion
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  .statCard {
+  .liveDot {
+    animation: none;
+  }
+
+  .tab,
+  .searchInput,
+  .sortSelect {
     transition: none;
   }
 
-  .statCard:hover {
-    transform: none;
+  .searchInput:focus {
+    width: 200px;
   }
 }

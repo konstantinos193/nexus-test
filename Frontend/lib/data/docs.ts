@@ -68,11 +68,11 @@ export const docSections: DocSection[] = [
     icon: Settings,
     description: 'Learn about all the tools available on NeXus',
     topics: [
-      { title: 'Snapshot tool', content: 'Take snapshots of your collection holders for airdrops and community management.' },
-      { title: 'Trading NFTs', content: 'Buy and sell NFTs directly on our platform with integrated marketplace functionality.' },
-      { title: 'Airdropping NFTs', content: 'Send NFTs to multiple addresses at once using our batch airdrop tool.' },
-      { title: 'Updating metadata', content: 'Update collection metadata and attributes after launch if needed.' },
-      { title: 'Burning NFTs', content: 'Permanently remove NFTs from circulation using our burn tool.' },
+      { title: 'Holder Export', content: 'Export a full snapshot of your collection holders — useful for airdrops, allowlists, and community management.' },
+      { title: 'NFT Exchange', content: 'Buy and sell NFTs directly on our platform with integrated marketplace functionality.' },
+      { title: 'Batch Distribute', content: 'Drop NFTs to multiple wallet addresses in one go using our bulk distribution tool.' },
+      { title: 'Edit Metadata', content: 'Update on-chain metadata and attributes for any NFT in your collection after launch.' },
+      { title: 'Incinerator', content: 'Permanently destroy selected NFTs from your supply using the burn tool.' },
     ],
   },
   {

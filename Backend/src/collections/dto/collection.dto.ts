@@ -63,4 +63,10 @@ export class NFTCollection {
 
   @ApiProperty({ required: false, description: 'Platform fee percentage (basis points, e.g., 500 = 5%) - only indexed for tradable collections' })
   platformFeeBasisPoints?: number;
+
+  @ApiProperty({ required: false, type: 'array' })
+  phases?: Record<string, any>[];
+
+  @ApiProperty({ required: false, type: 'array' })
+  fundReceivers?: Record<string, any>[];
 }

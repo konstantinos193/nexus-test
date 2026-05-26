@@ -15,38 +15,28 @@
 
 'use client'
 
-import { Suspense, lazy } from 'react'
+import { Suspense } from 'react'
 import styles from './Layout.module.css'
-
-// Lazy load Header and Footer to reduce initial bundle size
-// These components are not critical for first paint, so we can load them after the main content
-const Header = lazy(() => import('./Header'))
-const Footer = lazy(() => import('./Footer'))
-
-// Loading fallback for header/footer
-const HeaderFooterSkeleton = () => (
-  <div className="h-16 bg-dark-bg-secondary animate-pulse" />
-)
+import Header from './Header'
 
 interface LayoutProps {
   children: React.ReactNode
+  footer: React.ReactNode
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, footer }: LayoutProps) {
   return (
     <div className={styles.layout}>
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
-      <Suspense fallback={<HeaderFooterSkeleton />}>
+      <Suspense fallback={null}>
         <Header />
       </Suspense>
       <main id="main" className={styles.main} role="main">
         {children}
       </main>
-      <Suspense fallback={null}>
-        <Footer />
-      </Suspense>
+      {footer}
     </div>
   )
 }

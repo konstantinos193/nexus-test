@@ -1,80 +1,71 @@
-/* CollectionGrid – Unique staggered grid layout */
-/* Modern responsive grid with smooth animations */
-/* Mobile-first: base = mobile, then 768px (tablet), 1024px (desktop). */
+/**
+ * CollectionGrid Styles - Responsive grid for collection cards
+ * Mobile-first: 1 col → 2 col (640px) → 3 col (1024px) → 4 col (1280px)
+ * 4-column max now that the sidebar is gone - more cards, more joy
+ * Smooth stagger animation on entry because flat renders are boring
+ *
+ * @author Juan - The developer who built this grid
+ * (Coded with care, humor, and probably too much coffee)
+ */
 
 .grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
-  justify-items: center;
-  align-items: start; /* Align items to start to prevent stretching */
-  padding: 0;
-  animation: fadeIn 0.6s ease-out;
+  gap: 20px;
+  align-items: start;
+  animation: gridFadeIn 0.5s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes gridFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
+/* 2 columns - tablet */
 @media (min-width: 640px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 28px;
-    justify-items: stretch;
+    gap: 24px;
   }
 }
 
+/* 3 columns - desktop */
 @media (min-width: 1024px) {
   .grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 32px;
-    max-width: 1400px;
-    margin: 0 auto;
-    justify-items: stretch;
+    gap: 28px;
   }
 }
 
-@media (min-width: 1440px) {
+/* 4 columns - wide desktop (sidebar is gone, use the space) */
+@media (min-width: 1280px) {
   .grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
   }
 }
 
-/* Staggered animation for grid items */
+/* Staggered entry animation for the first 9 cards */
 .grid > * {
-  animation: slideUp 0.6s ease-out backwards;
+  animation: cardSlideUp 0.5s ease-out backwards;
 }
 
-.grid > *:nth-child(1) { animation-delay: 0.05s; }
-.grid > *:nth-child(2) { animation-delay: 0.1s; }
-.grid > *:nth-child(3) { animation-delay: 0.15s; }
-.grid > *:nth-child(4) { animation-delay: 0.2s; }
-.grid > *:nth-child(5) { animation-delay: 0.25s; }
-.grid > *:nth-child(6) { animation-delay: 0.3s; }
-.grid > *:nth-child(7) { animation-delay: 0.35s; }
-.grid > *:nth-child(8) { animation-delay: 0.4s; }
-.grid > *:nth-child(9) { animation-delay: 0.45s; }
+.grid > *:nth-child(1) { animation-delay: 0.04s; }
+.grid > *:nth-child(2) { animation-delay: 0.08s; }
+.grid > *:nth-child(3) { animation-delay: 0.12s; }
+.grid > *:nth-child(4) { animation-delay: 0.16s; }
+.grid > *:nth-child(5) { animation-delay: 0.20s; }
+.grid > *:nth-child(6) { animation-delay: 0.24s; }
+.grid > *:nth-child(7) { animation-delay: 0.28s; }
+.grid > *:nth-child(8) { animation-delay: 0.32s; }
+.grid > *:nth-child(9) { animation-delay: 0.36s; }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Reduced motion support */
+/* Reduced motion - cut all animations */
 @media (prefers-reduced-motion: reduce) {
   .grid,
   .grid > * {

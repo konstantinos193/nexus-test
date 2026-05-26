@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Home Page - The landing page that welcomes users
  * This is the first impression, so it better be good
  * Because first impressions are everything (unlike second chances)
@@ -15,11 +15,8 @@ import type { Metadata } from 'next'
 // SEO config - titles, descriptions, canonical URLs. The whole shebang.
 // Google's gotta know we exist. Otherwise we're just a URL in the void.
 import { siteDescription, siteTitleDefault, absoluteUrl } from '@/lib/seo/config'
-// Layout - header, footer, the scaffolding that holds our beautiful content
 // Without it we're just a div floating in space (literally and metaphorically)
-import Layout from '@/components/layout/Layout'
 // HomePageContent - the hero, the collections, the features. The good stuff.
-// Layout is the skeleton; this is the organs. And the personality. Mostly the personality.
 import HomePageContent from '@/components/features/home/HomePageContent'
 
 // SEO Metadata - because Google needs to know what we're about
@@ -67,16 +64,17 @@ export default function Home() {
   return (
     // Layout wrapper - provides the header, footer, and overall structure
     // Because every page needs a frame for proper structure
-    <Layout>
+    <>
       {/* Home Page Content - the actual meat of the page
           This is where the hero, collections, and features live
           Because the Layout is just the skeleton, this is the organs
           (And yes, I'm comparing our homepage to a body. Deal with it.) */}
       <HomePageContent />
-    </Layout>
+    </>
   )
 }
 
 // Coded by Juan - because every good codebase needs a developer signature
 // (Even if it's just a comment at the bottom)
 // P.S. - Welcome to the homepage. Hope you like what you see! 
+

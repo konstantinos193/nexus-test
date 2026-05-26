@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 404 Not Found Page - The "oops, that URL doesn't exist" experience
  * Renders when a route doesn't match or notFound() is called.
  * Uses Layout (Header + Footer) so users can still navigate away.
@@ -9,8 +9,6 @@
  * (Coded with care, humor, and probably too much coffee)
  */
 
-// Layout - header, footer. Even 404s need a frame. Escape routes matter.
-import Layout from '@/components/layout/Layout'
 // NotFoundContent - the actual "404" message, maybe a funny illustration, CTA to go home
 // This is where we say "you're lost" without being mean about it
 import NotFoundContent from '@/components/features/not-found/NotFoundContent'
@@ -21,13 +19,14 @@ import NotFoundContent from '@/components/features/not-found/NotFoundContent'
  */
 export default function NotFound() {
   return (
-    <Layout>
+    <>
       {/* NotFoundContent - the "this page doesn't exist" UI. Friendly. Helpful. Not cruel. */}
       <NotFoundContent />
-    </Layout>
+    </>
   )
 }
 
 // Coded by Juan - 404 handler and "please don't trap users" advocate
 // (Lost? We've got you. Header. Footer. Navigate away. You're welcome.)
 // P.S. - Wrong URL? It happens. Head home. We'll be there. 🏠
+

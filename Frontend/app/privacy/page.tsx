@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Privacy Policy Page - The Legal Stuff
  * Where we tell you what we do with your data (and hope you still trust us)
  * Because privacy matters (even if we're not always great at it)
@@ -11,8 +11,6 @@
 import type { Metadata } from 'next'
 // SEO config - pageTitle, URLs. So Google knows we're transparent. Or trying.
 import { pageTitle, absoluteUrl } from '@/lib/seo/config'
-// Layout - header, footer. Even legal pages need a frame.
-import Layout from '@/components/layout/Layout'
 // Privacy page content with mobile/desktop detection
 import PrivacyPageContent from '@/components/features/privacy/PrivacyPageContent'
 
@@ -121,12 +119,13 @@ const sections = [
  */
 export default function PrivacyPage() {
   return (
-    <Layout>
+    <>
       <PrivacyPageContent sections={sections} />
-    </Layout>
+    </>
   )
 }
 
 // Coded by Juan - privacy policy scribe and "we don't sell your data" truther
 // (Read it. Or don't. But it's there. We tried.)
 // P.S. - Your data, your choice. We're just documenting ours. 🔒
+

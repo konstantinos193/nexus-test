@@ -1,0 +1,22 @@
+# CODEOWNERS
+# These people are automatically requested for review when their owned files are changed.
+# Syntax: path/pattern @github-username
+
+# Default — everything not otherwise matched
+* @martechnetworks
+
+# CI/CD and deployment config — review carefully before merging
+.github/workflows/ @martechnetworks
+Dockerfile @martechnetworks
+docker-compose.*.yml @martechnetworks
+
+# Security-sensitive files
+.gitleaks.toml @martechnetworks
+SECURITY.md @martechnetworks
+
+# Core app config
+next.config.js @martechnetworks
+tailwind.config.ts @martechnetworks
+tsconfig.json @martechnetworks
+package.json @martechnetworks
+pnpm-lock.yaml @martechnetworks

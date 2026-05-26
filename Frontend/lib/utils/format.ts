@@ -1,6 +1,12 @@
 /**
- * Format utilities - Because formatting is important
- * These functions make data look pretty (unlike my code)
+ * Format Utilities - Because formatting is important
+ * These functions make data look pretty (unlike my code on Monday mornings)
+ * 
+ * Without these utilities, our UI would be a mess of unformatted chaos
+ * Users would cry, designers would faint, and product managers would quit
+ * 
+ * @author Juan - The developer who made data readable again
+ * (Coded with care, humor, and probably too much coffee)
  */
 
 /**

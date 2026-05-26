@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tools Page - Where creators find useful tools
  * Because creating NFTs requires more than just hope and dreams
  * (But hope and dreams are still important)
@@ -10,8 +10,6 @@
 
 'use client'
 
-// Layout - header, footer. Tools page needs a frame. We're consistent.
-import Layout from '@/components/layout/Layout'
 // Card, CardHeader, etc. - the boxes we put each tool in. Nice and organized.
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 // Button - "Use Tool" / "Coming Soon". We tell you what you can click.
@@ -31,43 +29,43 @@ import {
 const solanaTools = [
   {
     id: 'snapshot',
-    name: 'Snapshot',
-    description: 'Take a snapshot of your collection',
+    name: 'Holder Export',
+    description: 'Export a snapshot of all current collection holders',
     icon: Camera,
     comingSoon: false,
   },
   {
     id: 'trade',
-    name: 'Trade',
-    description: 'Trade NFTs like a pro (or at least try)',
+    name: 'NFT Exchange',
+    description: 'Swap and trade NFTs directly through the platform',
     icon: RefreshCw,
     comingSoon: false,
   },
   {
     id: 'airdrop',
-    name: 'Airdrop NFTs',
-    description: 'Send NFTs to multiple addresses at once',
+    name: 'Batch Distribute',
+    description: 'Drop NFTs to multiple wallets in a single transaction',
     icon: Gift,
     comingSoon: true,
   },
   {
     id: 'update',
-    name: 'Update NFT',
-    description: 'Update your NFT metadata',
+    name: 'Edit Metadata',
+    description: 'Modify on-chain metadata for NFTs in your collection',
     icon: Edit,
     comingSoon: true,
   },
   {
     id: 'burn',
-    name: 'Burn NFTs',
-    description: 'Permanently remove NFTs from existence',
+    name: 'Incinerator',
+    description: 'Permanently destroy selected NFTs from your supply',
     icon: Flame,
     comingSoon: true,
   },
   {
     id: 'mint-single',
-    name: 'Mint Single NFT',
-    description: 'Mint a single NFT quickly',
+    name: 'Quick Mint',
+    description: 'Mint a one-off NFT without a full collection launch',
     icon: Plus,
     comingSoon: true,
   },
@@ -76,8 +74,8 @@ const solanaTools = [
 const bitcoinTools = [
   {
     id: 'ordinals',
-    name: 'Ordinals Creator',
-    description: 'Create Bitcoin Ordinals',
+    name: 'Inscriptions Studio',
+    description: 'Inscribe files and data onto Bitcoin as Ordinals',
     icon: Bitcoin,
     comingSoon: true,
   },
@@ -85,7 +83,7 @@ const bitcoinTools = [
 
 export default function ToolsPage() {
   return (
-    <Layout>
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Page header - Because context matters */}
         <div className="mb-8">
@@ -93,8 +91,7 @@ export default function ToolsPage() {
             Tools
           </h1>
           <p className="text-dark-text-secondary">
-            Powerful tools to help you manage and interact with your NFTs
-            (Because manual work is for peasants)
+            Everything you need to manage, distribute, and fine-tune your NFT collections — all in one place.
           </p>
         </div>
 
@@ -198,10 +195,11 @@ export default function ToolsPage() {
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   )
 }
 
 // Coded by Juan - tools curator and "manual work is for peasants" believer
 // (Hope and dreams + actual tools. We've got both. You're welcome.)
 // P.S. - Use the tools. Build the things. We're rooting for you. 🔧
+

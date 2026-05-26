@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Documentation Page - The Knowledge Base
  * Where developers and creators go to learn how things work
  * Because reading code is hard, but reading docs is slightly easier
@@ -13,8 +13,6 @@
 import type { Metadata } from 'next'
 // SEO config - pageTitle, URLs. Google's gotta find our docs or we're screaming into the void
 import { pageTitle, absoluteUrl } from '@/lib/seo/config'
-// Layout - header, footer, the usual. Docs need a frame too.
-import Layout from '@/components/layout/Layout'
 // DocsPageContent - the actual docs UI. Sections, quick links, all the good stuff.
 // Where "how do I...?" gets answered. Ideally. No guarantees.
 import DocsPageContent from '@/components/features/docs/DocsPageContent'
@@ -50,14 +48,15 @@ export const metadata: Metadata = {
  */
 export default function DocsPage() {
   return (
-    <Layout>
+    <>
       {/* DocsPageContent - the knowledge base UI. Sections, links, the whole shebang.
           This is where "how does X work?" gets answered. Hopefully. */}
       <DocsPageContent />
-    </Layout>
+    </>
   )
 }
 
 // Coded by Juan - docs maintainer and "did you check the docs?" enthusiast
 // (Yes, we have docs. Yes, people still ask. Some things never change.)
 // P.S. - Read the docs. Your future self will thank you. Probably. 📚
+

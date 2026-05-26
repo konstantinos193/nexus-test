@@ -8,7 +8,6 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import Layout from '@/components/layout/Layout'
 import CollectionHero from '@/components/features/collections/collection-detail/CollectionHero'
 import MintInteractionModule from '@/components/features/collections/collection-detail/MintInteractionModule'
 import CollectionStatsBar from '@/components/features/collections/collection-detail/CollectionStatsBar'
@@ -27,6 +26,11 @@ function toCollectionDetail(c: NFTCollection): CollectionDetail {
   return {
     ...c,
     slug: c.slug,
+    traits: c.traits?.map(trait => ({
+      name: trait.name,
+      value: trait.value,
+      count: 1
+    })) || []
   }
 }
 
@@ -64,25 +68,27 @@ export default function DropPage() {
 
   const isWalletConnected = false
   const handleMint = () => {
-    /* TODO: connect wallet + mint */
+    // TECH-001: Implement wallet connection and mint functionality
+    // See: lib/technical-debt/index.ts for details
   }
   const handleMintQty = (_qty: number) => {
-    /* TODO: mint qty */
+    // TECH-002: Implement mint quantity selection and validation
+    // See: lib/technical-debt/index.ts for details
   }
 
   if (loading) {
     return (
-      <Layout>
+      <>
         <div className="cp-page flex min-h-[50vh] items-center justify-center">
           <p className="text-dark-fg-muted">Loading drop…</p>
         </div>
-      </Layout>
+      </>
     )
   }
 
   if (error || !collection) {
     return (
-      <Layout>
+      <>
         <div className="cp-page flex min-h-[50vh] flex-col items-center justify-center gap-4">
           <p className="text-red-400">{error ?? 'Collection not found'}</p>
           <button
@@ -93,32 +99,30 @@ export default function DropPage() {
             Back to home
           </button>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
-      <div className="cp-page">
-        <CollectionHero
-          collection={collection}
-          isWalletConnected={isWalletConnected}
-          onMint={handleMint}
-        />
-        <MintInteractionModule
-          collection={collection}
-          maxPerTx={10}
-          isWalletConnected={isWalletConnected}
-          onMint={handleMintQty}
-        />
-        <CollectionStatsBar collection={collection} />
-        <AboutSection collection={collection} />
-        <UtilityRoadmapSection collection={collection} />
-        <TraitsSection collection={collection} />
-        <NFTGalleryGrid collection={collection} />
-        <ActivityFeed collection={collection} />
-        <CollectionPageFooter collection={collection} />
-      </div>
-    </Layout>
+    <div className="cp-page">
+      <CollectionHero
+        collection={collection}
+        isWalletConnected={isWalletConnected}
+        onMint={handleMint}
+      />
+      <MintInteractionModule
+        collection={collection}
+        maxPerTx={10}
+        isWalletConnected={isWalletConnected}
+        onMint={handleMintQty}
+      />
+      <CollectionStatsBar collection={collection} />
+      <AboutSection collection={collection} />
+      <UtilityRoadmapSection collection={collection} />
+      <TraitsSection collection={collection} />
+      <NFTGalleryGrid collection={collection} />
+      <ActivityFeed collection={collection} />
+      <CollectionPageFooter collection={collection} />
+    </div>
   )
 }
