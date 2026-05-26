@@ -114,7 +114,7 @@ export const metadata: Metadata = {
         url: absoluteUrl(ogImagePath), // The image that shows up in shares
         width: 1200, // Standard OG image size
         height: 630, // Standard OG image size
-        alt: `${siteName} – The Web3 Launchpad for Solana Creators`, // Alt text for accessibility
+        alt: `${siteName} – The Next-Generation Web3 Launchpad`, // Alt text for accessibility
         // Because even social media previews need alt text
       },
     ],

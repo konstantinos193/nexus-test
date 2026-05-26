@@ -14,20 +14,20 @@ export const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nexus-web3.com'
 
 export const siteName = 'NeXus'
-export const siteTitleDefault = 'NeXus – The Solana NFT Launchpad for Creators'
+export const siteTitleDefault = 'NeXus Web3 Launchpad – Beyond NFTs'
 export const siteDescription =
-  'NeXus is the Solana NFT launchpad built for creators. Upload your art, go live on-chain, and reach collectors — no smart-contract experience needed.'
+  'NeXus is a next-generation blockchain incubation and tokenization platform. Launch tokens, tokenize real estate, mint NFTs, and access DeFi tools — powered by MarTech Networks.'
 export const siteKeywords = [
   'Web3 launchpad',
+  'blockchain tokenization',
+  'real estate tokenization',
   'NFT minting platform',
-  'no-code NFT launch',
+  'token launch',
+  'DeFi tools',
   'Solana NFT launchpad',
-  'launch NFT collection',
   'NFT creator tools',
-  'Solana NFT',
-  'mint NFT on Solana',
-  'IPFS NFT storage',
-  'Phantom wallet',
+  'startup incubation Web3',
+  'IDO launchpad',
   'Web3',
 ]
 export const siteAuthor = 'NeXus Web3'
@@ -36,7 +36,7 @@ export const siteCopyright = 'MarTech Networks'
 export const twitterHandle = '@nexusweb3' // Update with real handle
 export const locale = 'en_US'
 export const themeColor = '#0a0a0f'
-export const ogImagePath = '/NeXus_Web3_Logo._2.png'
+export const ogImagePath = '/hero-bg.jpg'
 
 export function absoluteUrl(path: string): string {
   return path.startsWith('http') ? path : `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`
