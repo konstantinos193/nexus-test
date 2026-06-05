@@ -46,6 +46,10 @@ export interface MintInteractionModuleProps {
   maxPerTx?: number               // Max NFTs per mint transaction. Default: 10. (Platform-defined.)
   isWalletConnected?: boolean     // Deprecated prop — actual state comes from useWallet()
   onMint?: (qty: number) => void  // Called with the quantity when user clicks Mint Now
+  minting?: boolean               // True while the mint transaction is in-flight
+  mintError?: string | null       // Error message from the last failed mint attempt
+  selectedPhaseIndex?: number     // Active phase tab index — lifted to parent for left/right sync
+  onPhaseSelect?: (i: number) => void // Called when user switches phase via card tabs
 }
 
 // ── Countdown Hook ────────────────────────────────────────────────────────────
@@ -154,7 +158,7 @@ function phaseIsUpcoming(phase: MintPhase): boolean {
  */
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    return new Date(iso).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     })
   } catch { return iso }  // The raw string is better than nothing
@@ -167,10 +171,15 @@ function formatDate(iso: string): string {
  * Contains: phase selector, countdown, progress, quantity, pricing, and the mint button.
  * Does NOT contain: the collection name anywhere meaningful (that's CollectionHero's job).
  */
+// eslint-disable-next-line max-lines-per-function, max-statements, complexity
 export default function MintInteractionModule({
   collection,
-  maxPerTx = 10,  // Default max per transaction — the platform's safety limit
+  maxPerTx = 10,
   onMint,
+  minting,
+  mintError,
+  selectedPhaseIndex,
+  onPhaseSelect,
 }: MintInteractionModuleProps) {
   // Wallet state from the Solana adapter — connected is the source of truth
   const { connected: isWalletConnected, select, connect } = useWallet()
@@ -206,17 +215,18 @@ export default function MintInteractionModule({
   // ── Phase Management ──────────────────────────────────────────────────────
   const phases = collection.phases ?? []  // Safe default — never assume phases exist
 
-  // Default to the first currently-active phase tab, or tab 0 if none are active
-  const defaultTab =
-    phases.findIndex(phaseIsActive) >= 0
-      ? phases.findIndex(phaseIsActive)  // Land on the live phase — most relevant to minters
-      : 0                                // Fall back to first tab if no active phase
-
-  // Active tab index — user can switch between phases even if only one is active
-  const [activeTab, setActiveTab] = useState(defaultTab)
+  // Active tab is driven by the parent prop (synced with left-column selector).
+  // Falls back to the first time-active phase, or 0 if none are running.
+  const firstActiveIdx = phases.findIndex(phaseIsActive)
+  const activeTab = selectedPhaseIndex !== undefined
+    ? selectedPhaseIndex
+    : (firstActiveIdx >= 0 ? firstActiveIdx : 0)
 
   // Quantity — how many NFTs the user wants to mint in this transaction
   const [qty, setQty] = useState(1)  // Default to 1 — safe, sensible, not greedy
+
+  // Reset qty when the selected phase changes so stale quantities don't carry over
+  useEffect(() => { setQty(1) }, [selectedPhaseIndex])
 
   // The phase data for the currently selected tab — null if phases array is empty
   const activePhase = phases[activeTab] ?? null
@@ -243,12 +253,10 @@ export default function MintInteractionModule({
   // We count toward different dates depending on the collection's status.
   // Live mint with end date → count to end. Upcoming → count to start. Otherwise → no countdown.
   const mintStart = activePhase?.startDateTime ?? collection.mintStart
-  const countdownTarget =
-    isMinting && collection.endDate
-      ? collection.endDate   // Live mint with an end date — count down to the cutoff
-      : isUpcoming && mintStart && new Date(mintStart).getTime() > Date.now()
-        ? mintStart           // Upcoming with a future start — build the anticipation
-        : null                // No meaningful future target — show LIVE badge or nothing
+  let countdownTarget: string | null
+  if (isMinting && collection.endDate) countdownTarget = collection.endDate   // Live mint with an end date — count down to the cutoff
+  else if (isUpcoming && mintStart && new Date(mintStart).getTime() > Date.now()) countdownTarget = mintStart  // Upcoming with a future start — build the anticipation
+  else countdownTarget = null  // No meaningful future target — show LIVE badge or nothing
 
   // The live countdown ticker — ticks every second when countdownTarget is set
   const timeLeft = useCountdown(countdownTarget)
@@ -282,13 +290,11 @@ export default function MintInteractionModule({
   const canMint = isMinting && isWalletConnected && !soldOut
 
   // The button label — communicates exactly one of four possible states
-  const mintBtnLabel = !isWalletConnected
-    ? 'Connect Wallet'  // No wallet — the user needs to connect first
-    : soldOut
-      ? 'Sold Out'       // All gone — the dream is over
-      : !isMinting
-        ? 'Not Live Yet' // Upcoming — patience is a virtue
-        : 'Mint Now'     // Live and connected — the moment of truth
+  let mintBtnLabel: string
+  if (!isWalletConnected) mintBtnLabel = 'Connect Wallet'  // No wallet — the user needs to connect first
+  else if (soldOut) mintBtnLabel = 'Sold Out'              // All gone — the dream is over
+  else if (!isMinting) mintBtnLabel = 'Not Live Yet'       // Upcoming — patience is a virtue
+  else mintBtnLabel = 'Mint Now'                           // Live and connected — the moment of truth
 
   return (
     // cp-mint-card: the sticky right-column card container
@@ -311,7 +317,7 @@ export default function MintInteractionModule({
               key={i}
               type="button"
               className={`cp-phase-tab ${activeTab === i ? 'active' : ''}`}
-              onClick={() => { setActiveTab(i); setQty(1) }}  // Reset qty when switching phases
+              onClick={() => { onPhaseSelect?.(i); setQty(1) }}
             >
               {/* Phase name falls back to type-based label — "Allowlist" or "Public" */}
               {phase.name || (phase.phaseType === 'allowlist' ? 'Allowlist' : 'Public')}
@@ -435,12 +441,9 @@ export default function MintInteractionModule({
           // "Free" — the best word in the NFT minter's vocabulary
           <span className="cp-mint-price-free">Free</span>
         ) : (
-          <>
-            <span className="cp-mint-price-value">
-              {price.toFixed(2)}{' '}<SolIcon size={16} />
-            </span>
-            <span className="cp-mint-price-unit">SOL</span>
-          </>
+          <span className="cp-mint-price-value">
+            {price.toFixed(2)}{' '}<SolIcon size={16} />
+          </span>
         )}
         {/* Max per wallet — shown when the active phase has a wallet limit */}
         {activePhase?.maxPerWallet && (
@@ -476,17 +479,17 @@ export default function MintInteractionModule({
         {!isFree && !soldOut && (
           <div className="cp-mint-total">
             {/* Creator price line — qty × per-NFT price, or just the per-NFT price if qty is 1 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--cp-text-muted)', marginBottom: '0.15rem' }}>
+            <div className="cp-mint-fee-row">
               <span>Creator price</span>
               <span>{creatorTotal.toFixed(4)} SOL{qty > 1 ? ` (${price.toFixed(2)} × ${qty})` : ''}</span>
             </div>
             {/* Platform fee — 1%, additive. Shown transparently because hidden fees breed distrust. */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--cp-text-muted)', marginBottom: '0.35rem' }}>
+            <div className="cp-mint-fee-row">
               <span>Platform fee (1%)</span>
               <span>{platformFee.toFixed(4)} SOL</span>
             </div>
             {/* Total — the final number that leaves the user's wallet. Make it prominent. */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--cp-border)', paddingTop: '0.35rem' }}>
+            <div className="cp-mint-total-row">
               <span>Total</span>
               <span className="cp-mint-total-value">
                 {total.toFixed(4)}{' '}<SolIcon size={13} />
@@ -502,12 +505,14 @@ export default function MintInteractionModule({
         <button
           type="button"
           className={`cp-mint-btn${soldOut ? ' sold-out' : ''}`}
-          // Disabled when connected + can't mint. NOT disabled when disconnected — clicking connects.
-          disabled={isWalletConnected ? !canMint : false}
+          disabled={isWalletConnected ? (!canMint || !!minting) : false}
           onClick={() => isWalletConnected ? onMint?.(qty) : setWalletModalOpen(true)}
         >
-          {mintBtnLabel}
+          {minting ? 'Minting…' : mintBtnLabel}
         </button>
+        {mintError && (
+          <p className="cp-mint-error">{mintError}</p>
+        )}
       </div>
 
       {/* ── Wallet Modal ─────────────────────────────────────────────────────
@@ -556,11 +561,88 @@ export default function MintInteractionModule({
           Multi-phase collections skip this — the tabs provide the phase context. */}
       {phases.length === 1 && activePhase && (
         <div style={{ padding: '0.6rem 1.25rem', borderTop: '1px solid var(--cp-border)', fontSize: '0.75rem', color: 'var(--cp-text-muted)' }}>
-          {phaseIsActive(activePhase)
-            ? `Phase started ${formatDate(activePhase.startDateTime)}`
-            : phaseIsUpcoming(activePhase)
-              ? `Opens ${formatDate(activePhase.startDateTime)}`
-              : `Ended${activePhase.endDateTime ? ' ' + formatDate(activePhase.endDateTime) : ''}`}
+          {(() => {
+            if (phaseIsActive(activePhase)) return `Phase started ${formatDate(activePhase.startDateTime)}`
+            if (phaseIsUpcoming(activePhase)) return `Opens ${formatDate(activePhase.startDateTime)}`
+            return `Ended${activePhase.endDateTime ? ' ' + formatDate(activePhase.endDateTime) : ''}`
+          })()}
+        </div>
+      )}
+
+      {/* ── Secondary Marketplace Links ──────────────────────────────────────
+          Only shown when the collection has an on-chain mint address.
+          Links out to Magic Eden and Tensor for secondary trading. */}
+      {collection.mintAddress && (
+        <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--cp-border)' }}>
+          <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--cp-text-muted)', marginBottom: '0.5rem' }}>
+            Secondary Markets
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <a
+              href={`https://magiceden.io/marketplace/${collection.mintAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--cp-border)',
+                background: 'transparent',
+                color: 'var(--cp-text-muted)',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                textDecoration: 'none',
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#e42575'; e.currentTarget.style.color = '#e42575' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--cp-border)'; e.currentTarget.style.color = 'var(--cp-text-muted)' }}
+            >
+              <img
+                src="/magiceden-favicon.png"
+                alt=""
+                width={16}
+                height={16}
+                style={{ borderRadius: 3, flexShrink: 0 }}
+              />
+              Magic Eden
+            </a>
+            <a
+              href={`https://www.tensor.trade/trade/${collection.mintAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--cp-border)',
+                background: 'transparent',
+                color: 'var(--cp-text-muted)',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                textDecoration: 'none',
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#00d4ff'; e.currentTarget.style.color = '#00d4ff' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--cp-border)'; e.currentTarget.style.color = 'var(--cp-text-muted)' }}
+            >
+              <img
+                src="/tensor-favicon.png"
+                alt=""
+                width={16}
+                height={16}
+                style={{ borderRadius: 3, flexShrink: 0 }}
+              />
+              Tensor
+            </a>
+          </div>
         </div>
       )}
     </div>

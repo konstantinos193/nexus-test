@@ -29,7 +29,25 @@ import { useParams, useRouter } from 'next/navigation'
 // useEffect — the lifecycle hook. Fetches data when slug changes.
 // useState — manages collection, loading, and error state
 // Three hooks. One component. Many possible states to handle.
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, type ReactNode } from 'react'
+
+// Wallet adapter hooks — publicKey (connected wallet), sendTransaction, and RPC connection
+import { useWallet, useConnection } from '@solana/wallet-adapter-react'
+
+// Solana web3 primitives for building the mint transaction
+import {
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  SystemProgram,
+} from '@solana/web3.js'
+
+// Chain config — fetches programId, platformWallet, etc. from backend at runtime
+import { getChainConfig }      from '@/lib/solana/chain-config'
+// Confirmation polling — HTTP-based, no WebSocket dependency
+import { pollForConfirmation } from '@/lib/solana/confirm'
+// Mint instruction data builder
+import { buildMintData }       from '@/lib/solana/mint'
 
 // ── Section Components ────────────────────────────────────────────────────────
 // Each section of the drop detail page is a self-contained component
@@ -73,7 +91,7 @@ import SolIcon               from '@/components/features/collections/collection-
 
 // Types — CollectionDetail is the richer client-side shape; NFTCollection is the API shape
 // toCollectionDetail() maps between them (see below)
-import type { CollectionDetail, NFTCollection } from '@/types'
+import type { CollectionDetail, NFTCollection, CollectionStatus } from '@/types'
 
 // collection-page.css — the custom CSS for the drop detail page layout
 // cp-page, cp-container, cp-layout — the grid structure that makes this page work
@@ -91,14 +109,27 @@ import '@/app/collections/collection-page.css'
  * Think of this as the translator between "what the API says" and "what the UI needs"
  * Two dialects of the same language. We speak both.
  */
+// If a datetime string has no timezone indicator, it's ambiguous — JS parses it as local time
+// but the backend always intends UTC. Append Z to force UTC interpretation everywhere.
+function withUtc(dt: string): string {
+  if (!dt || /Z|[+-]\d{2}:?\d{2}$/.test(dt)) return dt
+  return dt + 'Z'
+}
+
 function toCollectionDetail(c: NFTCollection): CollectionDetail {
   return {
-    ...c,                 // Spread all flat fields — name, slug, status, prices, all of it
-    slug:   c.slug,       // Explicit reassign for clarity (the spread covers it but this is clearer)
-    // Traits: map API trait objects to page trait objects with added count field
-    // count: 1 is a placeholder — real rarity counts require analytics data we don't have yet
-    // (TECH-003: implement rarity calculation — it's on the list, below TECH-002)
+    ...c,
+    slug:   c.slug,
+    // effectiveStatus is computed by the cron job and is the source of truth for live status
+    status: (c.effectiveStatus ?? c.status) as CollectionStatus,
     traits: c.traits?.map((t) => ({ name: t.name, value: t.value, count: 1 })) ?? [],
+    // Normalize phase datetimes — backend stores them without Z in JSONB; append it so
+    // new Date(startDateTime) is always parsed as UTC, matching mintStart behaviour
+    phases: c.phases?.map(p => ({
+      ...p,
+      startDateTime: withUtc(p.startDateTime),
+      ...(p.endDateTime ? { endDateTime: withUtc(p.endDateTime) } : {}),
+    })),
   }
 }
 
@@ -170,6 +201,10 @@ export default function DropPageClient() {
   // Cast to string | undefined because useParams values can theoretically be undefined
   const slug = params?.slug as string | undefined
 
+  // Wallet adapter — publicKey is null when disconnected
+  const { publicKey, sendTransaction } = useWallet()
+  const { connection }                 = useConnection()
+
   // ── State ───────────────────────────────────────────────────────────────
   // collection — the fetched and mapped CollectionDetail, or null before fetch completes
   const [collection, setCollection] = useState<CollectionDetail | null>(null)
@@ -181,6 +216,13 @@ export default function DropPageClient() {
   // error — error message string if the fetch failed, null otherwise
   // Controls the error state render with message and navigation button
   const [error, setError]           = useState<string | null>(null)
+
+  // Mint transaction state — tracks in-flight tx and any error to surface in the UI
+  const [minting,   setMinting]   = useState(false)
+  const [mintError, setMintError] = useState<string | null>(null)
+
+  // Selected phase index — shared between the left-column list and the right-column mint card
+  const [selectedPhaseIdx, setSelectedPhaseIdx] = useState(0)
 
   // ── Data Fetch ──────────────────────────────────────────────────────────
   // Fetches the collection when slug is available (and re-fetches if slug changes)
@@ -220,14 +262,81 @@ export default function DropPageClient() {
       })
   }, [slug]) // Re-run if slug changes (navigating between drop pages)
 
-  // handleMint — the mint button callback passed to MintInteractionModule
-  // Currently a stub — the real transaction logic is TECH-002
-  // (_qty is prefixed with underscore to signal intentional non-use to TypeScript)
-  const handleMint = (_qty: number) => {
-    // TECH-002: construct and send the Solana mint transaction
-    // For now: button exists, interaction is tracked, backend receives nothing
-    // The blockchain receives nothing. Users understand. We told them it's coming.
-  }
+  // Once collection loads, snap selected phase to the first time-active one
+  useEffect(() => {
+    if (!collection?.phases?.length) return
+    const first = collection.phases.findIndex(p =>
+      phaseIsActive(p.startDateTime, p.endDateTime)
+    )
+    setSelectedPhaseIdx(first >= 0 ? first : 0)
+  }, [collection?.mintAddress])
+
+  // handleMint — builds and sends the on-chain mint transaction (TECH-002 complete)
+  const handleMint = useCallback(async (qty: number) => {
+    if (!publicKey || !collection?.mintAddress) return
+    setMinting(true)
+    setMintError(null)
+    try {
+      const cfg       = await getChainConfig()
+      const programId = new PublicKey(cfg.programId)
+      const mintKey   = new PublicKey(collection.mintAddress)
+
+      // collection PDA: seeds = ["collection", mintKey]
+      const [collectionPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('collection'), mintKey.toBuffer()],
+        programId,
+      )
+
+      // wallet_tracker PDA: seeds = ["wallet_mint", collection, buyer]
+      const [walletTracker] = PublicKey.findProgramAddressSync(
+        [Buffer.from('wallet_mint'), collectionPda.toBuffer(), publicKey.toBuffer()],
+        programId,
+      )
+
+      const keys: { pubkey: PublicKey; isSigner: boolean; isWritable: boolean }[] = [
+        { pubkey: collectionPda,                              isSigner: false, isWritable: true  },
+        { pubkey: publicKey,                                  isSigner: true,  isWritable: true  },
+        { pubkey: new PublicKey(collection.creatorAddress),   isSigner: false, isWritable: true  },
+        { pubkey: new PublicKey(cfg.platformWallet),          isSigner: false, isWritable: true  },
+        { pubkey: walletTracker,                              isSigner: false, isWritable: true  },
+      ]
+
+      // Include split_config only if the PDA is properly initialized on-chain.
+      // DB fundReceivers cannot be trusted — the PDA may not have been created during deploy.
+      // Discriminator [169,57,103,31,150,143,133,25] from IDL (nexus_launchpad MintSplitConfig).
+      const SPLIT_CONFIG_DISC = Buffer.from([169, 57, 103, 31, 150, 143, 133, 25])
+      const [splitConfig] = PublicKey.findProgramAddressSync(
+        [Buffer.from('split'), collectionPda.toBuffer()],
+        programId,
+      )
+      const splitInfo = await connection.getAccountInfo(splitConfig)
+      const isValidSplitConfig = splitInfo !== null &&
+        splitInfo.data.length >= 8 &&
+        splitInfo.data.subarray(0, 8).equals(SPLIT_CONFIG_DISC)
+      if (isValidSplitConfig) {
+        keys.push({ pubkey: splitConfig, isSigner: false, isWritable: false })
+      }
+
+      keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false })
+
+      const ix = new TransactionInstruction({ programId, keys, data: buildMintData(qty) })
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
+      const tx = new Transaction()
+      tx.recentBlockhash = blockhash
+      tx.feePayer = publicKey
+      tx.add(ix)
+
+      const sig = await sendTransaction(tx, connection)
+      await pollForConfirmation(connection, sig, blockhash, lastValidBlockHeight)
+
+      // Optimistically increment minted count so the progress bar updates immediately
+      setCollection(c => c ? { ...c, minted: c.minted + qty } : c)
+    } catch (e) {
+      setMintError(e instanceof Error ? e.message : 'Mint failed')
+    } finally {
+      setMinting(false)
+    }
+  }, [publicKey, connection, sendTransaction, collection])
 
   // ── Loading State ───────────────────────────────────────────────────────
   // Show while the API request is in-flight
@@ -319,9 +428,19 @@ export default function DropPageClient() {
                   {phases.map((phase, i) => {
                     // Determine if this phase is currently active based on timestamps
                     const active = phaseIsActive(phase.startDateTime, phase.endDateTime)
+                    // Price: phase override → collection default → "Free"
+                    let phasePrice: ReactNode = 'Free'
+                    if (phase.priceOverride != null) phasePrice = <>{phase.priceOverride} <SolIcon size={14} /></>
+                    else if (collection.price != null) phasePrice = <>{collection.price} <SolIcon size={14} /></>
                     return (
-                      // cp-phase-item — one row per phase, highlighted if active
-                      <div key={i} className={`cp-phase-item ${active ? 'active' : ''}`}>
+                      <div
+                        key={i}
+                        className={`cp-phase-item ${active ? 'active' : ''} ${i === selectedPhaseIdx ? 'selected' : ''}`}
+                        onClick={() => setSelectedPhaseIdx(i)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSelectedPhaseIdx(i) }}
+                      >
                         {/* Phase badge — "Allowlist" or "Public" pill
                             CSS class matches the phaseType for color coding */}
                         <span className={`cp-phase-badge ${phase.phaseType}`}>
@@ -332,14 +451,9 @@ export default function DropPageClient() {
                           {phase.name || (phase.phaseType === 'allowlist' ? 'Allowlist Mint' : 'Public Mint')}
                         </span>
                         {/* Phase details — price and date range
-                            Price: phase override → collection default → "Free"
                             Date: start → end (if set) formatted via fmtDate() */}
                         <div className="cp-phase-detail">
-                          {phase.priceOverride != null
-                            ? <><SolIcon size={14} /> {phase.priceOverride}</>
-                            : collection.price != null
-                              ? <><SolIcon size={14} /> {collection.price}</>
-                              : 'Free'}
+                          {phasePrice}
                           <br />
                           {/* Start date — always shown */}
                           {fmtDate(phase.startDateTime)}
@@ -366,8 +480,12 @@ export default function DropPageClient() {
           <aside className="cp-layout-side">
             <MintInteractionModule
               collection={collection}
-              maxPerTx={10}     // Max NFTs per transaction — configurable, currently hardcoded
-              onMint={handleMint} // The mint callback stub (TECH-002: real tx goes here)
+              maxPerTx={10}
+              onMint={handleMint}
+              minting={minting}
+              mintError={mintError}
+              selectedPhaseIndex={selectedPhaseIdx}
+              onPhaseSelect={setSelectedPhaseIdx}
             />
           </aside>
         </div>
