@@ -27,12 +27,13 @@ export default function SettingsPage() {
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: 'general', label: 'General' },
     { id: 'security', label: 'Security' },
-    ...(canManageApiKeys ? [{ id: 'api-keys' as const, label: 'API keys' }] : []),
+    ...(canManageApiKeys ? [{ id: 'api-keys' as const, label: 'API Keys' }] : []),
   ]
 
   return (
     <MainLayout breadcrumbs={[{ label: 'Settings' }]}>
       <div className="flex flex-col gap-6 md:flex-row">
+        {/* Tab nav */}
         <nav className="shrink-0 md:w-48" aria-label="Settings sections">
           <ul className="space-y-0.5">
             {tabs.map((t) => (
@@ -40,11 +41,32 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                  className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-150"
+                  style={
                     tab === t.id
-                      ? 'bg-surface-muted text-gray-900 dark:text-white'
-                      : 'text-gray-600 hover:bg-surface-muted hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
-                  }`}
+                      ? {
+                          background: 'rgba(0, 212, 255, 0.08)',
+                          color: '#00d4ff',
+                          borderLeft: '2px solid #00d4ff',
+                        }
+                      : {
+                          background: 'transparent',
+                          color: '#8a8a9a',
+                          borderLeft: '2px solid transparent',
+                        }
+                  }
+                  onMouseEnter={e => {
+                    if (tab !== t.id) {
+                      (e.currentTarget as HTMLElement).style.background = '#1f1f2e'
+                      ;(e.currentTarget as HTMLElement).style.color = '#ffffff'
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (tab !== t.id) {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent'
+                      ;(e.currentTarget as HTMLElement).style.color = '#8a8a9a'
+                    }
+                  }}
                 >
                   {t.label}
                 </button>
@@ -53,11 +75,12 @@ export default function SettingsPage() {
           </ul>
         </nav>
 
+        {/* Content */}
         <div className="flex-1">
           {tab === 'general' && (
             <div className="card p-6">
-              <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">
-                General settings
+              <h2 className="mb-4 text-base font-semibold" style={{ color: '#ffffff' }}>
+                General Settings
               </h2>
               {generalLoading ? (
                 <div className="space-y-4">
@@ -67,30 +90,20 @@ export default function SettingsPage() {
                 </div>
               ) : general ? (
                 <dl className="space-y-4">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Site name
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {general.siteName}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Timezone
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {general.timezone}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Language
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {general.language}
-                    </dd>
-                  </div>
+                  {[
+                    { label: 'Site name', value: general.siteName },
+                    { label: 'Timezone', value: general.timezone },
+                    { label: 'Language', value: general.language },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-lg p-3" style={{ background: '#0a0a0f', border: '1px solid #252535' }}>
+                      <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: '#8a8a9a' }}>
+                        {label}
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium" style={{ color: '#ffffff' }}>
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
                 </dl>
               ) : null}
             </div>
@@ -98,7 +111,7 @@ export default function SettingsPage() {
 
           {tab === 'security' && (
             <div className="card p-6">
-              <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">
+              <h2 className="mb-4 text-base font-semibold" style={{ color: '#ffffff' }}>
                 Security
               </h2>
               {securityLoading ? (
@@ -108,22 +121,19 @@ export default function SettingsPage() {
                 </div>
               ) : security ? (
                 <dl className="space-y-4">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Two-factor authentication
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {security.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Session timeout (minutes)
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {security.sessionTimeout}
-                    </dd>
-                  </div>
+                  {[
+                    { label: 'Two-factor authentication', value: security.twoFactorEnabled ? 'Enabled' : 'Disabled' },
+                    { label: 'Session timeout (minutes)', value: String(security.sessionTimeout) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-lg p-3" style={{ background: '#0a0a0f', border: '1px solid #252535' }}>
+                      <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: '#8a8a9a' }}>
+                        {label}
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium" style={{ color: '#ffffff' }}>
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
                 </dl>
               ) : null}
             </div>
@@ -131,8 +141,8 @@ export default function SettingsPage() {
 
           {tab === 'api-keys' && canManageApiKeys && (
             <div className="card p-6">
-              <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">
-                API keys
+              <h2 className="mb-4 text-base font-semibold" style={{ color: '#ffffff' }}>
+                API Keys
               </h2>
               {apiKeysLoading ? (
                 <div className="space-y-3">
@@ -140,31 +150,31 @@ export default function SettingsPage() {
                   <Skeleton className="h-12 w-full" />
                 </div>
               ) : apiKeys?.length ? (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y" style={{ borderColor: '#252535' }}>
                   {apiKeys.map((key) => (
                     <li
                       key={key.id}
                       className="flex flex-wrap items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                     >
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                        <p className="font-medium text-sm" style={{ color: '#ffffff' }}>
                           {key.name}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {key.maskedKey}
+                        <p className="text-xs mt-0.5" style={{ color: '#8a8a9a' }}>
+                          <span className="font-mono">{key.maskedKey}</span>
                           {key.lastUsedAt && (
                             <> · Last used {formatDate(key.lastUsedAt)}</>
                           )}
                         </p>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-red-600 dark:text-red-400">
+                      <Button variant="ghost" size="sm" style={{ color: '#ef4444' }}>
                         Revoke
                       </Button>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm" style={{ color: '#8a8a9a' }}>
                   No API keys yet.
                 </p>
               )}

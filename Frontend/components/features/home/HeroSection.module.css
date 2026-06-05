@@ -10,10 +10,11 @@
   position: relative;
   width: 100%;
   background-color: #000000;
-  background-image: url('/3_1.jpg');
+  background-image: url('/hero-bg.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 /* ============================================
@@ -309,11 +310,6 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.creatorLabel {
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .creatorName {

@@ -289,10 +289,12 @@ describe("nexus-launchpad", () => {
     });
 
     it("transfer_nft blocks transfer when frozen until sold out", async () => {
-      const { collectionPda } = await createCollection({ 
+      const { collectionPda } = await createCollection({
         freezeTradingUntilSoldOut: true,
         maxSupply: 10
       });
+      // nftMint must equal collection.mint (enforced by address = collection.mint constraint)
+      const collectionData = await program.account.collection.fetch(collectionPda);
 
       const signer = anchor.web3.Keypair.generate();
       try {
@@ -300,7 +302,7 @@ describe("nexus-launchpad", () => {
           .transferNft()
           .accountsStrict({
             collection: collectionPda,
-            nftMint: anchor.web3.Keypair.generate().publicKey,
+            nftMint: collectionData.mint,
             from: anchor.web3.Keypair.generate().publicKey,
             to: anchor.web3.Keypair.generate().publicKey,
             authority: signer.publicKey,
@@ -317,9 +319,10 @@ describe("nexus-launchpad", () => {
 
     it("transfer_nft blocks transfer when frozen until date", async () => {
       const futureDate = Math.floor(Date.now() / 1000) + 3600;
-      const { collectionPda } = await createCollection({ 
+      const { collectionPda } = await createCollection({
         freezeTradingUntilDate: futureDate
       });
+      const collectionData = await program.account.collection.fetch(collectionPda);
 
       const signer = anchor.web3.Keypair.generate();
       try {
@@ -327,7 +330,7 @@ describe("nexus-launchpad", () => {
           .transferNft()
           .accountsStrict({
             collection: collectionPda,
-            nftMint: anchor.web3.Keypair.generate().publicKey,
+            nftMint: collectionData.mint,
             from: anchor.web3.Keypair.generate().publicKey,
             to: anchor.web3.Keypair.generate().publicKey,
             authority: signer.publicKey,
@@ -344,6 +347,7 @@ describe("nexus-launchpad", () => {
 
     it("transfer_nft allows transfer when not frozen", async () => {
       const { collectionPda } = await createCollection({});
+      const collectionData = await program.account.collection.fetch(collectionPda);
       const signer = anchor.web3.Keypair.generate();
 
       // Should not throw error (though actual transfer isn't implemented)
@@ -351,7 +355,7 @@ describe("nexus-launchpad", () => {
         .transferNft()
         .accountsStrict({
           collection: collectionPda,
-          nftMint: anchor.web3.Keypair.generate().publicKey,
+          nftMint: collectionData.mint,
           from: anchor.web3.Keypair.generate().publicKey,
           to: anchor.web3.Keypair.generate().publicKey,
           authority: signer.publicKey,

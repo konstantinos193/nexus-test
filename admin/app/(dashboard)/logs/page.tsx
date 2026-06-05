@@ -53,7 +53,10 @@ export default function LogsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+        <div
+          className="mb-4 rounded-lg px-4 py-3 text-sm"
+          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
+        >
           {(error as Error).message}
         </div>
       )}
@@ -69,7 +72,7 @@ export default function LogsPage() {
             emptyMessage="No activity yet"
           />
           {data && data.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+            <div className="mt-4 flex items-center justify-between text-sm" style={{ color: '#8a8a9a' }}>
               <span>
                 Page {data.page} of {data.totalPages} ({data.total} total)
               </span>

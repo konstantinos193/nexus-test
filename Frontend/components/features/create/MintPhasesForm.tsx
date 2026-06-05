@@ -325,6 +325,8 @@ export default function MintPhasesForm({
     setError(null)
     const missingStart = phases.some(p => !p.startDateTime)
     if (missingStart) { setError('All phases need a start date and time.'); return }
+    const pastStart = phases.some(p => p.startDateTime && new Date(p.startDateTime).getTime() <= Date.now())
+    if (pastStart) { setError('Phase start dates must be in the future.'); return }
     onNext()
   }
 

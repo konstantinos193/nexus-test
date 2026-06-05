@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import {
+  Keypair,
   PublicKey,
   Transaction,
   TransactionInstruction,
@@ -10,8 +11,8 @@ import {
 } from '@solana/web3.js'
 import { collectionsApi, ipfsApi, uploadImageToIpfs } from '@/lib/api/client'
 import { NFTCollection } from '@/types'
-import type { ShareAddressRow } from '@/components/features/create/create-types'
-import { ROYALTY_SPLIT_MAX } from '@/components/features/create/create-types'
+import type { ShareAddressRow, CreateDraftPayload } from '@/components/features/create/create-types'
+import { ROYALTY_SPLIT_MAX, DRAFT_STORAGE_KEY } from '@/components/features/create/create-types'
 
 export type SubmitState  = 'idle' | 'uploading' | 'deploying' | 'signing' | 'confirming' | 'success' | 'error'
 export type Step2State   = 'idle' | 'uploading' | 'done' | 'error'
@@ -27,15 +28,19 @@ export interface MintPhase {
   allowlistRaw?:  string
 }
 
-// ── Borsh encoding helpers ────────────────────────────────────────────────────
-// Mirrors the backend contracts.service.ts encoding exactly.
-// Discriminator = first 8 bytes of sha256("global:initialize_collection").
-
-const INIT_COLLECTION_DISC = Buffer.from([112, 62, 53, 139, 173, 152, 98, 93])
-const PLATFORM_FEE_BPS = 500
+// ── Borsh helpers ─────────────────────────────────────────────────────────────
 
 const METADATA_STANDARD_VARIANT: Record<string, number> = {
   Legacy: 0, Metaplex: 0, Programmable: 1, Core: 2, CNFT: 3, Compressed: 3,
+}
+
+const PLATFORM_FEE_BPS = 100
+
+// Compute Anchor instruction discriminator at runtime: sha256("global:<name>")[0..8]
+async function anchorDiscriminator(name: string): Promise<Buffer> {
+  const preimage = new TextEncoder().encode(`global:${name}`)
+  const hash = await crypto.subtle.digest('SHA-256', preimage)
+  return Buffer.from(new Uint8Array(hash).slice(0, 8))
 }
 
 function encodeU64LE(v: bigint): Buffer {
@@ -47,35 +52,42 @@ function encodeI64LE(v: bigint): Buffer {
 function encodeOptionI64(v: bigint | null): Buffer {
   return v === null ? Buffer.from([0]) : Buffer.concat([Buffer.from([1]), encodeI64LE(v)])
 }
-function encodeOptionU8(v: number | null): Buffer {
-  return v === null ? Buffer.from([0]) : Buffer.from([1, v & 0xff])
+function encodeBorshString(s: string): Buffer {
+  const bytes = Buffer.from(s, 'utf8')
+  const len = Buffer.alloc(4)
+  len.writeUInt32LE(bytes.length, 0)
+  return Buffer.concat([len, bytes])
 }
-function encodeInitCollectionData(
-  cfg: {
-    maxSupply: bigint
-    pricePerNft: bigint
-    startTime: bigint
-    endTime: bigint | null
-    mintLimitPerWallet: number | null
-    metadataStandardVariant: number
-    freezeTradingUntilDate: bigint | null
-    freezeTradingUntilSoldOut: boolean
-  },
-  platformFeeBps: number,
-): Buffer {
+
+// Encode create_collection instruction data.
+// Signature: create_collection(metadata_uri: String, config: CollectionConfig, platform_fee_bps: u16)
+async function buildCreateCollectionData(params: {
+  metadataUri: string
+  maxSupply: bigint
+  pricePerNft: bigint
+  startTime: bigint
+  endTime: bigint | null
+  metadataStandardVariant: number
+  platformFeeBps: number
+}): Promise<Buffer> {
+  const disc = await anchorDiscriminator('create_collection')
+
   const feeBuf = Buffer.alloc(2)
-  feeBuf.writeUInt16LE(platformFeeBps, 0)
+  feeBuf.writeUInt16LE(params.platformFeeBps, 0)
+
   return Buffer.concat([
-    INIT_COLLECTION_DISC,
-    encodeU64LE(cfg.maxSupply),
-    encodeU64LE(cfg.pricePerNft),
-    encodeI64LE(cfg.startTime),
-    encodeOptionI64(cfg.endTime),
-    encodeOptionU8(cfg.mintLimitPerWallet),
-    Buffer.from([cfg.metadataStandardVariant & 0xff]),
-    encodeOptionI64(cfg.freezeTradingUntilDate),
-    Buffer.from([cfg.freezeTradingUntilSoldOut ? 1 : 0]),
-    feeBuf,
+    disc,
+    encodeBorshString(params.metadataUri.slice(0, 128)), // metadata_uri (max 128 bytes on-chain)
+    // CollectionConfig fields (AnchorSerialize order):
+    encodeU64LE(params.maxSupply),                // max_supply
+    encodeU64LE(params.pricePerNft),              // price_per_nft
+    encodeI64LE(params.startTime),                // start_time
+    encodeOptionI64(params.endTime),              // end_time: Option<i64>
+    Buffer.from([0x00]),                          // mint_limit_per_wallet: None
+    Buffer.from([params.metadataStandardVariant]),// metadata_standard (u8 enum variant)
+    Buffer.from([0x00]),                          // freeze_trading_until_date: None
+    Buffer.from([0x00]),                          // freeze_trading_until_sold_out: false
+    feeBuf,                                       // platform_fee_bps
   ])
 }
 
@@ -88,12 +100,11 @@ export function useCreateCollectionForm() {
   const { connection } = useConnection()
   const walletAddress = publicKey?.toBase58() ?? null
 
-  // ── Step navigation ───────────────────────────────────────────────────────
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const nextStep = useCallback(() => setStep(s => (Math.min(4, s + 1) as 1 | 2 | 3 | 4)), [])
   const prevStep = useCallback(() => setStep(s => (Math.max(1, s - 1) as 1 | 2 | 3 | 4)), [])
 
-  // ── Step 1: Collection Details ────────────────────────────────────────────
+  // Step 1
   const [collectionName,   setCollectionName]   = useState('')
   const [symbol,           setSymbol]           = useState('')
   const [description,      setDescription]      = useState('')
@@ -102,8 +113,11 @@ export function useCreateCollectionForm() {
   const [metadataStandard, setMetadataStandard] = useState<MetadataStandard>('Core')
   const [royaltyPercent,   setRoyaltyPercent]   = useState<number>(5)
   const [royaltyWallet,    setRoyaltyWallet]    = useState('')
+  const [twitterUrl,       setTwitterUrl]       = useState('')
+  const [discordUrl,       setDiscordUrl]       = useState('')
+  const [websiteUrl,       setWebsiteUrl]       = useState('')
 
-  // ── Step 2: Media & Metadata ──────────────────────────────────────────────
+  // Step 2
   const [imageFiles,      setImageFiles]      = useState<File[]>([])
   const [metadataFiles,   setMetadataFiles]   = useState<File[]>([])
   const [imagesBaseUri,   setImagesBaseUri]   = useState<string | null>(null)
@@ -111,7 +125,7 @@ export function useCreateCollectionForm() {
   const [step2State,      setStep2State]      = useState<Step2State>('idle')
   const [step2Error,      setStep2Error]      = useState<string | null>(null)
 
-  // ── Step 3: Mint Phases ───────────────────────────────────────────────────
+  // Step 3
   const totalSupply = metadataFiles.length || imageFiles.length || 0
   const [mintPrice,     setMintPrice]     = useState<number | ''>('')
   const [freeMint,      setFreeMint]      = useState(false)
@@ -123,15 +137,12 @@ export function useCreateCollectionForm() {
   const updateFundReceiver = useCallback((i: number, field: 'share' | 'address', value: string) => {
     setFundReceivers(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r))
   }, [])
-
   const addFundReceiver = useCallback(() => {
     setFundReceivers(prev => prev.length < ROYALTY_SPLIT_MAX ? [...prev, { share: '0', address: '' }] : prev)
   }, [])
-
   const removeFundReceiver = useCallback((i: number) => {
     setFundReceivers(prev => prev.filter((_, idx) => idx !== i))
   }, [])
-
   const distributeFundReceiversEvenly = useCallback(() => {
     setFundReceivers(prev => {
       if (!prev.length) return prev
@@ -140,7 +151,6 @@ export function useCreateCollectionForm() {
       return prev.map((r, i) => ({ ...r, share: String(i === 0 ? each + bonus : each) }))
     })
   }, [])
-
   const autoFillFundReceiversRemainder = useCallback(() => {
     setFundReceivers(prev => {
       const total = prev.reduce((sum, r) => sum + (parseFloat(r.share) || 0), 0)
@@ -152,22 +162,84 @@ export function useCreateCollectionForm() {
       })
     })
   }, [])
-
   const fundReceiverTotal = fundReceivers.reduce((sum, r) => sum + (parseFloat(r.share) || 0), 0)
   const fundReceiverError: string | null = Math.abs(fundReceiverTotal - 100) > 0.01 ? 'Shares must total 100%' : null
 
-  // ── Step 4: Deploy ────────────────────────────────────────────────────────
+  // Step 4
   const [submitState,       setSubmitState]       = useState<SubmitState>('idle')
   const [error,             setError]             = useState<string | null>(null)
   const [createdCollection, setCreatedCollection] = useState<NFTCollection | null>(null)
+  const [estimatedFee,      setEstimatedFee]      = useState<number | null>(null)
 
-  // ── Step 1: just advance ──────────────────────────────────────────────────
+  // ── Draft persistence ──────────────────────────────────────────────────────
+  // Load draft once on mount (File objects can't be persisted, so imageFile etc. are not restored)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+      if (!raw) return
+      const d = JSON.parse(raw) as CreateDraftPayload
+      if (d.step && [1, 2, 3, 4].includes(d.step))  setStep(d.step as 1 | 2 | 3 | 4)
+      if (d.collectionName)                          setCollectionName(d.collectionName)
+      if (d.symbol)                                  setSymbol(d.symbol)
+      if (d.collectionDescription)                   setDescription(d.collectionDescription)
+      if (d.metadataStandard)                        setMetadataStandard(d.metadataStandard as MetadataStandard)
+      if (d.royaltyPercent != null)                  setRoyaltyPercent(d.royaltyPercent)
+      if (d.royaltyWallet)                           setRoyaltyWallet(d.royaltyWallet)
+      if (d.twitterUrl)                              setTwitterUrl(d.twitterUrl)
+      if (d.discordUrl)                              setDiscordUrl(d.discordUrl)
+      if (d.websiteUrl)                              setWebsiteUrl(d.websiteUrl)
+      if (d.mintPrice != null)                       setMintPrice(parseFloat(d.mintPrice) || '')
+      if (d.freeMint != null)                        setFreeMint(d.freeMint)
+      if (d.phases?.length)                          setPhases(d.phases as unknown as MintPhase[])
+      if (d.fundReceivers?.length)                   setFundReceivers(d.fundReceivers)
+      if (d.baseUri)                                 setMetadataBaseUri(d.baseUri)
+    } catch {}
+  }, []) // mount only — eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save draft to localStorage (debounced 800 ms)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const draft: CreateDraftPayload = {
+          version: 1,
+          step,
+          collectionName,
+          symbol,
+          collectionDescription: description,
+          metadataStandard,
+          royaltyPercent,
+          royaltyWallet,
+          twitterUrl: twitterUrl || undefined,
+          discordUrl: discordUrl || undefined,
+          websiteUrl: websiteUrl || undefined,
+          mintPrice: mintPrice === '' ? undefined : String(mintPrice),
+          freeMint,
+          phases: phases as unknown as CreateDraftPayload['phases'],
+          fundReceivers,
+          baseUri: metadataBaseUri ?? undefined,
+        }
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+      } catch {}
+    }, 800)
+    return () => clearTimeout(t)
+  }, [step, collectionName, symbol, description, metadataStandard, royaltyPercent, royaltyWallet, twitterUrl, discordUrl, websiteUrl, mintPrice, freeMint, phases, fundReceivers, metadataBaseUri])
+
+  // Fetch real network fee when the user reaches step 4.
+  // 500 bytes is a comfortable upper bound for the collection PDA account size.
+  useEffect(() => {
+    if (step !== 4) return
+    let cancelled = false
+    connection.getMinimumBalanceForRentExemption(500)
+      .then(rent => { if (!cancelled) setEstimatedFee((rent + 5_000) / 1e9) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [step, connection])
+
   const handleStep1Next = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     nextStep()
   }, [nextStep])
 
-  // ── Step 2: upload both directories to IPFS ───────────────────────────────
   const handleMediaUpload = useCallback(async () => {
     setStep2Error(null)
     if (!imageFiles.length && !metadataFiles.length) {
@@ -191,12 +263,13 @@ export function useCreateCollectionForm() {
     }
   }, [imageFiles, metadataFiles])
 
-  // ── Step 4: deploy flow ───────────────────────────────────────────────────
+  // Deploy flow:
   // 1. Upload PFP + banner to IPFS
-  // 2. Fetch program config from backend
-  // 3. Build + send initialize_collection tx directly from the frontend wallet
-  // 4. Wait for on-chain confirmation
-  // 5. POST all collection data + signature to backend to save in DB
+  // 2. Fetch program config (programId, platformWallet) from backend
+  // 3. Generate mint keypair — its pubkey seeds the collection PDA
+  // 4. Build create_collection instruction with correct Borsh encoding
+  // 5. sendTransaction → confirmTransaction
+  // 6. POST all data + signature + addresses to backend → saved as 'ready'
   const handleDeploy = useCallback(async () => {
     setError(null)
     if (!connected || !walletAddress) {
@@ -205,7 +278,7 @@ export function useCreateCollectionForm() {
     }
 
     try {
-      // Step 1: upload collection PFP + banner
+      // 1. Upload collection PFP + banner
       setSubmitState('uploading')
       const [pfpResult, bannerResult] = await Promise.all([
         imageFile  ? uploadImageToIpfs(imageFile)  : Promise.resolve(null),
@@ -214,24 +287,41 @@ export function useCreateCollectionForm() {
       if (pfpResult    && !pfpResult.success)    throw new Error(pfpResult.error    ?? 'PFP upload failed')
       if (bannerResult && !bannerResult.success) throw new Error(bannerResult.error ?? 'Banner upload failed')
 
-      // Step 2: fetch program config (program ID, platform wallet) from backend
+      // 2. Fetch program config from backend
       setSubmitState('deploying')
       const configRes = await fetch(`${API_BASE_URL}/api/solana/config`)
-      if (!configRes.ok) throw new Error('Could not fetch Solana config from backend')
+      if (!configRes.ok) throw new Error('Could not fetch Solana config')
       const configData = await configRes.json()
-      const programId     = configData.data?.programId     as string | undefined
+      const programId          = configData.data?.programId as string | undefined
       const platformWalletAddr = configData.data?.platformWallet as string | undefined
       if (!programId) throw new Error('Backend did not return a program ID')
 
-      // Step 3: derive collection PDA — seeds: ["collection", authority]
-      const authority = new PublicKey(walletAddress)
+      const authority      = new PublicKey(walletAddress)
+      const programPubkey  = new PublicKey(programId)
+      const platformWallet = new PublicKey(platformWalletAddr ?? walletAddress)
+
+      // 3. Generate a fresh mint keypair — its pubkey seeds the collection PDA.
+      //    The program stores mint.key() as the collection's permanent on-chain identifier.
+      const mintKeypair = Keypair.generate()
+
+      // Collection PDA: seeds = ["collection", mint.key()]  ← matches lib.rs line 684
       const [collectionPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('collection'), authority.toBuffer()],
-        new PublicKey(programId),
+        [Buffer.from('collection'), mintKeypair.publicKey.toBuffer()],
+        programPubkey,
       )
 
-      // Step 4: build initialize_collection instruction
-      const supply = typeof totalSupply === 'number' && totalSupply > 0 ? totalSupply : 10_000
+      // Registry PDA: seeds = ["registry"]
+      const [registryPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('registry')],
+        programPubkey,
+      )
+
+      // Check if the registry account is already initialized
+      const registryInfo = await connection.getAccountInfo(registryPda)
+      const registryReady = registryInfo !== null && registryInfo.owner.equals(programPubkey)
+
+      // 4. Build create_collection instruction
+      const supply       = typeof totalSupply === 'number' && totalSupply > 0 ? totalSupply : 10_000
       const priceLamports = freeMint
         ? 0n
         : BigInt(Math.round((typeof mintPrice === 'number' ? mintPrice : 0) * 1e9))
@@ -239,65 +329,86 @@ export function useCreateCollectionForm() {
       const validPhases = phases.filter(p => p.startDateTime)
       const firstPhase  = validPhases[0]
       const lastPhase   = validPhases.at(-1)
-      const now         = BigInt(Math.floor(Date.now() / 1000))
-      const startTs     = firstPhase?.startDateTime
+      const nowTs       = BigInt(Math.floor(Date.now() / 1000))
+
+      // start_time must be >= on-chain clock — default to now+10s if no phase set or date is past
+      const configuredStart = firstPhase?.startDateTime
         ? BigInt(Math.floor(new Date(firstPhase.startDateTime).getTime() / 1000))
-        : now
-      const endTs       = lastPhase?.endDateTime
+        : null
+      const startTs = configuredStart && configuredStart > nowTs ? configuredStart : nowTs + 10n
+
+      const endTs = lastPhase?.endDateTime
         ? BigInt(Math.floor(new Date(lastPhase.endDateTime).getTime() / 1000))
         : null
 
-      const instructionData = encodeInitCollectionData(
-        {
-          maxSupply:                 BigInt(supply),
-          pricePerNft:               priceLamports,
-          startTime:                 startTs,
-          endTime:                   endTs,
-          mintLimitPerWallet:        null,
-          metadataStandardVariant:   METADATA_STANDARD_VARIANT[metadataStandard] ?? 2,
-          freezeTradingUntilDate:    null,
-          freezeTradingUntilSoldOut: false,
-        },
-        PLATFORM_FEE_BPS,
-      )
+      const metadataUri = metadataBaseUri ?? pfpResult?.data?.uri ?? ''
 
-      const platformWallet = new PublicKey(platformWalletAddr ?? walletAddress)
+      const ixData = await buildCreateCollectionData({
+        metadataUri,
+        maxSupply:              BigInt(supply),
+        pricePerNft:            priceLamports,
+        startTime:              startTs,
+        endTime:                endTs,
+        metadataStandardVariant: METADATA_STANDARD_VARIANT[metadataStandard] ?? 2,
+        platformFeeBps:         PLATFORM_FEE_BPS,
+      })
 
+      // Accounts must match CreateCollection<'info> order in lib.rs exactly:
+      // collection, mint, registry, authority, mint_authority, creator_wallet, platform_wallet, system_program
       const instruction = new TransactionInstruction({
-        programId: new PublicKey(programId),
+        programId: programPubkey,
         keys: [
-          { pubkey: collectionPda,            isSigner: false, isWritable: true  },
-          { pubkey: authority,                isSigner: true,  isWritable: true  },
+          { pubkey: collectionPda,            isSigner: false, isWritable: true  }, // collection PDA
+          { pubkey: mintKeypair.publicKey,    isSigner: false, isWritable: false }, // mint (seed only)
+          { pubkey: registryPda,              isSigner: false, isWritable: true  }, // registry PDA
+          { pubkey: authority,                isSigner: true,  isWritable: true  }, // authority / payer
           { pubkey: authority,                isSigner: false, isWritable: false }, // mint_authority
           { pubkey: authority,                isSigner: false, isWritable: true  }, // creator_wallet
-          { pubkey: platformWallet,           isSigner: false, isWritable: false },
-          { pubkey: SystemProgram.programId,  isSigner: false, isWritable: false },
+          { pubkey: platformWallet,           isSigner: false, isWritable: false }, // platform_wallet
+          { pubkey: SystemProgram.programId,  isSigner: false, isWritable: false }, // system_program
         ],
-        data: instructionData,
+        data: ixData,
       })
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
       const tx = new Transaction()
       tx.recentBlockhash = blockhash
       tx.feePayer = authority
+
+      // If the global registry doesn't exist yet, initialize it first (one-time platform setup).
+      // In production this is done by the platform admin before launch; on a fresh localnet
+      // the first creator to deploy triggers it automatically.
+      if (!registryReady) {
+        const initDisc = await anchorDiscriminator('initialize_registry')
+        tx.add(new TransactionInstruction({
+          programId: programPubkey,
+          keys: [
+            { pubkey: registryPda,            isSigner: false, isWritable: true  },
+            { pubkey: authority,              isSigner: true,  isWritable: true  },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          ],
+          data: initDisc, // initialize_registry takes no arguments
+        }))
+      }
+
       tx.add(instruction)
 
-      // Step 5: wallet signs + submits
+      // 5. Wallet signs + submits
       setSubmitState('signing')
       const signature = await sendTransaction(tx, connection)
 
-      // Step 6: wait for confirmation
+      // 6. Wait for confirmation
       setSubmitState('confirming')
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
 
-      // Step 7: save to backend DB
+      // 7. Save to backend DB
       const saveResult = await collectionsApi.deploy({
         name:             collectionName.trim(),
         symbol:           (symbol.trim() || collectionName.trim().slice(0, 4)).toUpperCase(),
         description:      description.trim(),
         creatorAddress:   walletAddress,
         metadataStandard,
-        uri:              metadataBaseUri ?? undefined,
+        uri:              metadataUri || undefined,
         totalSupply:      supply,
         mintPrice:        freeMint ? 0 : (typeof mintPrice === 'number' ? mintPrice : undefined),
         freeMint,
@@ -305,6 +416,9 @@ export function useCreateCollectionForm() {
         royaltyWallet:    royaltyWallet.trim() || walletAddress,
         phases:           validPhases,
         fundReceivers:    fundReceivers.filter(r => r.address.trim()),
+        twitterUrl:       twitterUrl.trim() || undefined,
+        discordUrl:       discordUrl.trim() || undefined,
+        websiteUrl:       websiteUrl.trim() || undefined,
         collectionAddress: collectionPda.toBase58(),
         txSignature:      signature,
         ...(pfpResult?.data    ? { collectionImage: pfpResult.data.uri }    : {}),
@@ -315,7 +429,8 @@ export function useCreateCollectionForm() {
         throw new Error(saveResult.error ?? 'Failed to save collection')
       }
 
-      setCreatedCollection({ id: saveResult.data.collectionId } as NFTCollection)
+      setCreatedCollection({ id: saveResult.data.collectionId, slug: saveResult.data.slug } as NFTCollection)
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
       setSubmitState('success')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong'
@@ -329,16 +444,14 @@ export function useCreateCollectionForm() {
     metadataStandard, metadataBaseUri,
     totalSupply, mintPrice, freeMint,
     royaltyPercent, royaltyWallet,
+    twitterUrl, discordUrl, websiteUrl,
     phases, fundReceivers, sendTransaction, connection,
   ])
 
   const isDeploying = ['uploading', 'deploying', 'signing', 'confirming'].includes(submitState)
 
   return {
-    // Navigation
     step, nextStep, prevStep,
-
-    // Step 1
     collectionName,   setCollectionName,
     symbol,           setSymbol,
     description,      setDescription,
@@ -347,16 +460,15 @@ export function useCreateCollectionForm() {
     metadataStandard, setMetadataStandard,
     royaltyPercent,   setRoyaltyPercent,
     royaltyWallet,    setRoyaltyWallet,
+    twitterUrl,       setTwitterUrl,
+    discordUrl,       setDiscordUrl,
+    websiteUrl,       setWebsiteUrl,
     handleStep1Next,
-
-    // Step 2
     imageFiles,     setImageFiles,
     metadataFiles,  setMetadataFiles,
     imagesBaseUri,  metadataBaseUri,
     step2State,     step2Error,
     handleMediaUpload,
-
-    // Step 3
     totalSupply,
     mintPrice,   setMintPrice,
     freeMint,    setFreeMint,
@@ -364,9 +476,8 @@ export function useCreateCollectionForm() {
     fundReceivers, updateFundReceiver, addFundReceiver, removeFundReceiver,
     distributeFundReceiversEvenly, autoFillFundReceiversRemainder,
     fundReceiverTotal, fundReceiverError,
-
-    // Step 4
     submitState, error, createdCollection,
+    estimatedFee,
     handleDeploy,
     isConnected:  connected,
     walletAddress,

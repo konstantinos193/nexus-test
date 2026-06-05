@@ -1,44 +1,66 @@
-﻿/**
- * FAQ Page - Frequently Asked Questions (or "Answers Nobody Read Until They're Stuck")
- * The main page component that wraps FAQ content
- * This is where we pretend people actually read the docs before asking
- * (Spoiler: they don't. But we tried.)
+/**
+ * FAQ Page - Frequently Asked Questions (or "Answers That Exist Before You Even Ask")
+ * The authoritative Q&A page for NeXus NFT Launchpad
+ * This is where we answer the questions so you don't have to open a support ticket
+ * (We're not bitter about support tickets. We just prefer this.)
  *
- * You've got questions? We've got... answers. Sometimes. Hopefully.
- * If the answer isn't here, good luck with that support ticket queue
+ * You've got questions? We've got answers. Documented ones. Right here. Findable.
+ * No appointment needed. No waiting. No "have you tried turning it off and on again."
+ * (Okay, sometimes that answer is in there. It works surprisingly often.)
  *
- * @author Juan - The developer who answered the same question 47 times
- * (Coded with hope that maybe, just maybe, someone will Ctrl+F first)
+ * If you're here reading this file instead of the FAQ page itself:
+ * this file does one thing — it imports the FAQ data and passes it to FAQPageContent.
+ * That's it. Everything else (the accordion UI, search, categories) is in FAQPageContent.
+ *
+ * @author Juan - The developer who answered the same question 47 times before writing this page
+ * (Coded with the hope that maybe, MAYBE, someone will Ctrl+F before opening Discord)
  */
 
-// Without it we'd just be a pile of content bones (gross)
-// FAQPageContent - where the actual Q&A magic happens
-// This component has seen some things. So many repeated questions.
+// FAQPageContent — the UI component that renders the FAQ accordion/list
+// Takes the faqs array and transforms it into something users can actually read
+// Handles search, filtering, expanded/collapsed states — all of it
+// We just hand it the data and watch it work
 import FAQPageContent from '@/components/features/faq/FAQPageContent'
-// faqs - the sacred data. The source of truth. The content we pray people actually read.
-// Seriously, it's right there. Just... scroll. Please.
+
+// faqs — the sacred data. The canonical source of truth. The answers people seek.
+// Lives in /lib/data/faqs so it can be used by both this page and the JSON-LD component
+// (Two consumers, one source. DRY. Consistent. Clean. Unlike the FAQ inbox.)
+// Seriously. It's right there. Just scroll. Just read it. Please.
 import { faqs } from '@/lib/data/faqs'
 
+// ── Page Component ────────────────────────────────────────────────────────────
+
 /**
- * FAQ Page Component - The main entry point for /faq
- * Renders when someone finally gives up googling and visits our FAQ
- * (Welcome! We've been expecting you. The lost ones always find their way here.)
+ * FAQPage - The exported default component for /faq
+ * Renders when someone:
+ * a) Gives up googling and navigates directly to /faq (welcome, you're in the right place)
+ * b) Clicks the FAQ link in the nav (smart, efficient, we respect you)
+ * c) Got linked here from a support response (we hope this resolves your question)
+ * d) Is just exploring the site (also valid, also welcome)
+ *
+ * This component passes the faqs data to FAQPageContent.
+ * It does not manage state. It does not fetch data.
+ * It is a delivery mechanism for pre-loaded content. A humble, essential role.
  */
 export default function FAQPage() {
   return (
-    // Layout wrapper - header, footer, the usual suspects
-    // Same deal as homepage: we need a frame before we hang the art
+    // Fragment — the root layout handles the nav and footer scaffolding
+    // We just need to render the FAQ content component. Nothing else.
     <>
-      {/* FAQ Page Content - the meat and potatoes
-          This is where faqs get rendered, accordions expand, and hope flickers
-          We pass faqs like passing the torch. Or passing the buck. Same energy.
-          (Please read these before opening a support ticket. We're begging you.) */}
+      {/* FAQPageContent — the full FAQ UI
+          Receives the faqs array from the static data source
+          Renders questions, answers, search box, category filters
+          This is the page's entire reason for existing — answering questions
+          Pass the faqs like passing a torch. Or passing the buck.
+          (Torch. We're passing the torch. We're not passing the buck on support tickets.)
+          Please read the FAQ before opening a support ticket.
+          We are asking politely. */}
       <FAQPageContent faqs={faqs} />
     </>
   )
 }
 
-// Coded by Juan - FAQ maintainer and "did you check the FAQ?" enthusiast
-// (Yes, we have an FAQ. Yes, people still ask. No, we're not surprised.)
-// P.S. - If your question isn't here, it might become one. The circle of FAQ life.
-
+// ── Juan's Sign-Off ───────────────────────────────────────────────────────────
+// Coded by Juan — FAQ maintainer, "did you check the FAQ?" evangelist, and answers-exist-already champion.
+// The answers are here. They were always here. They will always be here.
+// P.S. — If your question isn't in the FAQ yet, it will be. The circle of FAQ life continues.

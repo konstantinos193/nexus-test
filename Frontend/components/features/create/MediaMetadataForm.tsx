@@ -27,6 +27,7 @@ import {
   Clock,
   CloudUpload,
   Copy,
+  Download,
   FileJson,
   FolderUp,
   Image,
@@ -34,6 +35,10 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react'
+
+// ZIP builder — for generating the example collection download on the fly
+// jszip is already a dep (used elsewhere), so no extra weight here
+import JSZip from 'jszip'
 
 // UI — one button component to keep things consistent
 import Button from '@/components/ui/Button'
@@ -47,6 +52,96 @@ import type { NftPreviewItem } from '@/components/features/create/create-types'
 // Max number of NFT preview cards to build from local files.
 // 8 is enough to show the pattern without burning RAM on a 10,000-item collection.
 const PREVIEW_LIMIT = 8
+
+// ── Example collection download ───────────────────────────────────────────────
+
+// Colours for the three sample NFTs — distinct enough to be obvious, pleasant enough
+// that nobody cries when they see the example. (Design by vibes, as usual.)
+const EXAMPLE_COLORS = ['#6366f1', '#ec4899', '#10b981'] as const
+const EXAMPLE_TRAITS = [
+  [{ trait_type: 'Background', value: 'Indigo' }, { trait_type: 'Rarity', value: 'Common' }],
+  [{ trait_type: 'Background', value: 'Pink'   }, { trait_type: 'Rarity', value: 'Uncommon' }],
+  [{ trait_type: 'Background', value: 'Emerald'}, { trait_type: 'Rarity', value: 'Rare' }],
+] as const
+
+// Renders a 400×400 canvas NFT for the given index and colour, returns a PNG Blob.
+// Canvas is a browser API so this is fine in a client component — no SSR concerns.
+function renderExamplePng(index: number, bgColor: string): Promise<Blob> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 400
+    canvas.height = 400
+    const ctx = canvas.getContext('2d')!
+
+    // Solid background
+    ctx.fillStyle = bgColor
+    ctx.fillRect(0, 0, 400, 400)
+
+    // Subtle grid overlay — makes it look less like a rectangle and more like Art™
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'
+    ctx.lineWidth = 1
+    for (let i = 0; i <= 400; i += 40) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 400); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke()
+    }
+
+    // Token number — the headline act
+    ctx.fillStyle = 'rgba(255,255,255,0.95)'
+    ctx.font = 'bold 96px monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(`#${index}`, 200, 175)
+
+    // "Example NFT" label below
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'
+    ctx.font = '28px sans-serif'
+    ctx.fillText('Example NFT', 200, 290)
+
+    // Watermark — so nobody accidentally ships this to mainnet
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'
+    ctx.font = '16px monospace'
+    ctx.fillText('SAMPLE · DO NOT SHIP', 200, 360)
+
+    canvas.toBlob((blob) => resolve(blob!), 'image/png')
+  })
+}
+
+// Builds and triggers a download of example-collection.zip — two folders,
+// three NFTs each, naming convention matches what the upload zones expect.
+async function downloadExampleCollection() {
+  const zip = new JSZip()
+  const images   = zip.folder('images')!
+  const metadata = zip.folder('metadata')!
+
+  for (let i = 0; i < 3; i++) {
+    // PNG image — generated on a canvas so no external assets needed
+    const blob = await renderExamplePng(i, EXAMPLE_COLORS[i])
+    images.file(`${i}.png`, blob)
+
+    // Metaplex-compatible metadata JSON — the exact structure the program expects
+    const meta = {
+      name:        `Example NFT #${i}`,
+      symbol:      'EXAMPLE',
+      description: `Example NFT #${i} — replace this with your real description.`,
+      image:       `${i}.png`,
+      attributes:  EXAMPLE_TRAITS[i],
+      properties: {
+        files:    [{ uri: `${i}.png`, type: 'image/png' }],
+        category: 'image',
+      },
+    }
+    metadata.file(`${i}.json`, JSON.stringify(meta, null, 2))
+  }
+
+  // Trigger download — no server round-trip, no blob storage, just vibes and RAM
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = 'example-collection.zip'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -665,7 +760,24 @@ export default function MediaMetadataForm({
 
       {/* ── A. Section header ────────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-lg font-semibold text-dark-text-primary">Media & Metadata</h2>
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-lg font-semibold text-dark-text-primary">Media & Metadata</h2>
+
+          {/* Download example ZIP — gives newcomers a working template to copy.
+              Canvas generates the PNGs on the fly so no static assets needed. */}
+          <button
+            type="button"
+            onClick={downloadExampleCollection}
+            className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg
+                       border border-dark-border-secondary bg-dark-bg-secondary
+                       text-xs font-medium text-dark-text-secondary
+                       hover:border-dark-accent-primary/50 hover:text-dark-accent-primary
+                       transition-colors duration-150"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Download example collection
+          </button>
+        </div>
         <p className="text-sm text-dark-text-tertiary mt-1">
           Upload your NFT images and metadata files to IPFS. Name them starting from 0 —{' '}
           <span className="font-mono text-dark-text-secondary">0.png, 1.png…</span> and{' '}

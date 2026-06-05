@@ -14,6 +14,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG NEXT_PUBLIC_BACKEND_URL=https://api.nexus-web3.com
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_SITE_URL=https://nexus-web3.com
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN pnpm build
 
 # Stage 3: lean production image using Next.js standalone output

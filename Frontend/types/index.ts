@@ -3,6 +3,22 @@
  * Because TypeScript is like a bouncer for your code - it won't let the wrong types in
  */
 
+// Mint phase - allowlist or public, with optional price/wallet overrides
+export interface MintPhase {
+  name: string
+  phaseType: 'public' | 'allowlist'
+  startDateTime: string
+  endDateTime?: string
+  priceOverride?: string
+  maxPerWallet?: string
+}
+
+// Fund split receiver - address + percentage share
+export interface FundReceiver {
+  share: string
+  address: string
+}
+
 // Collection types - because we need to know what we're dealing with
 export interface NFTCollection {
   id: string
@@ -24,6 +40,16 @@ export interface NFTCollection {
   updatedAt: string
   /** Optional mint end date for "Ending Soon" discover tab */
   endDate?: string
+  phases?: MintPhase[]
+  fundReceivers?: FundReceiver[]
+  mintAddress?: string
+  royaltyBasisPoints?: number
+  platformFeeBasisPoints?: number
+  ipfsHash?: string
+  mintStart?: string
+  twitterUrl?: string
+  discordUrl?: string
+  websiteUrl?: string
 }
 
 // Solana only – we're a Solana NFT launchpad
@@ -101,6 +127,13 @@ export interface CollectionDetail {
   discordUrl?: string
   twitterUrl?: string
   secondaryMarketUrl?: string
+  websiteUrl?: string
+  phases?: MintPhase[]
+  fundReceivers?: FundReceiver[]
+  mintAddress?: string
+  royaltyBasisPoints?: number
+  platformFeeBasisPoints?: number
+  ipfsHash?: string
 }
 
 // User types - because we need to know who's creating chaos

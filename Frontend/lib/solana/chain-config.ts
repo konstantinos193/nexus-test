@@ -19,7 +19,8 @@ export interface ChainConfig {
   commitment: 'processed' | 'confirmed' | 'finalized';
   programId: string;
   platformFeeBps: number;
-  creatorFeeBps: number;
+  platformWallet: string;
+  feeModel: 'additive' | 'subtractive';
 }
 
 // Module-level cache — fetched once per app lifecycle.

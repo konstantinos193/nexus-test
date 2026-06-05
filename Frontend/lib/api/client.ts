@@ -30,6 +30,9 @@ export interface DeployCollectionPayload {
   freezeCollection?: boolean
   freezeUntilDate?: string
   fundReceivers?: Array<{ share: string; address: string }>
+  twitterUrl?: string
+  discordUrl?: string
+  websiteUrl?: string
   // Set by frontend after on-chain tx is signed + confirmed
   txSignature?: string
   collectionAddress?: string
@@ -129,12 +132,14 @@ export const collectionsApi = {
     search?: string
     sortBy?: string
     limit?: number
+    creator?: string
   }): Promise<ApiResponse<NFTCollection[]>> => {
     const queryParams = new URLSearchParams()
-    if (params?.status) queryParams.append('status', params.status)
-    if (params?.search) queryParams.append('search', params.search)
-    if (params?.sortBy) queryParams.append('sortBy', params.sortBy)
-    if (params?.limit != null) queryParams.append('limit', String(params.limit))
+    if (params?.status)  queryParams.append('status',  params.status)
+    if (params?.search)  queryParams.append('search',  params.search)
+    if (params?.sortBy)  queryParams.append('sortBy',  params.sortBy)
+    if (params?.limit  != null) queryParams.append('limit',   String(params.limit))
+    if (params?.creator) queryParams.append('creator', params.creator)
 
     const query = queryParams.toString()
     return fetchApi<NFTCollection[]>(
@@ -172,6 +177,19 @@ export const collectionsApi = {
       method: 'POST',
       body: JSON.stringify({ signature }),
     })
+  },
+
+  /** Update off-chain collection metadata (name, description, images, social, etc.) */
+  update: async (id: string, dto: Record<string, unknown>): Promise<ApiResponse<NFTCollection>> => {
+    return fetchApi<NFTCollection>(`/api/collections/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    })
+  },
+
+  /** Fetch raw on-chain collection state — used by edit page to get metadataStandard and current config */
+  getOnChain: async (mintAddress: string): Promise<ApiResponse<any>> => {
+    return fetchApi<any>(`/api/collections/onchain/${mintAddress}`)
   },
 }
 

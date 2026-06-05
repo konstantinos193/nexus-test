@@ -1,80 +1,96 @@
-﻿/**
- * Home Page - The landing page that welcomes users
- * This is the first impression, so it better be good
- * Because first impressions are everything (unlike second chances)
- * 
- * This is where it all begins - the page that greets visitors
- * If they don't like what they see here, they're probably not coming back
- * (And honestly, can you blame them?)
- * 
+/**
+ * Home Page - The landing page that welcomes users, strangers, and curious Googlebots
+ * This is the first impression, so it better be good.
+ * Because first impressions are everything (unlike second chances, which we also don't get).
+ *
+ * This is where it all begins — the page that greets visitors before they bounce.
+ * If they don't like what they see here, they're probably not coming back.
+ * (And honestly, can you blame them? The internet has infinite tabs.)
+ *
+ * No data fetching. No drama. Just a component and a prayer.
+ * The real work is in HomePageContent. We are merely the stage.
+ *
  * @author Juan - The developer who built this digital welcome mat
- * (Coded with care, humor, and probably too much coffee)
+ * (Coded with care, dark humor, and an amount of coffee that should concern a physician)
  */
 
+// Next.js Metadata type — the TypeScript contract for our SEO promises
+// Without this type, we'd be writing metadata in the dark. More than usual.
 import type { Metadata } from 'next'
-// SEO config - titles, descriptions, canonical URLs. The whole shebang.
-// Google's gotta know we exist. Otherwise we're just a URL in the void.
+
+// SEO config — the holy trinity of title, description, and canonical URL
+// Google's gotta know we exist. Otherwise we're just a URL screaming into the void.
+// (Not poetic. Just factual.)
 import { siteDescription, siteTitleDefault, absoluteUrl } from '@/lib/seo/config'
-// Without it we're just a div floating in space (literally and metaphorically)
-// HomePageContent - the hero, the collections, the features. The good stuff.
+
+// HomePageContent — the hero, the collections preview, the features, the whole show
+// This is the organ; we're just the ribcage. Important, but nobody comes to see the ribcage.
+// Without it we're just an empty wrapper begging for purpose.
 import HomePageContent from '@/components/features/home/HomePageContent'
 
-// SEO Metadata - because Google needs to know what we're about
-// This is what shows up in search results and social media shares
-// Because if nobody can find us, we're just screaming into the void
+// ── SEO Metadata ─────────────────────────────────────────────────────────────
+// The stuff that shows up in search results, browser tabs, and social previews.
+// Basically our public-facing resume. Make it count.
+// Because if nobody finds us, we're just a beautifully designed 404 waiting to happen.
 export const metadata: Metadata = {
-  // Page title - the thing that shows up in browser tabs
-  // Keep it short, because long titles get cut off in browser tabs
+  // Page title — the thing browser tabs display when they run out of space
+  // Keep it crisp. Google cuts it off around 60 chars anyway. Classic Google.
   title: { absolute: siteTitleDefault },
-  
-  // Description - the elevator pitch for search engines
-  // This is what people see when they search for us
-  // So it better be good (or at least not terrible)
+
+  // Description — our elevator pitch to search engines and their users
+  // 155 characters to convince someone this is worth a click.
+  // No pressure. (There's pressure.)
   description: siteDescription,
-  
-  // Canonical URL - tells search engines "this is the real page"
-  // Because duplicate content is a sin (and Google will punish us for it)
+
+  // Canonical URL — the official, one-true URL for this page
+  // Tells search engines "stop indexing 47 variants, THIS is the one"
+  // Because duplicate content is a sin and Google is the judge.
   alternates: { canonical: absoluteUrl('/') },
-  
-  // Open Graph - for when people share us on social media
-  // This is what shows up in those fancy preview cards
-  // Because we want to look good when people share us
+
+  // Open Graph — for those fancy social preview cards when someone shares us
+  // This is the difference between a link that gets clicks and a link that gets ignored.
+  // We prefer clicks. Strongly.
   openGraph: {
     title: siteTitleDefault,
     description: siteDescription,
     url: absoluteUrl('/'),
   },
-  
-  // Twitter Card - same as Open Graph, but for Twitter
-  // Because Twitter users deserve nice previews too
-  // (Even if the platform has its quirks)
+
+  // Twitter Card — same vibe as OG, but for the bird (or whatever X is now)
+  // Because Twitter users deserve nice previews too.
+  // (The platform has its chaos; our metadata does not.)
   twitter: {
     title: siteTitleDefault,
     description: siteDescription,
   },
 }
 
+// ── Page Component ────────────────────────────────────────────────────────────
+
 /**
- * Home Page Component - The main entry point
- * This is what gets rendered when someone visits the root URL
- * It's simple, clean, and delegates to other components
- * Because this page is just a wrapper (like a gift box, but for code)
+ * Home - The root page component. Short, clean, and to the point.
+ * This component's entire job is to exist and render HomePageContent.
+ * It does this admirably. We are proud of it.
+ *
+ * If you're wondering why there's no data fetching here:
+ * that's the HomePageContent component's problem. Not ours.
+ * (Separation of concerns. Beautiful thing.)
  */
 export default function Home() {
   return (
-    // Layout wrapper - provides the header, footer, and overall structure
-    // Because every page needs a frame for proper structure
+    // Fragment — because wrapping in a div would be wasteful and we care about the DOM tree
+    // (We care about the DOM tree more than we care about Mondays, which is a low bar)
     <>
-      {/* Home Page Content - the actual meat of the page
-          This is where the hero, collections, and features live
-          Because the Layout is just the skeleton, this is the organs
-          (And yes, I'm comparing our homepage to a body. Deal with it.) */}
+      {/* HomePageContent — the actual reason users are here
+          Hero section, featured collections, pitch text, CTA buttons — all of it.
+          This is the organs. We're the ribcage. The anatomy metaphor stands.
+          If this doesn't render, we have bigger problems than a missing comment. */}
       <HomePageContent />
     </>
   )
 }
 
-// Coded by Juan - because every good codebase needs a developer signature
-// (Even if it's just a comment at the bottom)
-// P.S. - Welcome to the homepage. Hope you like what you see! 
-
+// ── Juan's Sign-Off ───────────────────────────────────────────────────────────
+// Coded by Juan — because this page doesn't render itself (even though Next.js tries really hard).
+// First impressions matter. This one's ours. We spent 47 seconds choosing the font.
+// P.S. — Welcome. Look around. Don't forget to mint something.

@@ -1,6 +1,5 @@
 version: '3.8'
 
-
 services:
   admin:
     image: ghcr.io/yourusername/martech-admin:staging

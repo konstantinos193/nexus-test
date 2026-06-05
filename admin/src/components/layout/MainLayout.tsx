@@ -11,9 +11,7 @@ interface MainLayoutProps {
   children: ReactNode
   title?: string
   searchPlaceholder?: string
-  /** Breadcrumb items: [{ label, href? }] */
   breadcrumbs?: { label: string; href?: string }[]
-  /** Optional actions (Create, Export, etc.) */
   actions?: ReactNode
   className?: string
 }
@@ -29,7 +27,7 @@ export function MainLayout({
   const { collapsed } = useSidebar()
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen" style={{ background: '#0a0a0f' }}>
       <Sidebar />
       <div
         className={cn(
@@ -41,23 +39,20 @@ export function MainLayout({
         <main className="flex-1 p-6">
           {(breadcrumbs?.length ?? 0) > 0 && (
             <nav aria-label="Breadcrumb" className="mb-4">
-              <ol className="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <ol className="flex flex-wrap items-center gap-2 text-sm" style={{ color: '#8a8a9a' }}>
                 {breadcrumbs?.map((b, i) => (
                   <li key={i} className="flex items-center gap-2">
-                    {i > 0 && (
-                      <span className="text-gray-400 dark:text-gray-500">/</span>
-                    )}
+                    {i > 0 && <span style={{ color: '#252535' }}>/</span>}
                     {b.href ? (
                       <Link
                         href={b.href}
-                        className="hover:text-gray-700 dark:hover:text-gray-300"
+                        className="transition-colors duration-150 hover:text-white"
+                        style={{ color: '#8a8a9a' }}
                       >
                         {b.label}
                       </Link>
                     ) : (
-                      <span className="text-gray-700 dark:text-gray-200">
-                        {b.label}
-                      </span>
+                      <span style={{ color: '#b8b8c8' }}>{b.label}</span>
                     )}
                   </li>
                 ))}

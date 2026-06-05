@@ -7,13 +7,13 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('animate-pulse rounded-md bg-gray-200 dark:bg-gray-700', className)}
+      className={cn('animate-pulse rounded-md', className)}
+      style={{ background: '#1f1f2e' }}
       aria-hidden
     />
   )
 }
 
-/** Common skeleton for KPI cards */
 export function SkeletonKpi() {
   return (
     <div className="card p-4">
@@ -24,7 +24,6 @@ export function SkeletonKpi() {
   )
 }
 
-/** Skeleton for table rows */
 export function SkeletonTableRow({ cols = 5 }: { cols?: number }) {
   return (
     <tr>
@@ -37,10 +36,9 @@ export function SkeletonTableRow({ cols = 5 }: { cols?: number }) {
   )
 }
 
-/** Skeleton for a full table */
 export function SkeletonTable({ rows = 5, cols = 5 }: { rows?: number; cols?: number }) {
   return (
-    <table className="min-w-full divide-y divide-border">
+    <table className="min-w-full divide-y" style={{ borderColor: '#252535' }}>
       <thead>
         <tr>
           {Array.from({ length: cols }).map((_, i) => (
@@ -50,7 +48,7 @@ export function SkeletonTable({ rows = 5, cols = 5 }: { rows?: number; cols?: nu
           ))}
         </tr>
       </thead>
-      <tbody className="divide-y divide-border">
+      <tbody className="divide-y" style={{ borderColor: '#252535' }}>
         {Array.from({ length: rows }).map((_, i) => (
           <SkeletonTableRow key={i} cols={cols} />
         ))}

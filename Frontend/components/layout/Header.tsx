@@ -1,147 +1,171 @@
 'use client'
 
 /**
- * Header Component - The Navigation Master
- * The thing that sits at the top and tells you where you are (and where you can go)
- * Because without navigation, users are just lost souls wandering the internet
- * (And we're not running a digital maze, we're running a launchpad)
- * 
- * Desktop: Traditional header with navigation links and wallet button
- * Because desktop users deserve a proper navigation bar
- * (And hamburger menus on desktop are a crime against humanity)
- * 
- * Mobile: Clean and simple - just a top bar and bottom nav
- * Because we removed all that fancy bottom sheet nonsense
- * (And sometimes simple is better - who knew?)
- * 
- * Features:
- * - Collapsible mobile header (hides when scrolling down, shows when scrolling up)
- *   Because when you're reading, you don't need the header in your face
- *   (And when you scroll up, you probably want to navigate somewhere)
- * - Bottom navigation bar (always visible, because thumb reach matters)
- *   Because reaching for the top of the screen on mobile is like doing yoga
- *   (And we're not trying to give users carpal tunnel)
- * - Wallet button in header (compact and mobile-optimized)
- *   Because wallets are important, even on mobile
- *   (And we made it look good, because we care)
- * 
- * @author Juan - The developer who built this navigation masterpiece
- * (Coded with care, humor, and probably too much coffee)
- * P.S. - This header is smarter than my GPS. It actually knows where you are.
+ * Header - The navigation bar. The thing at the top of every page.
+ * Without it, users are lost. With it, they know where they are and where they can go.
+ * (This is more than most of us can say about ourselves at 2am.)
+ *
+ * Two header systems in one component:
+ *
+ * DESKTOP: Traditional horizontal nav bar. Logo left, links center, search + wallet right.
+ * Hamburger menus on desktop are a crime. We don't do that here. We have standards.
+ *
+ * MOBILE: Collapsible top bar + always-visible bottom nav.
+ * Top bar hides when scrolling down (screen real estate > brand presence while reading).
+ * Top bar reappears when scrolling up (you probably want to navigate).
+ * Bottom nav is always visible because thumb reach matters and top-of-screen navigation
+ * on mobile is an ergonomic nightmare. We care about ergonomics.
+ *
+ * Scroll detection: direction-aware. Down past 100px → collapse.
+ * Up at any point → expand. At very top (< 10px) → always expanded.
+ * scrolled flag at 20px changes the visual appearance (background opacity, etc).
+ *
+ * Static imports for WalletConnect and HeaderSearch — not dynamic({ ssr: false }).
+ * Next.js 16's dynamic() injects a streaming Suspense boundary around the whole Header.
+ * We wrap individual components in Suspense instead. More surgical. Better behavior.
+ *
+ * @author Juan - The developer who built this navigation masterpiece and
+ * counted every pixel in the bottom nav thumb-reach zone.
+ * This header is smarter than a GPS. It actually knows where you are.
+ * (Coded with care, mobile-first empathy, and a strong opinion about hamburger menus.)
  */
 
+// Next.js Link — client-side navigation without full page reload.
+// Every nav link uses this. We don't use <a> tags for internal links.
 import Link from 'next/link'
+
+// Next.js Image — optimized image loading with lazy loading, blur placeholders, and sizing.
+// The logo lives here. Priority={true} because the logo is above the fold. Always.
 import Image from 'next/image'
+
+// React hooks — useState for scroll/UI state, useEffect for event listeners,
+// Suspense for wrapping client-only components.
 import { useState, useEffect, Suspense } from 'react'
+
+// useSelectedLayoutSegment — returns the active URL segment without needing usePathname.
+// In Next.js 16, usePathname requires its own Suspense boundary. useSelectedLayoutSegment does not.
+// We use this to highlight the active nav item. The smarter choice.
 import { useSelectedLayoutSegment } from 'next/navigation'
+
+// Icons — one per nav item. Consistent visual language across desktop and mobile.
+// FolderKanban = Collections. Plus = Create. LayoutDashboard = Portfolio. Wrench = Tools.
+// Search = the search trigger on mobile.
 import { FolderKanban, Plus, LayoutDashboard, Wrench, Search } from 'lucide-react'
+
+// cn — classnames. Used for active/inactive nav link states throughout.
 import { cn } from '@/lib/utils'
+
+// Header.module.css — all header-scoped styles. Desktop layout. Mobile layout.
+// Collapsible states. Logo sizing. Nav link hover states. Bottom nav active states.
 import styles from './Header.module.css'
 
-// Static imports — removing dynamic({ ssr: false }) stops Next.js 16 from injecting
-// a streaming Suspense boundary (HeaderFooterSkeleton) around the entire Header.
-// WalletConnect handles its own SSR safety via a mounted check.
+// WalletConnect — the wallet connection button and dropdown.
+// Static import (not dynamic) to avoid Next.js 16 streaming Suspense wrapping.
+// WalletConnect handles its own SSR safety via WalletReadyContext.
 import WalletConnect from '@/components/wallet/WalletConnect'
+
+// HeaderSearch — the search pill that lives in the header.
+// Desktop: inline pill. Mobile: opens the MobileSearchOverlay.
 import HeaderSearch from '@/components/layout/HeaderSearch'
+
+// MobileSearchOverlay — full-screen search sheet for mobile users.
+// Conditionally rendered. Controlled by mobileSearchOpen state.
 import MobileSearchOverlay from '@/components/layout/MobileSearchOverlay'
 
-// Loading fallback for dynamic components
+// ComponentSkeleton — a simple pulse animation while dynamic components load.
+// Used as Suspense fallback so header-level components don't cause layout shift.
 const ComponentSkeleton = () => <div className="w-8 h-8 bg-dark-bg-secondary animate-pulse rounded" />
 
+/**
+ * Header — the exported component. One component, two layouts.
+ * Desktop header and mobile header+bottom-nav render simultaneously.
+ * CSS handles which is visible at which breakpoint.
+ */
 export default function Header() {
-  // Scroll state - tracks if user has scrolled past threshold
-  // Because we want to change the header appearance when scrolling
-  // (It's like putting on a different outfit when you go out - but for headers)
+
+  // scrolled — true when page has scrolled past 20px.
+  // Changes the header's visual appearance (background opacity, shadow, etc).
   const [scrolled, setScrolled] = useState(false)
-  
-  // Header collapse state - tracks if header should be hidden
-  // Because hiding the header when scrolling down gives more screen space
-  // (And showing it when scrolling up makes navigation easier)
+
+  // headerCollapsed — true when the mobile top bar is hidden (scrolling down).
+  // The top bar slides up and out of view. The bottom nav stays. Always.
   const [headerCollapsed, setHeaderCollapsed] = useState(false)
-  
-  // Last scroll position - needed to detect scroll direction
-  // Because we need to know if user is scrolling up or down
-  // (Unlike my GPS, this actually works)
+
+  // lastScrollY — tracks the previous scroll position.
+  // Required to detect scroll direction (are we going up or down?).
   const [lastScrollY, setLastScrollY] = useState(0)
-  
-  // Active segment - for highlighting current nav item
-  // useSelectedLayoutSegment avoids the usePathname Suspense boundary in Next.js 16
+
+  // segment — the active URL segment. 'collections', 'create', 'dashboard', 'tools', or null (home).
+  // Used to highlight the active nav link/bottom-nav item.
   const segment = useSelectedLayoutSegment()
 
-  // Scroll handler - makes the header smart about when to show/hide
-  // Because a header that doesn't respond to scrolling is like a door that doesn't open
-  // (And nobody wants that)
+  // Scroll handler — the brain behind the collapsible mobile header.
+  // Passive: true so we don't block the browser's scroll rendering pipeline.
+  // We're listening to scroll, not preventing it. Passive is safe here.
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
-      
-      // Check if scrolled past threshold (20px)
-      // Because we want to change appearance slightly when user starts scrolling
+
+      // scrolled flag — cosmetic state change after 20px of scroll.
+      // Affects background opacity and border visibility in CSS.
       setScrolled(currentScrollY > 20)
-      
-      // Collapse header when scrolling down past 100px
-      // Expand header when scrolling up
-      // Because hiding the header when scrolling down gives more screen space
-      // And showing it when scrolling up makes navigation easier
-      // (It's like a smart door that opens when you approach - but for headers)
+
+      // Direction detection — are we scrolling down or up?
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        // Scrolling down - collapse header
-        // Because when you're reading, you don't need the header in your face
+        // Scrolling DOWN past 100px — collapse the top bar.
+        // 100px threshold so quick micro-scrolls don't trigger collapse.
         setHeaderCollapsed(true)
       } else if (currentScrollY < lastScrollY) {
-        // Scrolling up - expand header
-        // Because when you scroll up, you probably want to navigate somewhere
+        // Scrolling UP — expand the top bar.
+        // Any upward scroll reveals the header. User intent to navigate.
         setHeaderCollapsed(false)
       }
-      
-      // Always show header at the very top
-      // Because at the top of the page, the header should always be visible
-      // (Unlike my motivation, which is never visible)
+
+      // At the very top of the page — always show the header.
+      // No matter what state we were in, being at top means full header.
       if (currentScrollY < 10) {
         setHeaderCollapsed(false)
       }
-      
+
       setLastScrollY(currentScrollY)
     }
-    
-    // Add scroll listener with passive flag for better performance
-    // Because we're not preventing default, so passive is safe
-    // (And performance matters, unlike my sleep schedule)
+
+    // Passive event listener — non-blocking scroll detection.
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [lastScrollY])
 
-
-  // Navigation items - the links users can click
-  // Because navigation without links is like a map without destinations
-  // Each item has an icon and color for the mobile quick actions
+  // navigation — the four main destinations. Each has a name, href, icon, and color.
+  // Colors used on mobile bottom nav icons. Dark mode accent colors. Chosen deliberately.
   const navigation = [
-    { name: 'Explore', href: '/collections', icon: FolderKanban, color: '#00d4ff' },
-    { name: 'Launch', href: '/create', icon: Plus, color: '#7c3aed' },
-    { name: 'Portfolio', href: '/dashboard', icon: LayoutDashboard, color: '#00d4ff' },
-    { name: 'Tools', href: '/tools', icon: Wrench, color: '#7c3aed' },
+    { name: 'Explore',    href: '/collections', icon: FolderKanban,   color: '#00d4ff' },
+    { name: 'Launch',     href: '/create',      icon: Plus,           color: '#7c3aed' },
+    { name: 'Portfolio',  href: '/dashboard',   icon: LayoutDashboard,color: '#00d4ff' },
+    { name: 'Tools',      href: '/tools',       icon: Wrench,         color: '#7c3aed' },
   ]
 
-  // Mobile search overlay - tap search icon to open
+  // mobileSearchOpen — controls the full-screen mobile search overlay.
+  // Opened by tapping the Search icon in the mobile top bar.
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
-  // Check if a route is active - for highlighting current page
-  // Because users need to know where they are
-  // (And active states are like breadcrumbs, but for navigation)
+  // isActive — checks if a nav href matches the current segment.
+  // Home (/) is active when segment is null. Others match by segment name.
   const isActive = (href: string) => href === '/' ? segment === null : segment === href.slice(1)
 
   return (
     <>
-      {/* Desktop Header - The Traditional Approach
-          Because desktop users deserve a proper navigation bar
-          (And hamburger menus on desktop are a crime against humanity) */}
+
+      {/* ── Desktop Header ────────────────────────────────────────────────── */}
+      {/* Traditional horizontal bar: logo | nav links | search | wallet.
+          role="banner" for AT landmark navigation.
+          top accent bar is a subtle design detail — a thin gradient line above the nav. */}
       <header className={styles.desktopHeader} role="banner">
         <div className={styles.topAccentBar} aria-hidden="true" />
         <nav className={styles.desktopNav} aria-label="Main navigation">
           <div className={styles.desktopNavContainer}>
-            {/* Logo - the brand identity
-                Because every site needs a logo (or it looks unprofessional)
-                And clicking it takes you home (because that's how logos work) */}
+
+            {/* Logo — clicking it goes home. Next.js Image for optimization.
+                priority={true} because the logo is above the fold. Load it first. */}
             <div className={styles.desktopLogoContainer}>
               <Link href="/" className={styles.desktopLogoLink}>
                 <Image
@@ -155,11 +179,9 @@ export default function Header() {
               </Link>
             </div>
 
-            {/* Navigation Links - the main menu
-                Because users need to know where they can go
-                (And navigation without links is like a map without destinations)
-                Each link gets highlighted when active (because knowing where you are is important)
-                And they change color on hover (because interactivity is fun, unlike my social life) */}
+            {/* Navigation links — mapped from the navigation array above.
+                Active link gets the desktopNavLinkActive style. Inactive gets inactive.
+                Hover changes color. Active has a visible indicator. Standard. */}
             <div className={styles.desktopNavLinks}>
               {navigation.map((item) => (
                 <Link
@@ -175,17 +197,14 @@ export default function Header() {
               ))}
             </div>
 
-            {/* Search - pill bar + live dropdown (LMNFTs-style, our design) */}
+            {/* HeaderSearch — the inline search pill. Desktop only position.
+                Suspense with ComponentSkeleton fallback for the initial render cycle. */}
             <Suspense fallback={<ComponentSkeleton />}>
               <HeaderSearch />
             </Suspense>
 
-            {/* Wallet Connect - the Web3 gateway
-                Because we're a Web3 launchpad (and Web3 needs wallets)
-                (And wallets are like keys, but for the blockchain)
-                This is where users connect their digital wallets
-                Because you can't buy NFTs without a wallet (obviously)
-                (And trying to buy NFTs without a wallet is like trying to drive without a car) */}
+            {/* WalletConnect — the blockchain gateway. The most important button in the app.
+                Suspense wraps it so SSR doesn't crash on wallet SDK initialization. */}
             <div className={styles.desktopWalletContainer}>
               <Suspense fallback={<ComponentSkeleton />}>
                 <WalletConnect />
@@ -195,20 +214,21 @@ export default function Header() {
         </nav>
       </header>
 
-      {/* Mobile Header - Simple and Clean
-          Because mobile users deserve a clean interface
-          Features: collapsible header and bottom nav */}
+      {/* ── Mobile Header ─────────────────────────────────────────────────── */}
+      {/* Two parts: collapsible top bar + always-visible bottom nav.
+          The top bar shows the logo + search icon + wallet button.
+          The bottom nav shows the four main destinations as icon+label items. */}
       <div className={styles.mobileHeaderWrapper}>
-        {/* Top Bar - Minimal and Clean
-            Shows logo and wallet button
-            Collapses when scrolling down (because screen space matters)
-            Expands when scrolling up (because navigation matters) */}
+
+        {/* Mobile top bar — collapses on scroll down, expands on scroll up.
+            Three CSS modifier classes: scrolled (visual), collapsed (transform/opacity). */}
         <div className={cn(
           styles.mobileTopBar,
           scrolled && styles.mobileTopBarScrolled,
           headerCollapsed && styles.mobileTopBarCollapsed
         )}>
           <div className={styles.mobileTopBarInner}>
+            {/* Mobile logo — smaller than desktop. priority={true} still applies. */}
             <Link href="/" className={styles.mobileLogoLink}>
               <Image
                 src="/nexuslogo_nobg.png"
@@ -220,6 +240,8 @@ export default function Header() {
               />
             </Link>
             <div className={styles.mobileTopActions}>
+              {/* Search icon button — opens the MobileSearchOverlay.
+                  Opens the full-screen sheet, auto-focuses input, shows results. */}
               <button
                 type="button"
                 onClick={() => setMobileSearchOpen(true)}
@@ -229,6 +251,7 @@ export default function Header() {
               >
                 <Search className={styles.mobileSearchIcon} aria-hidden />
               </button>
+              {/* Wallet button — compact version of WalletConnect for mobile top bar. */}
               <div className={styles.mobileWalletButton}>
                 <Suspense fallback={<ComponentSkeleton />}>
                   <WalletConnect />
@@ -238,6 +261,7 @@ export default function Header() {
           </div>
         </div>
 
+        {/* Mobile search overlay — conditionally rendered, controlled by mobileSearchOpen. */}
         <Suspense fallback={null}>
           <MobileSearchOverlay
             open={mobileSearchOpen}
@@ -245,17 +269,12 @@ export default function Header() {
           />
         </Suspense>
 
-        {/* Bottom Navigation Bar - Always Visible
-            Because thumb reach matters (and bottom nav is thumb-friendly)
-            Shows the same 4 items as desktop nav for consistency
-            (Because consistency is key, unlike my sleep schedule)
-            Each item has an icon and label (because icons alone can be confusing)
-            Active state shows with a top border indicator (because visual feedback is important)
-            And the icons scale up when active (because we're fancy like that) */}
+        {/* Bottom navigation bar — always visible, even when top bar is collapsed.
+            Icon + label per item. Active state shows a top border indicator.
+            Four items covering the four main destinations. Consistent with desktop nav. */}
         <nav className={styles.mobileBottomNav}>
-          {/* Collections Link - Browse all the collections
-              Because browsing is half the fun (the other half is buying)
-              (And we're not judging if you just browse and never buy) */}
+
+          {/* Collections — browse drops. The explorer. */}
           <Link
             href="/collections"
             className={cn(
@@ -266,10 +285,8 @@ export default function Header() {
             <FolderKanban className={styles.mobileBottomNavItemIcon} />
             <span className={styles.mobileBottomNavItemLabel}>Collections</span>
           </Link>
-          
-          {/* Create Link - Make your own collection
-              Because everyone thinks they can make an NFT collection
-              (And we're here to help them try, even if they fail) */}
+
+          {/* Create — launch a new collection. The creator's entry point. */}
           <Link
             href="/create"
             className={cn(
@@ -280,10 +297,8 @@ export default function Header() {
             <Plus className={styles.mobileBottomNavItemIcon} />
             <span className={styles.mobileBottomNavItemLabel}>Create</span>
           </Link>
-          
-          {/* Dashboard Link - See your stuff
-              Because users need to see what they own (or what they wish they owned)
-              (And dashboards are like mirrors, but for your digital assets) */}
+
+          {/* Dashboard — the collector's portfolio. "What do I own?" */}
           <Link
             href="/dashboard"
             className={cn(
@@ -294,10 +309,8 @@ export default function Header() {
             <LayoutDashboard className={styles.mobileBottomNavItemIcon} />
             <span className={styles.mobileBottomNavItemLabel}>Dashboard</span>
           </Link>
-          
-          {/* Tools Link - Useful utilities
-              Because sometimes you need tools (and not just the ones in your garage)
-              (And these tools are way cooler than a hammer, trust me) */}
+
+          {/* Tools — utilities for the power user. Converters, validators, whatever's next. */}
           <Link
             href="/tools"
             className={cn(
@@ -314,6 +327,7 @@ export default function Header() {
   )
 }
 
-// Coded by Juan - because every good component needs a developer signature
-// (Even if it's just a comment at the bottom)
-// P.S. - This header is smarter than my GPS. It actually knows where you are. 🧭
+// Coded by Juan — desktop nav, mobile top bar, bottom nav, collapsible scroll behavior,
+// mobile search overlay trigger, and a logo that's never late to the party.
+// This header is smarter than my GPS. It actually knows where you are.
+// And it hides when you're reading, which is more than most headers do.

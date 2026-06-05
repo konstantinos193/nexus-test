@@ -1,13 +1,22 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client-js"
-}
+// ARCHITECTURE NOTE — Two-tool setup, intentional:
+//   Prisma  = migration RUNNER only. Use `prisma migrate deploy` to apply SQL migrations.
+//   TypeORM = query ORM in application code (src/database/).
+//   Do NOT use Prisma Client (@prisma/client) for queries — it is a peer of TypeORM, not a replacement.
+//   All schema changes go into prisma/migrations/ as raw SQL files, then reflect them here for state tracking.
+//
+// MIGRATION-ONLY DDL — these exist in the DB via raw migrations but are NOT expressible in the Prisma DSL.
+// Do NOT attempt to replicate them here; Prisma's migration diff would generate DROP statements for them.
+//   GIN indexes   : idx_collection_name_trgm, idx_collection_description_trgm  (pg_trgm ILIKE)
+//   Partial indexes: idx_collection_free_mint, idx_collection_ending_soon, idx_collection_not_deleted,
+//                    idx_collection_mint_address, idx_collection_creator_created_at,
+//                    idx_collection_tx_signature, idx_collection_effective_status_created_at
+//   Unique partial : idx_collection_creator_name_unique  ON (creatorAddress, name)
+//   CHECK          : chk_effective_status_valid, chk_phases_is_array, chk_fund_receivers_is_array,
+//                    chk_traits_is_array, chk_blockchain_valid, chk_royalty_basis_points,
+//                    chk_platform_fee_basis_points
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Collection {
@@ -18,11 +27,11 @@ model Collection {
   imageUrl      String
   bannerUrl     String?
   creator       String
-  creatorAddress String
+  creatorAddress String   @db.VarChar(44)
   blockchain    String   @default("solana")
   totalSupply   Int      @default(0)
   minted        Int      @default(0)
-  price         Float?
+  price         Decimal?  @db.Decimal(18, 9)
   status        String   @default("draft") // draft, preparing, ready, minting, completed, paused
   featured      Boolean  @default(false)
   mintStart     DateTime? // When minting starts (for countdown and phase calculation)
@@ -30,21 +39,34 @@ model Collection {
   traits        Json?    // NFT traits/attributes stored as JSON
   phases        Json?    // Mint phases array
   fundReceivers Json?    // Fund split receivers array
-  ipfsHash      String?  // IPFS hash for metadata
-  mintAddress   String?  // On-chain mint address for the collection
-  // Royalty percentage (seller fee basis points, e.g., 500 = 5%) - only indexed for tradable collections
-  royaltyBasisPoints Int?
-  // Platform fee percentage (basis points, e.g., 500 = 5%) - only indexed for tradable collections
+  txSignature   String?  @db.VarChar(88) // Solana transaction signature from on-chain deploy
+  mintAddress   String?  @db.VarChar(44) // On-chain mint address for the collection
+  twitterUrl    String?
+  discordUrl    String?
+  websiteUrl    String?
+  royaltyBasisPoints     Int?
   platformFeeBasisPoints Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  // C-4: Stores time-resolved status at write time to enable DB-level filtering without JS post-filtering.
+  effectiveStatus        String?
+  // L-2: Wallet address of the last modifier.
+  updatedBy              String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  // L-1: Soft delete — null means active; non-null means deleted.
+  deletedAt              DateTime?
 
   @@index([status])
+  @@index([effectiveStatus])
+  // Composite for tab queries: filter by effectiveStatus, sort by recency — migration 20260605000018
+  // (full partial index with WHERE deletedAt IS NULL lives in the migration, not expressible here)
   @@index([featured])
-  @@index([createdAt])
   @@index([minted])
   @@index([creatorAddress])
-  @@index([name]) // For search performance
-  @@index([slug]) // Lookup by slug for /drops/[slug] routes
-  // Note: Full-text search can be added via raw SQL migration if needed
+  @@index([endDate])
+  @@index([price])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([featured, minted(sort: Desc)])
+  @@index([status, mintStart])
+  // Composite for cursor pagination: (createdAt DESC, id DESC) — migration 20260605000009
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
 }

@@ -55,6 +55,8 @@ jobs:
             ${{ env.IMAGE }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:latest
           cache-to: type=inline
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL || 'https://nexus-web3.com' }}
 
   deploy:
     needs: build
@@ -81,9 +83,37 @@ jobs:
             DOCKER_ENV="/tmp/nexus-frontend.env"
             grep -v '^#' $ENV_FILE | grep -v '^$' | sed "s/^export //; s/='\(.*\)'$/=\1/; s/=\"\(.*\)\"$/=\1/" > $DOCKER_ENV
 
-            echo "=== Restarting container ==="
+            echo "=== Starting new container on standby port 3010 ==="
+            docker rm -f nexus-frontend-new 2>/dev/null || true
+            docker run -d \
+              --name nexus-frontend-new \
+              --restart no \
+              --network host \
+              --env-file $DOCKER_ENV \
+              -e PORT=3010 \
+              $IMAGE:${{ github.sha }}
+
+            echo "=== Health checking new container ==="
+            sleep 15
+            HEALTHY=false
+            for i in $(seq 1 10); do
+              curl -sf http://localhost:3010 && HEALTHY=true && break
+              echo "Attempt $i/10 failed..."
+              sleep 10
+            done
+
+            if [ "$HEALTHY" != "true" ]; then
+              docker logs nexus-frontend-new --tail 50
+              docker rm -f nexus-frontend-new
+              echo "New container failed — old container still serving"
+              exit 1
+            fi
+
+            echo "=== Swapping (downtime window) ==="
             docker stop nexus-frontend || true
             docker rm nexus-frontend || true
+            docker stop nexus-frontend-new
+            docker rm nexus-frontend-new
             docker run -d \
               --name nexus-frontend \
               --restart unless-stopped \
@@ -91,13 +121,12 @@ jobs:
               --env-file $DOCKER_ENV \
               $IMAGE:${{ github.sha }}
 
-            echo "=== Health check ==="
-            sleep 15
-            for i in $(seq 1 10); do
-              curl -sf http://localhost:3000 && echo "Healthy" && break
-              echo "Attempt $i/10 failed..."
-              sleep 10
-              [ $i -eq 10 ] && docker logs nexus-frontend --tail 30 && exit 1
+            echo "=== Verifying live container ==="
+            sleep 5
+            for i in $(seq 1 5); do
+              curl -sf http://localhost:3000 && echo "Live" && break
+              sleep 5
+              [ $i -eq 5 ] && docker logs nexus-frontend --tail 30 && exit 1
             done
 
             docker image prune -f

@@ -1,176 +1,271 @@
+#![allow(unexpected_cfgs)]
+
 /**
- * Nexus Launchpad Program - The NFT Launchpad That Actually Works
- * 
- * This is where dreams of launching NFT collections come to die... or thrive.
- * We handle minting, allowlists, trading freezes, and all the chaos that comes
- * with launching digital collectibles on Solana.
- * 
- * Features:
- * - Collection initialization (because someone has to set this up)
- * - Minting with allowlist support (because exclusivity sells)
- * - Trading freeze controls (because we can't let people trade too early)
- * - Platform fees (because even launchpads need to eat)
- * - Wallet mint limits (because whales ruin everything)
- * 
- * @author Juan - The developer who built this digital launchpad
- * (Coded with care, dark humor, and probably too much coffee)
- * (Also, if this breaks, it's not my fault - blame the blockchain)
+ * Nexus Launchpad - The One Program to Rule Them All
+ *
+ * Unified NFT launchpad: collection management, minting, allowlists,
+ * trading controls, and payment splitting — everything in one deployable unit.
+ * Three programs became one because managing three program IDs, three upgrade
+ * authorities, and three IDLs is a special kind of pain nobody asked for.
+ * (Also: one account per collection is cheaper than two. Math wins every time.)
+ *
+ * What's in here:
+ * - Collection registry (global, queryable, fast)
+ * - Collection creation with full minting config in one shot
+ * - Minting with allowlist (Merkle), per-wallet limits, supply caps
+ * - Trading freeze controls (by date or until sold out)
+ * - Platform fee + optional multi-recipient payment splits
+ * - All the update/close instructions you'd expect
+ *
+ * @author Juan - The developer who consolidated three programs into one
+ * (Coded at an unreasonable hour with an unreasonable amount of coffee)
  */
 
 use anchor_lang::prelude::*;
 use core::convert::TryInto;
 use sha3::{Digest, Keccak256};
 
-// Program ID - the unique identifier for this program on Solana
-// This is like our address in the blockchain universe
-// If you change this, everything breaks. Don't change this.
-declare_id!("w6ELig1b3oETMQmiJkvPtyu99fnPwAGMJYSnaTXphma");
+// The one program ID. Just the one.
+// If you change this without updating Anchor.toml and the frontend, nothing works.
+// You've been warned.
+declare_id!("CzpjY2BnGvr97kJihy5DDAbExqu8Gqzz9j1U8RV5j7Cm");
 
-// Gate logging behind feature flag to reduce binary size in release builds
-// Because apparently size matters (especially when you're paying for compute units)
-// In release builds, we strip out all the logging to save space
-// In debug builds, we keep it so we can actually see what's happening
-// This is the difference between a bloated program and a lean, mean minting machine
+// Logging macro — gated behind feature flag so release builds stay lean.
+// Binary size matters when you're paying deploy costs and compute unit fees.
 #[cfg(feature = "logs")]
 macro_rules! log_msg {
-    ($($arg:tt)*) => {
-        msg!($($arg)*)
-    };
+    ($($arg:tt)*) => { msg!($($arg)*) };
 }
 
-// When logs are disabled, this macro does absolutely nothing
-// It's like screaming into the void, but more efficient
-// (And less therapeutic)
 #[cfg(not(feature = "logs"))]
 macro_rules! log_msg {
     ($($arg:tt)*) => {};
 }
 
-/// Max base URI length in optional CollectionUri PDA. Keeps rent ~0.03 SOL when used.
+// Maximum URI length — 128 bytes covers any IPFS/Arweave CID with path, comfortably.
+// Anything longer and you're storing an essay, not a URI.
+pub const METADATA_URI_MAX_LEN: usize = 128;
 pub const COLLECTION_URI_MAX_LEN: usize = 128;
 
-fn truncate_uri(s: String, max_len: usize) -> String {
-    if s.len() <= max_len {
-        return s;
-    }
-    let mut end = max_len;
-    while end > 0 && !s.is_char_boundary(end) {
-        end -= 1;
-    }
-    s[..end].to_string()
-}
+// 24 levels → 2^24 leaves → ~16 million wallets per allowlist.
+// If your allowlist is bigger than 16 million, you have other problems.
+const MAX_MERKLE_PROOF_DEPTH: usize = 24;
+
+/// Platform authority — update this to the deployer's pubkey before any production deploy.
+/// Restricts `initialize_registry` to this key only, preventing frontrunning.
+/// Get the value: `solana-keygen pubkey <path-to-keypair>`
+/// The System Program default (all 1s) is intentionally uncallable — forces you to set this.
+pub const PLATFORM_AUTHORITY: Pubkey = anchor_lang::solana_program::pubkey!("11111111111111111111111111111111");
+
+// Compile-time guard: build fails with a clear error if PLATFORM_AUTHORITY is still the
+// System Program placeholder. Replace the pubkey above with the actual deployer keypair:
+//   `solana-keygen pubkey <path-to-keypair.json>`
+// The System Program is all-zero bytes, so this assert fires only on the placeholder.
+const _PLATFORM_AUTH_SET: () = assert!(
+    PLATFORM_AUTHORITY.to_bytes()[0] != 0 || PLATFORM_AUTHORITY.to_bytes()[1] != 0,
+    "Set PLATFORM_AUTHORITY to the deployer keypair pubkey before building"
+);
 
 #[program]
 pub mod nexus_launchpad {
     use super::*;
 
-    /// Initialize a new collection launchpad
-    /// Platform fee only applies to mints, not trading (because we're not a marketplace, we're a launchpad)
-    /// 
-    /// This is where it all begins - setting up a new collection for launch
-    /// Think of this as the birth certificate for your NFT collection
-    /// (Except instead of a baby, you get a digital collectible that may or may not be worth anything)
-    /// 
-    /// We validate everything because we don't trust users to not mess things up
-    /// Start times, supply limits, fee percentages - all checked here
-    /// Because if we don't validate, chaos ensues (and chaos is expensive on Solana)
-    pub fn initialize_collection(
-        ctx: Context<InitializeCollection>,
-        collection_config: CollectionConfig,
-        platform_fee_basis_points: u16,
-    ) -> Result<()> {
-        // Validate BEFORE accessing accounts to ensure errors are thrown early
-        // Get the current time - because we need to know when "now" is
-        // Without this, we'd be living in a timeless void (which sounds cool but breaks everything)
-        let clock = Clock::get()?;
+    // ═══════════════════════════════════════════════════════════════════════
+    // PLATFORM SETUP — call once at deployment, never again
+    // ═══════════════════════════════════════════════════════════════════════
 
-        // Validate supply FIRST - must be greater than zero
-        // Because a collection with zero supply is just... sad
-        // (And also breaks math, which is less sad but more problematic)
+    /// Initialize the global collection registry.
+    ///
+    /// One-time platform setup. Must exist before any collection can be created.
+    /// Stores the platform authority so update_featured is actually gated
+    /// (the original had no auth check — fixed here).
+    pub fn initialize_registry(ctx: Context<InitializeRegistry>) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        registry.authority = ctx.accounts.authority.key();
+        registry.bump = ctx.bumps.registry;
+        registry.collections = Vec::new();
+        log_msg!("Registry initialized. Authority: {}", registry.authority);
+        Ok(())
+    }
+
+    /// Propose a new registry authority (current authority only).
+    /// Two-step rotation prevents lockout: the new key must accept before control transfers.
+    pub fn propose_registry_admin(
+        ctx: Context<ProposeRegistryAdmin>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        require!(new_authority != Pubkey::default(), NexusError::Unauthorized);
+        ctx.accounts.registry.pending_authority = Some(new_authority);
+        log_msg!("Proposed new registry authority: {}", new_authority);
+        Ok(())
+    }
+
+    /// Accept a pending registry authority proposal (new authority only).
+    /// The new authority must sign to prove key control before the transfer takes effect.
+    pub fn accept_registry_admin(ctx: Context<AcceptRegistryAdmin>) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        let pending = registry.pending_authority.ok_or(NexusError::NoPendingAuthority)?;
+        require_keys_eq!(ctx.accounts.new_authority.key(), pending, NexusError::Unauthorized);
+        registry.authority = ctx.accounts.new_authority.key();
+        registry.pending_authority = None;
+        log_msg!("Registry authority transferred to {}", registry.authority);
+        Ok(())
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLLECTION LIFECYCLE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Create a new NFT collection — metadata + minting config in one transaction.
+    ///
+    /// All metadata lives off-chain (Arweave/IPFS/HTTPS). Upload it first, pass
+    /// the URI here. The on-chain account only stores what's actually needed for
+    /// enforcement: supply caps, prices, times, fees, and freeze state.
+    ///
+    /// Registers in the global registry. If the registry is full (300 slots),
+    /// the collection still gets created — it just won't appear in the fast list.
+    /// (getProgramAccounts always works as a fallback.)
+    pub fn create_collection(
+        ctx: Context<CreateCollection>,
+        metadata_uri: String,
+        collection_config: CollectionConfig,
+        platform_fee_bps: u16,
+    ) -> Result<()> {
         require!(
-            collection_config.max_supply > 0,
-            LaunchpadError::InvalidSupply
+            metadata_uri.len() <= METADATA_URI_MAX_LEN,
+            NexusError::MetadataUriTooLong
         );
 
-        // Validate start time - can't start in the past (time travel not supported yet)
-        // If someone tries to set a start time in the past, we politely tell them no
-        // Because starting a mint in the past would be... problematic
+        let clock = Clock::get()?;
+        require!(collection_config.max_supply > 0, NexusError::InvalidSupply);
         require!(
             collection_config.start_time >= clock.unix_timestamp,
-            LaunchpadError::InvalidStartTime
+            NexusError::InvalidStartTime
         );
+        if let Some(end) = collection_config.end_time {
+            require!(end > collection_config.start_time, NexusError::InvalidStartTime);
+        }
+        require!(platform_fee_bps <= 1_500, NexusError::InvalidFeePercentage);
 
-        // Validate platform fee (0-100%, in basis points: 0-10000)
-        // We cap it at 100% because taking more than 100% would be... creative accounting
-        // (And also mathematically impossible, but we check anyway because users are creative)
-        require!(
-            platform_fee_basis_points <= 10000,
-            LaunchpadError::InvalidFeePercentage
-        );
-
-        // NOW access the collection account after validation passes
         let collection = &mut ctx.accounts.collection;
 
-        // Set all the important stuff - authority, wallets, fees
-        // This is where we store who owns what and who gets paid
-        // Because without this, we'd have no idea who's in charge (chaos, remember?)
+        // Identity
         collection.authority = ctx.accounts.authority.key();
+        collection.mint = ctx.accounts.mint.key();
         collection.mint_authority = ctx.accounts.mint_authority.key();
         collection.creator_wallet = ctx.accounts.creator_wallet.key();
         collection.platform_wallet = ctx.accounts.platform_wallet.key();
-        collection.platform_fee_bps = platform_fee_basis_points;
-        
-        // Flatten config fields directly into collection (no nested struct = less padding)
-        // We unpack the config struct and store everything flat, because nested structs waste padding
-        // (And we're not about that wasteful lifestyle - every byte counts when you're paying rent)
+
+        // Catalog fields
+        collection.metadata_uri = metadata_uri;
+        collection.created_at = clock.unix_timestamp;
+        collection.status = 0; // draft — creator updates this through the launch lifecycle
+        collection.featured = false;
+
+        // Minting config — flatten from CollectionConfig (no nested struct on-chain = no padding waste)
         collection.max_supply = collection_config.max_supply;
         collection.price = collection_config.price_per_nft;
         collection.start_time = collection_config.start_time;
-        // Convert Option<i64> to sentinel -1 (because None wastes 9 bytes, -1 wastes 8)
-        // (And yes, we're that cheap - we'll save 1 byte if we can)
         collection.end_time = collection_config.end_time.unwrap_or(Collection::DISABLED_I64);
-        // Convert Option<u8> to sentinel 0 (because None wastes 2 bytes, 0 wastes 1)
-        // (Because we're efficient like that - every byte saved is a byte earned)
-        collection.mint_limit_per_wallet = collection_config.mint_limit_per_wallet.unwrap_or(Collection::DISABLED_U8);
-        // Convert enum to u8 (because storing the full enum wastes space)
-        // (And we're not about that wasteful lifestyle - we pack everything tight)
+        collection.mint_limit_per_wallet = collection_config
+            .mint_limit_per_wallet
+            .unwrap_or(Collection::DISABLED_U8);
         collection.metadata_standard = collection_config.metadata_standard as u8;
-        // Convert Option<i64> to sentinel -1 (because we're consistent, and also cheap)
-        collection.freeze_until = collection_config.freeze_trading_until_date.unwrap_or(Collection::DISABLED_I64);
-        
-        // Pack booleans into flags bitmask (saves alignment bytes)
-        // We start with flags = 0 (all flags cleared), then set them as needed
-        // (Because storing multiple bools wastes alignment bytes, and we're not wasteful)
+        collection.freeze_until = collection_config
+            .freeze_trading_until_date
+            .unwrap_or(Collection::DISABLED_I64);
+        collection.platform_fee_bps = platform_fee_bps;
+        collection.minted = 0;
+
+        // Pack booleans into flags bitmask — saves alignment bytes vs individual bools
         collection.flags = 0;
         if collection_config.freeze_trading_until_sold_out {
             collection.set_freeze_until_sold_out(true);
         }
-        
-        // Start with zero mints
-        collection.minted = 0;
-        
-        // Mint fund split: when has_split, load from MintSplitConfig PDA (saves ~330 bytes per collection when unused).
-        collection.set_has_split(false);
-        
-        // No allowlist initially - admin can set via update_allowlist_root for allowlist-phase mints
+
+        // Allowlist starts clear ([0u8;32] = public mint)
         collection.allowlist_root = [0u8; 32];
-        
-        // Base URI: not in core. Optional CollectionUri PDA (seed ["uri", collection]) created only when set.
-        
-        // Store the PDA bump - because we need it for account derivation
-        // (And because Anchor told us to, and Anchor is usually right)
+
         collection.bump = ctx.bumps.collection;
 
-        log_msg!(
-            "Collection initialized: {} with {}% platform fee (mint only)",
-            collection.key(),
-            platform_fee_basis_points as f64 / 100.0
-        );
+        // Register in global registry — non-blocking if full
+        let registry = &mut ctx.accounts.registry;
+        let collection_key = collection.key();
+        match registry.add_collection(collection_key) {
+            Ok(true) => {
+                log_msg!(
+                    "Collection {} registered (total: {})",
+                    collection_key,
+                    registry.collections.len()
+                );
+            }
+            Ok(false) => {
+                log_msg!("Registry full — collection created but not listed");
+            }
+            Err(err) => return Err(err),
+        }
+
+        log_msg!("Collection created: {}", collection.key());
         Ok(())
     }
 
-    /// Mint an NFT from the collection.
-    /// When allowlist is active: pass proof (len <= 24) and leaf_index. When public mint: pass empty vec and 0.
+    /// Update collection metadata URI (authority only).
+    /// Upload the new metadata off-chain first, then call this.
+    pub fn update_metadata(
+        ctx: Context<UpdateCollection>,
+        new_metadata_uri: String,
+    ) -> Result<()> {
+        require!(
+            new_metadata_uri.len() <= METADATA_URI_MAX_LEN,
+            NexusError::MetadataUriTooLong
+        );
+        ctx.accounts.collection.metadata_uri = new_metadata_uri;
+        log_msg!("Metadata URI updated");
+        Ok(())
+    }
+
+    /// Update collection lifecycle status (authority only).
+    /// 0=draft, 1=preparing, 2=ready, 3=minting, 4=completed, 5=paused
+    /// Stored as u8 because a string would cost 10× the rent for the same information.
+    pub fn update_collection_status(
+        ctx: Context<UpdateCollection>,
+        status: u8,
+    ) -> Result<()> {
+        require!(status <= 5, NexusError::InvalidStatus);
+        let collection = &mut ctx.accounts.collection;
+        collection.status = status;
+        // Sync flags.bit0 so that status=5 ("paused") actually blocks minting.
+        // Prevents the footgun where update_collection_status(5) looks paused in UIs
+        // but the mint instruction still passes because flags.bit0 was never set.
+        collection.set_paused(status == 5);
+        log_msg!("Collection status → {}", status);
+        Ok(())
+    }
+
+    /// Feature or unfeature a collection on the homepage (platform authority only).
+    /// Gated against the registry authority — fixed from the original which had no check.
+    pub fn update_featured(
+        ctx: Context<UpdateFeatured>,
+        featured: bool,
+    ) -> Result<()> {
+        ctx.accounts.collection.featured = featured;
+        log_msg!("Collection featured → {}", featured);
+        Ok(())
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MINTING
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Mint NFTs from the collection.
+    ///
+    /// Allowlist active: pass proof (≤24 elements) and leaf_index.
+    /// Public mint: pass empty Vec and 0.
+    ///
+    /// Payment goes directly to platform_wallet (fee) and creator_wallet (remainder).
+    /// No escrow. No intermediate accounts. Just math and two transfers.
+    /// When has_split is set, the creator amount is split across up to 10 recipients
+    /// passed as remaining_accounts in order: [buyer, recipient_0, ..., recipient_n-1].
     pub fn mint(
         ctx: Context<MintNFT>,
         quantity: u8,
@@ -178,120 +273,93 @@ pub mod nexus_launchpad {
         allowlist_leaf_index: u32,
     ) -> Result<()> {
         let collection = &mut ctx.accounts.collection;
-        // Get the current time again - because time keeps moving forward
-        // (Unlike some of our users' understanding of how blockchains work)
         let clock = Clock::get()?;
 
-        // Check if paused - because sometimes you need to stop the mint
-        // (Usually because something broke, or someone found an exploit, or both)
-        require!(!collection.is_paused(), LaunchpadError::MintingPaused);
-
-        // Check time constraints - can't mint before start time
-        // Because time travel isn't supported (yet), so we enforce chronological order
+        require!(quantity > 0, NexusError::InvalidSupply);
+        require!(!collection.is_paused(), NexusError::MintingPaused);
         require!(
             clock.unix_timestamp >= collection.start_time,
-            LaunchpadError::MintingNotStarted
+            NexusError::MintingNotStarted
         );
-
-        // Check if minting has ended (if an end time was set)
-        // Because all good things must come to an end (especially mints)
         if collection.has_end_time() {
             require!(
                 clock.unix_timestamp <= collection.end_time,
-                LaunchpadError::MintingEnded
+                NexusError::MintingEnded
             );
         }
+        let new_minted = collection
+            .minted
+            .checked_add(quantity as u64)
+            .ok_or(NexusError::MathOverflow)?;
+        require!(new_minted <= collection.max_supply, NexusError::SupplyExceeded);
 
-        // Check supply - can't mint more than the max supply
-        // Because infinite NFTs would break... well, everything
-        // (And also devalue the collection, but that's a secondary concern)
-        require!(
-            collection.minted + quantity as u64 <= collection.max_supply,
-            LaunchpadError::SupplyExceeded
-        );
-
-        // Allowlist: root set → require non-empty proof and valid leaf_index; root clear → require empty proof.
+        // Allowlist verification via Keccak256 Merkle proof
         if collection.has_allowlist() {
-            require!(!allowlist_proof.is_empty(), LaunchpadError::AllowlistRequired);
+            require!(!allowlist_proof.is_empty(), NexusError::AllowlistRequired);
             require!(
                 allowlist_proof.len() <= MAX_MERKLE_PROOF_DEPTH,
-                LaunchpadError::AllowlistInvalid
+                NexusError::AllowlistInvalid
             );
             let mut hasher = Keccak256::new();
             hasher.update(ctx.accounts.buyer.key().as_ref());
+            // Bind leaf to this collection so a proof from collection A cannot
+            // be replayed against collection B with the same Merkle root.
+            hasher.update(collection.key().as_ref());
             let hash_result = hasher.finalize();
+            // SAFETY: Keccak256 always produces exactly 32 bytes; try_into cannot fail here.
             let leaf: [u8; 32] = hash_result.as_slice().try_into().unwrap();
             require!(
-                verify_allowlist_proof(&leaf, allowlist_leaf_index, &allowlist_proof, &collection.allowlist_root),
-                LaunchpadError::AllowlistInvalid
+                verify_merkle_proof(
+                    &leaf,
+                    allowlist_leaf_index,
+                    &allowlist_proof,
+                    &collection.allowlist_root
+                ),
+                NexusError::AllowlistInvalid
             );
         } else {
-            require!(allowlist_proof.is_empty(), LaunchpadError::AllowlistNotRequired);
+            // Don't silently ignore proof data on public mint — caller probably has a bug
+            require!(allowlist_proof.is_empty(), NexusError::AllowlistNotRequired);
         }
 
-        // Check mint limit per wallet - because we can't let whales hoard all the NFTs
-        // This prevents one wallet from minting the entire collection
-        // (Which would be bad for the community, and also bad for our reputation)
-        // We use our optimized tracker that only stores the count (because we're efficient)
-        // (And because storing wallet/collection in the tracker is wasteful - PDA seeds prove ownership)
-        if collection.has_mint_limit() {
+        // Per-wallet mint limit enforcement.
+        // WalletMintTracker is only 9 bytes — seeds prove ownership, no need to store wallet/collection.
+        // Saves 64 bytes per minter (32 wallet + 32 collection), which adds up fast at scale.
+        // Tracker is always incremented (even when no limit is active) so that activating a limit
+        // later via update_config reflects accurate historical mint counts, not just post-limit mints.
+        {
             let tracker = &mut ctx.accounts.wallet_tracker;
-            
-            // The tracker is automatically initialized by Anchor if it doesn't exist
-            // The PDA derivation ensures this tracker is unique per wallet+collection combo
-            // We don't need to store wallet/collection - PDA seeds prove ownership
-            // (Because PDAs are deterministic, we can always derive the same account)
-            // (And because storing data we can derive is wasteful, and we're not wasteful)
-            
-            // Check if this mint would exceed the limit (no hoarding allowed!)
-            // Because if we let whales mint everything, regular users get nothing
-            // (And regular users are the ones who actually use the NFTs)
-            // We use checked_add to prevent overflow (because overflow = bad, and we don't like bad)
-            let new_count = tracker.minted
+            let new_count = tracker
+                .minted
                 .checked_add(quantity)
-                .ok_or(LaunchpadError::MathOverflow)?;
-            require!(
-                new_count <= collection.mint_limit_per_wallet,
-                LaunchpadError::MintLimitExceeded
-            );
-
-            // Update the tracker with the new mint count
-            // Using u8 since limits are typically small (max 255)
-            // (Because if someone needs to mint more than 255 NFTs, they can use multiple wallets)
-            // (And because we're not about to let one wallet hoard everything anyway)
+                .ok_or(NexusError::MathOverflow)?;
+            if collection.has_mint_limit() {
+                require!(
+                    new_count <= collection.mint_limit_per_wallet,
+                    NexusError::MintLimitExceeded
+                );
+            }
             tracker.minted = new_count;
         }
 
-        // Calculate total price - the buyer pays this amount
-        // This is simple math: price per NFT × quantity = total price
-        // (Unless there's overflow, in which case we reject the transaction)
-        let total_price = collection.price
+        // Additive fee model: creator receives their full set price; platform fee
+        // is calculated on top of that and charged additionally to the buyer.
+        // Buyer pays: creator_amount + platform_fee. No funds accumulate in any PDA.
+        let creator_amount = collection
+            .price
             .checked_mul(quantity as u64)
-            .ok_or(LaunchpadError::MathOverflow)?;
-
-        // Calculate platform fee (only on mints, not trading - we're a launchpad, not a marketplace)
-        // The platform gets a percentage of the mint price
-        // (Because even launchpads need to pay the bills)
-        let platform_fee = total_price
+            .ok_or(NexusError::MathOverflow)?;
+        let platform_fee = creator_amount
             .checked_mul(collection.platform_fee_bps as u64)
-            .and_then(|x| x.checked_div(10000))
-            .ok_or(LaunchpadError::MathOverflow)?;
+            .and_then(|x| x.checked_div(10_000))
+            .ok_or(NexusError::MathOverflow)?;
 
-        // Creator gets the remainder (the platform takes its cut first, like a good business)
-        // This is what's left after we take our fee
-        // (The creator gets the rest, because they did the work of creating the collection)
-        let creator_amount = total_price
-            .checked_sub(platform_fee)
-            .ok_or(LaunchpadError::MathOverflow)?;
-
-        // Transfer platform fee (if any) - because even platforms need to eat
-        // We take our cut first, because we're the platform and we can do that
-        // (Also because if we don't get paid, we can't keep the lights on)
+        // Platform gets paid first (because platforms pay the bills too)
         if platform_fee > 0 {
             anchor_lang::solana_program::program::invoke(
                 &anchor_lang::solana_program::system_instruction::transfer(
                     &ctx.accounts.buyer.key(),
-                    &collection.platform_wallet.key(),
+                    &collection.platform_wallet,
                     platform_fee,
                 ),
                 &[
@@ -301,13 +369,13 @@ pub mod nexus_launchpad {
             )?;
         }
 
-        // Transfer creator amount: single creator_wallet or split via MintSplitConfig PDA
+        // Creator payment — single wallet or split across multiple recipients
         if creator_amount > 0 {
             if !collection.has_split() {
                 anchor_lang::solana_program::program::invoke(
                     &anchor_lang::solana_program::system_instruction::transfer(
                         &ctx.accounts.buyer.key(),
-                        &collection.creator_wallet.key(),
+                        &collection.creator_wallet,
                         creator_amount,
                     ),
                     &[
@@ -316,30 +384,39 @@ pub mod nexus_launchpad {
                     ],
                 )?;
             } else {
-                let split = ctx.accounts.split_config.as_ref().ok_or(LaunchpadError::InvalidMintSplitAccounts)?;
+                // Split mode: remaining_accounts = [buyer, recipient_0, ..., recipient_n-1]
+                let split = ctx
+                    .accounts
+                    .split_config
+                    .as_ref()
+                    .ok_or(NexusError::InvalidMintSplitAccounts)?;
                 let n = split.num as usize;
-                require!(n > 0 && n <= 10, LaunchpadError::InvalidMintSplitAccounts);
+                require!(n > 0 && n <= 10, NexusError::InvalidMintSplitAccounts);
                 let rem = ctx.remaining_accounts;
-                require!(rem.len() >= n + 1, LaunchpadError::InvalidMintSplitAccounts);
-                require!(rem[0].key() == ctx.accounts.buyer.key(), LaunchpadError::InvalidMintSplitAccounts);
+                require!(rem.len() >= n + 1, NexusError::InvalidMintSplitAccounts);
+                require!(
+                    rem[0].key() == ctx.accounts.buyer.key(),
+                    NexusError::InvalidMintSplitAccounts
+                );
                 for i in 0..n {
                     require!(
                         rem[i + 1].key() == split.recipients[i],
-                        LaunchpadError::InvalidMintSplitAccounts
+                        NexusError::InvalidMintSplitAccounts
                     );
+                    require!(rem[i + 1].is_writable(), NexusError::InvalidMintSplitAccounts);
                 }
                 let mut transferred: u64 = 0;
                 for i in 0..n {
-                    let share = split.shares[i] as u64;
+                    // Last recipient gets the remainder to absorb rounding dust
                     let amount = if i == n - 1 {
                         creator_amount
                             .checked_sub(transferred)
-                            .ok_or(LaunchpadError::MathOverflow)?
+                            .ok_or(NexusError::MathOverflow)?
                     } else {
                         creator_amount
-                            .checked_mul(share)
+                            .checked_mul(split.shares[i] as u64)
                             .and_then(|x| x.checked_div(100))
-                            .ok_or(LaunchpadError::MathOverflow)?
+                            .ok_or(NexusError::MathOverflow)?
                     };
                     if amount > 0 {
                         anchor_lang::solana_program::program::invoke(
@@ -352,142 +429,196 @@ pub mod nexus_launchpad {
                         )?;
                         transferred = transferred
                             .checked_add(amount)
-                            .ok_or(LaunchpadError::MathOverflow)?;
+                            .ok_or(NexusError::MathOverflow)?;
                     }
                 }
             }
         }
 
-        // Update minted count - because we need to track how many have been minted
-        // This is important for supply checks and sold-out detection
-        // (And also for bragging rights when the collection sells out)
-        collection.minted = collection
-            .minted
-            .checked_add(quantity as u64)
-            .ok_or(LaunchpadError::MathOverflow)?;
+        collection.minted = new_minted;
 
-        log_msg!(
-            "Minted {} NFTs. Total minted: {}",
-            quantity,
-            collection.minted
-        );
-
-        // NOTE: If trading is frozen, NFTs should be frozen using Metaplex Freeze Delegate
-        // This is typically done during the actual NFT minting process (in nexus-collection or Metaplex)
-        // The freeze check will be enforced by the transfer_nft function and Metaplex freeze state
-
+        log_msg!("Minted {}. Total minted: {}", quantity, collection.minted);
         Ok(())
     }
 
-    /// Pause minting
-    /// This stops all minting activity (usually because something broke)
-    /// Use this when you need to stop the mint without ending it permanently
-    /// (Because sometimes you need a break, and mints are no exception)
+    /// Pause minting (authority only). Use when something breaks or needs review.
     pub fn pause(ctx: Context<UpdateCollection>) -> Result<()> {
-        // Set the pause flag - this will block all mint attempts
-        // (Because we're the authority and we can do that)
         ctx.accounts.collection.set_paused(true);
+        ctx.accounts.collection.status = 5; // keep status in sync with flags.bit0
         log_msg!("Minting paused");
         Ok(())
     }
 
-    /// Resume minting
-    /// This un-pauses minting (usually after you fixed whatever broke)
-    /// Use this to restart the mint after pausing it
-    /// (Because all good things must continue, especially mints)
+    /// Resume minting (authority only). Use after fixing whatever caused the pause.
     pub fn resume(ctx: Context<UpdateCollection>) -> Result<()> {
-        // Clear the pause flag - this allows minting to continue
-        // (And hopefully everything works this time)
         ctx.accounts.collection.set_paused(false);
+        if ctx.accounts.collection.status == 5 {
+            ctx.accounts.collection.status = 3; // revert to "minting"
+        }
         log_msg!("Minting resumed");
         Ok(())
     }
 
-    /// Update collection configuration (only authority)
-    /// This lets you change the collection config after initialization
-    /// (Because sometimes you need to adjust things, and that's okay)
-    /// Use this to update prices, times, limits, etc.
-    /// (But be careful - changing things mid-mint can confuse users)
+    /// Close a WalletMintTracker PDA and reclaim rent to the minter.
+    /// Gated: minting must be permanently over (sold out or end_time passed) to prevent
+    /// a minter from closing and resetting their tracker to bypass mint_limit_per_wallet.
+    pub fn close_wallet_tracker(ctx: Context<CloseWalletTracker>) -> Result<()> {
+        let collection = &ctx.accounts.collection;
+        let clock = Clock::get()?;
+        let sold_out = collection.minted >= collection.max_supply;
+        let time_ended = collection.has_end_time() && clock.unix_timestamp > collection.end_time;
+        require!(sold_out || time_ended, NexusError::MintingStillActive);
+        log_msg!("Wallet tracker closed, rent reclaimed");
+        Ok(())
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONFIGURATION UPDATES
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Update minting configuration (authority only).
+    /// metadata_standard is immutable — changing it mid-collection breaks everything.
     pub fn update_config(
         ctx: Context<UpdateCollection>,
         new_config: CollectionConfig,
     ) -> Result<()> {
+        let clock = Clock::get()?;
         let collection = &mut ctx.accounts.collection;
-        
-        // Metadata standard is IMMUTABLE - cannot be changed after collection creation
-        // Because it determines the entire minting process, account structures, and programs used
-        // Changing it mid-collection would break consistency (can't have Legacy and Core NFTs in same collection)
+        // Once minting has started, lock the price-sensitive fields to prevent mid-mint rugs:
+        //   price change  → earlier buyers paid more/less than advertised
+        //   supply change → scarcity promise broken (inflate to u64::MAX or deflate to bait)
+        //   start_time forward → silently re-gates an open mint without going through pause()
+        if collection.minted > 0 {
+            require!(new_config.price_per_nft == collection.price, NexusError::InvalidStatus);
+            require!(new_config.max_supply == collection.max_supply, NexusError::InvalidStatus);
+            require!(new_config.start_time == collection.start_time, NexusError::InvalidStartTime);
+        } else {
+            require!(
+                new_config.start_time >= clock.unix_timestamp,
+                NexusError::InvalidStartTime
+            );
+        }
+        // Immutable after creation: changing the standard mid-collection means
+        // some NFTs are Legacy and some are Core, which is a support nightmare.
         require!(
             (new_config.metadata_standard as u8) == collection.metadata_standard,
-            LaunchpadError::InvalidMetadataStandard
+            NexusError::InvalidMetadataStandard
         );
-        
-        // Update flattened config fields directly (because we don't store nested structs)
-        // We unpack the config struct and update everything flat, because that's how we roll
-        // (And because nested structs waste padding, and we're not about that wasteful lifestyle)
+        require!(new_config.max_supply > 0, NexusError::InvalidSupply);
+        // Prevent reducing supply below already-minted count — would brick minting
+        // and could be used to bypass freeze_until_sold_out restrictions.
+        require!(
+            new_config.max_supply >= collection.minted,
+            NexusError::InvalidSupply
+        );
+        if let Some(end) = new_config.end_time {
+            require!(end > new_config.start_time, NexusError::InvalidStartTime);
+        }
         collection.max_supply = new_config.max_supply;
         collection.price = new_config.price_per_nft;
         collection.start_time = new_config.start_time;
-        // Convert Option<i64> to sentinel -1 (because we're consistent, and also cheap)
         collection.end_time = new_config.end_time.unwrap_or(Collection::DISABLED_I64);
-        // Convert Option<u8> to sentinel 0 (because we're efficient like that)
-        collection.mint_limit_per_wallet = new_config.mint_limit_per_wallet.unwrap_or(Collection::DISABLED_U8);
-        // DO NOT update metadata_standard - it's immutable (see validation above)
-        // Convert Option<i64> to sentinel -1 (because we're consistent, and also cheap)
-        collection.freeze_until = new_config.freeze_trading_until_date.unwrap_or(Collection::DISABLED_I64);
-        // Update the freeze-until-sold-out flag (using our helper method because we're lazy)
+        collection.mint_limit_per_wallet = new_config
+            .mint_limit_per_wallet
+            .unwrap_or(Collection::DISABLED_U8);
+        collection.freeze_until = new_config
+            .freeze_trading_until_date
+            .unwrap_or(Collection::DISABLED_I64);
         collection.set_freeze_until_sold_out(new_config.freeze_trading_until_sold_out);
-        
+        emit!(CollectionConfigUpdated { collection: collection.key() });
         log_msg!("Collection config updated");
         Ok(())
     }
 
-    /// Update platform fee percentage (only authority)
-    /// This only affects mints, not trading - because we're a launchpad, not a marketplace
-    /// Fee is in basis points (e.g., 500 = 5%, 10000 = 100%)
-    /// 
-    /// Use this to adjust the platform fee (usually to make more money)
-    /// (Or less money, if you're feeling generous)
+    /// Update platform fee percentage (registry authority only).
+    /// Fee is in basis points: 500 = 5%. Hard cap: 1500 bps (15%).
+    /// Gated on the registry authority — only the platform can change this,
+    /// not individual collection creators.
     pub fn update_platform_fee(
-        ctx: Context<UpdateCollection>,
-        new_platform_fee_basis_points: u16,
+        ctx: Context<UpdatePlatformFee>,
+        new_fee_bps: u16,
     ) -> Result<()> {
-        require!(
-            new_platform_fee_basis_points <= 10000,
-            LaunchpadError::InvalidFeePercentage
-        );
-
-        ctx.accounts.collection.platform_fee_bps = new_platform_fee_basis_points;
-        log_msg!("Platform fee updated to {} basis points", new_platform_fee_basis_points);
+        require!(new_fee_bps <= 1_500, NexusError::InvalidFeePercentage);
+        let old_fee_bps = ctx.accounts.collection.platform_fee_bps;
+        ctx.accounts.collection.platform_fee_bps = new_fee_bps;
+        emit!(PlatformFeeUpdated {
+            collection: ctx.accounts.collection.key(),
+            old_fee_bps,
+            new_fee_bps,
+        });
+        log_msg!("Platform fee → {} bps", new_fee_bps);
         Ok(())
     }
 
-    /// Set/update base URI in optional CollectionUri PDA (only authority). Creates PDA only when used; collections without URI pay zero rent.
+    /// Update allowlist Merkle root (authority only).
+    /// Set root to enforce allowlist-only minting; set to [0u8;32] to open public mint.
+    /// Emits AllowlistRootUpdated with old/new root and timestamp so off-chain observers
+    /// can detect root rotation and notify wallets whose proofs are now invalid.
+    pub fn update_allowlist_root(
+        ctx: Context<UpdateCollection>,
+        new_root: [u8; 32],
+    ) -> Result<()> {
+        let old_root = ctx.accounts.collection.allowlist_root;
+        ctx.accounts.collection.allowlist_root = new_root;
+        emit!(AllowlistRootUpdated {
+            collection: ctx.accounts.collection.key(),
+            timestamp: Clock::get()?.unix_timestamp,
+            old_root,
+            new_root,
+        });
+        log_msg!(
+            "Allowlist root {}",
+            if ctx.accounts.collection.has_allowlist() {
+                "set"
+            } else {
+                "cleared (public mint)"
+            }
+        );
+        Ok(())
+    }
+
+    /// Update trading freeze settings (authority only).
+    /// Can freeze until a specific timestamp, until sold out, or both.
+    pub fn update_trading_freeze(
+        ctx: Context<UpdateCollection>,
+        freeze_until_date: Option<i64>,
+        freeze_until_sold_out: bool,
+    ) -> Result<()> {
+        let collection = &mut ctx.accounts.collection;
+        collection.freeze_until = freeze_until_date.unwrap_or(Collection::DISABLED_I64);
+        collection.set_freeze_until_sold_out(freeze_until_sold_out);
+        log_msg!("Trading freeze updated");
+        Ok(())
+    }
+
+    /// Set or update the base URI in an optional PDA (authority only).
+    /// The PDA is only created when this is called — zero rent when unused.
+    /// Close it with close_collection_uri when the mint ends to reclaim rent.
     pub fn update_base_uri(
         ctx: Context<UpdateBaseUri>,
         new_base_uri: String,
     ) -> Result<()> {
-        let uri = truncate_uri(new_base_uri, COLLECTION_URI_MAX_LEN);
-        let uri_account = &mut ctx.accounts.collection_uri;
-        uri_account.base_uri = uri;
-        log_msg!("Collection base_uri updated");
+        require!(
+            new_base_uri.len() <= COLLECTION_URI_MAX_LEN,
+            NexusError::MetadataUriTooLong
+        );
+        ctx.accounts.collection_uri.base_uri = new_base_uri;
+        log_msg!("Base URI updated");
         Ok(())
     }
 
-    /// Close CollectionUri PDA and reclaim rent to authority. Call when mint ended or URI no longer needed.
+    /// Close the CollectionUri PDA and reclaim its rent to the authority.
+    /// Call this when the mint is over or the URI is no longer needed.
     pub fn close_collection_uri(_ctx: Context<CloseCollectionUri>) -> Result<()> {
         log_msg!("Collection URI PDA closed, rent reclaimed");
         Ok(())
     }
 
-    /// Close MintSplitConfig PDA and reclaim rent to authority. Clear has_split on collection. Call when mint ended or splits no longer needed.
-    pub fn close_mint_split_config(ctx: Context<CloseMintSplitConfig>) -> Result<()> {
-        ctx.accounts.collection.set_has_split(false);
-        log_msg!("Mint split config PDA closed, rent reclaimed");
-        Ok(())
-    }
+    // ═══════════════════════════════════════════════════════════════════════
+    // MINT SPLIT CONFIG — optional PDA, only pay rent when splits are active
+    // ═══════════════════════════════════════════════════════════════════════
 
-    /// Create MintSplitConfig PDA (only authority). Call before setting splits with update_mint_fund_splits.
+    /// Create the MintSplitConfig PDA. Call this before update_mint_fund_splits.
     pub fn init_mint_split_config(ctx: Context<InitMintSplitConfig>) -> Result<()> {
         let split = &mut ctx.accounts.mint_split_config;
         split.num = 0;
@@ -497,371 +628,313 @@ pub mod nexus_launchpad {
         Ok(())
     }
 
-    /// Update mint fund splits (only authority). Pass num 0 to clear (single creator_wallet). When num > 0, MintSplitConfig PDA must exist (call init_mint_split_config first).
+    /// Configure mint fund splits (authority only).
+    /// Pass num=0 to disable splits and revert to single creator_wallet.
+    /// Shares must sum to 100. Recipients are paid in order as remaining_accounts during mint.
     pub fn update_mint_fund_splits(
         ctx: Context<UpdateMintFundSplits>,
         recipients: [Pubkey; 10],
         shares: [u8; 10],
         num: u8,
     ) -> Result<()> {
-        require!(num <= 10, LaunchpadError::InvalidMintSplitCount);
+        require!(num <= 10, NexusError::InvalidMintSplitCount);
         let collection = &mut ctx.accounts.collection;
         if num == 0 {
             collection.set_has_split(false);
-            log_msg!("Mint fund splits cleared (legacy single creator_wallet)");
+            log_msg!("Splits cleared — reverting to single creator_wallet");
             return Ok(());
         }
         let split = ctx
             .accounts
             .mint_split_config
             .as_mut()
-            .ok_or(LaunchpadError::InvalidMintSplitAccounts)?;
+            .ok_or(NexusError::InvalidMintSplitAccounts)?;
         let mut sum: u16 = 0;
         for i in 0..(num as usize) {
+            require!(
+                recipients[i] != Pubkey::default(),
+                NexusError::InvalidMintSplitAccounts
+            );
             sum = sum
                 .checked_add(shares[i] as u16)
-                .ok_or(LaunchpadError::MathOverflow)?;
+                .ok_or(NexusError::MathOverflow)?;
         }
-        require!(sum == 100, LaunchpadError::InvalidMintSplitSum);
+        require!(sum == 100, NexusError::InvalidMintSplitSum);
         split.num = num;
         split.recipients = recipients;
         split.shares = shares;
         collection.set_has_split(true);
-        log_msg!("Mint fund splits updated: {} recipients", num);
+        log_msg!("Mint splits updated: {} recipients", num);
         Ok(())
     }
 
-    /// Update allowlist Merkle root (only authority).
-    /// Set root to enforce allowlist-phase mints; set to [0u8;32] for public mint.
-    /// 
-    /// This is how you switch between allowlist and public mint phases
-    /// Set a root to enable allowlist-only minting
-    /// Clear it ([0u8;32]) to open up public minting
-    /// (Because sometimes you want exclusivity, and sometimes you want volume)
-    pub fn update_allowlist_root(
-        ctx: Context<UpdateCollection>,
-        new_root: [u8; 32],
-    ) -> Result<()> {
-        ctx.accounts.collection.allowlist_root = new_root;
-        log_msg!(
-            "Allowlist root {}",
-            if ctx.accounts.collection.has_allowlist() { "set" } else { "cleared" }
-        );
+    /// Close the MintSplitConfig PDA and reclaim rent. Clears has_split on the collection.
+    /// Guard: minting must be permanently over (sold out or end_time passed) so that authority
+    /// cannot close splits mid-mint and silently reroute all revenue to creator_wallet.
+    pub fn close_mint_split_config(ctx: Context<CloseMintSplitConfig>) -> Result<()> {
+        let clock = Clock::get()?;
+        let sold_out = ctx.accounts.collection.minted >= ctx.accounts.collection.max_supply;
+        let time_ended = ctx.accounts.collection.has_end_time()
+            && clock.unix_timestamp > ctx.accounts.collection.end_time;
+        require!(sold_out || time_ended, NexusError::MintingStillActive);
+        ctx.accounts.collection.set_has_split(false);
+        log_msg!("Mint split config PDA closed, rent reclaimed");
         Ok(())
     }
 
-    /// Update trading freeze settings (only authority)
-    /// Can freeze trading until a date or until sold out.
-    ///
-    /// This lets you control when people can trade the NFTs
-    /// Freeze until a date, or until sold out, or both
-    /// (Because sometimes you want to prevent secondary sales until everyone gets a chance to mint)
-    pub fn update_trading_freeze(
-        ctx: Context<UpdateCollection>,
-        freeze_trading_until_date: Option<i64>,
-        freeze_trading_until_sold_out: bool,
-    ) -> Result<()> {
-        let collection = &mut ctx.accounts.collection;
-        collection.freeze_until = freeze_trading_until_date.unwrap_or(Collection::DISABLED_I64);
-        collection.set_freeze_until_sold_out(freeze_trading_until_sold_out);
-        
-        log_msg!(
-            "Trading freeze updated: until_date={:?}, until_sold_out={}",
-            if collection.has_freeze_date() { Some(collection.freeze_until) } else { None },
-            freeze_trading_until_sold_out
-        );
-        Ok(())
-    }
+    // ═══════════════════════════════════════════════════════════════════════
+    // TRADING CONTROLS — read-only view functions + transfer enforcement
+    // ═══════════════════════════════════════════════════════════════════════
 
-    /// Check if trading is currently frozen for this collection
-    /// Returns true if trading should be frozen (either by date or until sold out)
-    /// This is a view function - doesn't modify state, just checks conditions
-    /// Can be called by anyone to check trading status
-    /// 
-    /// This is like asking "can I trade this NFT right now?"
-    /// (And the answer might be "no, because we said so")
+    /// Check if trading is currently frozen. Read-only, no state change.
     pub fn is_trading_frozen(ctx: Context<CheckTradingStatus>) -> Result<bool> {
-        let collection = &ctx.accounts.collection;
-        // Get the current time - because time matters for freeze checks
         let clock = Clock::get()?;
-
-        // Use the consolidated helper function (DRY principle)
-        let is_frozen = check_trading_frozen(collection, &clock);
-        
-        if is_frozen {
-            log_msg!("Trading is frozen");
-        } else {
-            log_msg!("Trading is not frozen");
-        }
-        
-        Ok(is_frozen)
+        let frozen = trading_frozen(&ctx.accounts.collection, &clock);
+        log_msg!("Trading frozen: {}", frozen);
+        Ok(frozen)
     }
 
-    /// Validate that an NFT should be frozen based on collection freeze settings
-    /// Returns true if NFT should be frozen, false otherwise
-    /// 
-    /// Use this during NFT minting to determine if FreezeDelegate should be applied
-    /// The actual freeze is applied via Metaplex Core CPI during mint or separately
-    /// 
-    /// This tells you whether to freeze an NFT when minting it
-    /// (Because frozen NFTs can't be traded, which is the whole point)
+    /// Check if a newly minted NFT should have FreezeDelegate applied.
+    /// Returns true when the collection's freeze conditions are active.
     pub fn should_freeze_nft(ctx: Context<CheckTradingStatus>) -> Result<bool> {
-        let collection = &ctx.accounts.collection;
-        // Get the current time - because freeze status depends on time
         let clock = Clock::get()?;
-        
-        // Check if trading is frozen (using our consolidated helper function)
-        let is_frozen = check_trading_frozen(collection, &clock);
-        
-        // Log the result - because logging is important (and also helps with debugging)
-        if is_frozen {
-            log_msg!("NFT should be FROZEN: Apply Metaplex FreezeDelegate plugin with frozen=true during mint");
-        } else {
-            log_msg!("NFT should NOT be frozen: Trading is allowed");
-        }
-        
-        Ok(is_frozen)
+        Ok(trading_frozen(&ctx.accounts.collection, &clock))
     }
 
-    /// Batch check: Should all NFTs in collection be frozen/thawed?
-    /// Returns the current freeze state based on collection settings
-    /// Use this to determine if you need to batch freeze or thaw all NFTs
-    /// 
-    /// This tells you the freeze state for the entire collection
-    /// (Useful when you need to batch update all NFTs in a collection)
+    /// Batch freeze state check — returns current freeze status for the entire collection.
+    /// Use this to determine whether to batch-freeze or batch-thaw all NFTs.
     pub fn get_collection_freeze_state(ctx: Context<CheckTradingStatus>) -> Result<bool> {
-        let collection = &ctx.accounts.collection;
-        // Get the current time - because freeze state depends on time
         let clock = Clock::get()?;
-        
-        // Check if trading should be frozen (using consolidated helper)
-        let should_be_frozen = check_trading_frozen(collection, &clock);
-        
-        // Log the state with helpful instructions
-        // (Because knowing what to do is half the battle)
-        if should_be_frozen {
-            log_msg!("Collection FREEZE state: FROZEN - All NFTs should have FreezeDelegate with frozen=true");
-            log_msg!("Apply freeze to all NFTs in collection via Metaplex FreezeDelegate plugin");
-        } else {
-            log_msg!("Collection FREEZE state: THAWED - All NFTs should have FreezeDelegate with frozen=false");
-            log_msg!("Thaw all NFTs in collection via Metaplex FreezeDelegate plugin");
-        }
-        
-        Ok(should_be_frozen)
+        Ok(trading_frozen(&ctx.accounts.collection, &clock))
     }
 
-    /// Transfer NFT - enforces trading freeze on-chain
-    /// This function checks if trading is frozen and blocks transfers if so
-    /// NOTE: With Metaplex Freeze Delegate, frozen NFTs cannot be transferred at all
-    /// This function provides an additional check for custom transfer flows
-    /// 
-    /// This is where we actually enforce the trading freeze
-    /// (Because checking is one thing, but blocking is another)
-    pub fn transfer_nft(ctx: Context<TransferNFT>) -> Result<()> {
-        let collection = &ctx.accounts.collection;
-        // Get the current time - because freeze status depends on time
+    /// Freeze-state gate check — returns TradingFrozen if this collection's freeze is active.
+    ///
+    /// IMPORTANT: This instruction does NOT perform the NFT transfer and does NOT enforce
+    /// the freeze on-chain. It is a freeze-state oracle only. Any caller can bypass it by
+    /// invoking Metaplex transfer instructions directly without calling this instruction.
+    /// Actual on-chain freeze enforcement must be configured via Metaplex rule sets
+    /// (FreezeDelegate) at the collection level — this program cannot block those CPIs.
+    ///
+    /// Use this instruction in custom transfer flows that opt-in to the freeze check.
+    /// Renamed from `transfer_nft` to prevent the false impression that calling it moves tokens.
+    pub fn assert_transfer_allowed(ctx: Context<TransferNFT>) -> Result<()> {
         let clock = Clock::get()?;
-
-        // Check if trading is frozen - ACTUALLY BLOCK THE TRANSFER
-        // If trading is frozen, we reject the transfer immediately
-        // (Because rules are rules, and we're here to enforce them)
-        if check_trading_frozen(collection, &clock) {
-            log_msg!("Transfer BLOCKED: Trading is frozen");
-            return Err(LaunchpadError::TradingFrozen.into());
+        if trading_frozen(&ctx.accounts.collection, &clock) {
+            log_msg!("Transfer gate BLOCKED — trading is frozen");
+            return Err(NexusError::TradingFrozen.into());
         }
-
-        // If we get here, trading is not frozen - allow the transfer
-        // NOTE: If NFT is frozen via Metaplex Freeze Delegate, transfer will fail at Metaplex level
-        // This check provides additional validation for custom transfer flows
-        // (Because double-checking is better than single-checking)
-        log_msg!("Transfer ALLOWED: Trading is not frozen");
-        
-        // TODO: Implement actual NFT transfer via Metaplex/SPL Token
-        // The transfer will automatically fail if NFT is frozen via Freeze Delegate
-        // (For now, this is just a placeholder that checks freeze status)
-        
+        log_msg!("Transfer gate ALLOWED");
         Ok(())
     }
 }
 
-/// Max Merkle proof depth — supports up to 2^24 leaves. Keeps tx size reasonable.
-// This limits how deep the Merkle tree can be (and thus how many leaves it can have)
-// We cap it at 24 levels because transaction size matters on Solana
-// (And also because 2^24 leaves is probably enough for most allowlists)
-const MAX_MERKLE_PROOF_DEPTH: usize = 24;
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
 
-/// Verify a Merkle proof for allowlist-phase mints.
-/// Leaf = keccak256(pubkey); tree uses leaf index to determine left/right at each level.
-/// 
-/// This verifies that a wallet is actually on the allowlist
-/// (Because fake proofs are like fake IDs - they don't work here)
-/// 
-/// The proof is a path from the leaf to the root of the Merkle tree
-/// If the proof is valid, the wallet is on the allowlist
-/// If not, they're trying to mint without permission (and we reject them)
-fn verify_allowlist_proof(
+// Verify a Keccak256 Merkle proof. Leaf = keccak256(wallet_pubkey).
+// leaf_index determines left/right ordering at each tree level.
+fn verify_merkle_proof(
     leaf: &[u8; 32],
     leaf_index: u32,
     proof: &[[u8; 32]],
     root: &[u8; 32],
 ) -> bool {
-    // Check proof depth - if it's too deep, reject it
-    // (Because we don't want to process proofs that are too large)
-    if proof.len() > MAX_MERKLE_PROOF_DEPTH {
+    // Empty proof would return leaf == root, allowing any wallet to verify against
+    // a root that happens to equal their leaf hash — reject explicitly.
+    if proof.is_empty() || proof.len() > MAX_MERKLE_PROOF_DEPTH {
         return false;
     }
-    // Start with the leaf (the wallet's hashed pubkey)
     let mut current = *leaf;
-    // Walk up the Merkle tree, combining nodes at each level
-    // The leaf_index tells us whether to put current on the left or right
-    // (Because Merkle trees are binary, and we need to know the order)
     for (i, sibling) in proof.iter().enumerate() {
-        // Get the bit at position i to determine left/right
         let bit = (leaf_index >> i) & 1;
-        // Combine current and sibling in the correct order
         let (left, right) = if bit == 0 {
             (current, *sibling)
         } else {
             (*sibling, current)
         };
-        // Combine the two nodes into a single array
         let mut combined = [0u8; 64];
         combined[..32].copy_from_slice(&left);
         combined[32..].copy_from_slice(&right);
-        // Hash the combined left+right nodes using keccak256 for Merkle tree verification
-        // This gives us the parent node in the tree
         let mut hasher = Keccak256::new();
         hasher.update(&combined);
-        let hash_result = hasher.finalize();
-        current = <&[u8] as TryInto<[u8; 32]>>::try_into(hash_result.as_slice()).unwrap();
+        // SAFETY: Keccak256 always produces exactly 32 bytes; try_into cannot fail here.
+        current = <&[u8] as TryInto<[u8; 32]>>::try_into(hasher.finalize().as_slice()).unwrap();
     }
-    // If the final hash matches the root, the proof is valid
-    // (Otherwise, they're trying to fake their way onto the allowlist)
     current == *root
 }
 
-// Helper function to check if trading is currently frozen
-// Returns true if frozen, false if not frozen
-// 
-// This is a consolidated helper function that checks both freeze conditions
-// (Because we check this in multiple places, and DRY is a thing - Don't Repeat Yourself)
-// Now uses optimized struct layout with sentinels and flags (because we're efficient like that)
-// 
-// We consolidated this because we had the same logic in 3 different places
-// (And having duplicate code is like having duplicate keys - it's confusing and wasteful)
-// Now we have one function that does it all, and we call it everywhere
-// (Because we're lazy, but in a good way - we write code once, use it many times)
-fn check_trading_frozen(collection: &Collection, clock: &Clock) -> bool {
-    // Check if frozen until sold out (using packed flag - because we're efficient)
-    // If the collection isn't sold out yet, trading is frozen
-    // (Because we want everyone to get a chance to mint before trading starts)
-    // This prevents early whales from flipping NFTs before everyone gets a chance
-    // (Because fairness matters, even in the wild west of crypto)
-    if collection.freeze_until_sold_out() {
-        let is_sold_out = collection.minted >= collection.max_supply;
-        if !is_sold_out {
-            return true; // Still frozen - not sold out yet (because we want fairness)
-        }
+// Check both freeze conditions in one place.
+// freeze_until_sold_out takes priority; date freeze is secondary.
+fn trading_frozen(collection: &Collection, clock: &Clock) -> bool {
+    if collection.freeze_until_sold_out() && collection.minted < collection.max_supply {
+        return true;
     }
-
-    // Check if frozen until a specific date (using sentinel -1 = disabled)
-    // If we haven't reached the freeze-until date yet, trading is frozen
-    // (Because sometimes you want to freeze trading for a specific period)
-    // This lets you freeze trading until a certain date, then allow it
-    // (Because sometimes you want to control when trading starts, and that's valid)
-    if collection.has_freeze_date() {
-        if clock.unix_timestamp < collection.freeze_until {
-            return true; // Still frozen - date hasn't passed yet (because time matters)
-        }
+    if collection.has_freeze_date() && clock.unix_timestamp < collection.freeze_until {
+        return true;
     }
-
-    // If we get here, trading is not frozen
-    // (Which means people can trade freely, for better or worse)
-    // (And by "worse" we mean "people can flip NFTs immediately", which some people don't like)
-    // (But hey, that's crypto - freedom comes with responsibility, or something like that)
     false
 }
 
-// Account validation struct for initializing a collection
-// This defines what accounts are needed and how they're validated
-// (Because Anchor needs to know what accounts to expect and how to validate them)
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCOUNT CONTEXTS
+// ═══════════════════════════════════════════════════════════════════════════
+
 #[derive(Accounts)]
-pub struct InitializeCollection<'info> {
-    // The collection account - this is what we're initializing
-    // It's a PDA derived from the authority's pubkey
-    // (Because PDAs are deterministic and we can find them later)
+pub struct InitializeRegistry<'info> {
+    // Space: 8 (disc) + 32 (authority) + 33 (pending_authority: Option<Pubkey>) + 4 (vec len) + 300×32 (pubkeys) + 1 (bump) = 9,678 bytes
+    // Manual size because we cap the Vec at 300 to stay under the 10KB CPI reallocation limit.
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + 32 + 33 + 4 + (300 * 32) + 1, // +33 for pending_authority: Option<Pubkey>
+        seeds = [b"registry"],
+        bump,
+        constraint = authority.key() == PLATFORM_AUTHORITY @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CreateCollection<'info> {
     #[account(
         init,
         payer = authority,
         space = 8 + Collection::INIT_SPACE,
-        seeds = [b"collection", authority.key().as_ref()],
+        seeds = [b"collection", mint.key().as_ref()],
         bump
     )]
     pub collection: Account<'info, Collection>,
 
-    // The authority - the one who's initializing the collection
-    // They sign the transaction and pay for account creation
+    /// CHECK: NFT collection mint — the pubkey becomes the collection's permanent identifier
+    pub mint: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"registry"],
+        bump = registry.bump
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    /// CHECK: Mint authority for the NFT collection
-    /// This is the account that has permission to mint NFTs
-    /// (We don't validate it here, we just trust that it's correct)
+    /// CHECK: Mint authority for the collection
     pub mint_authority: UncheckedAccount<'info>,
 
-    /// CHECK: Creator's wallet — receives mint payments directly (on mint, not on claim)
-    /// This is where the creator gets paid when NFTs are minted
-    /// (Because creators need to get paid, or they won't create)
+    /// CHECK: Creator wallet — receives mint revenue (minus platform fee) directly on each mint
     #[account(mut)]
     pub creator_wallet: UncheckedAccount<'info>,
 
-    /// CHECK: Platform wallet to receive platform fees (mint only, not trading)
-    /// This is where the platform gets its cut of mint fees
-    /// (Because even platforms need to pay the bills)
+    /// CHECK: Platform wallet — receives the platform fee on each mint
     pub platform_wallet: UncheckedAccount<'info>,
 
-    // The system program - needed for account creation
-    // (Because Solana needs to know how to create accounts)
     pub system_program: Program<'info, System>,
 }
 
-// Account validation struct for minting NFTs
-// This defines what accounts are needed for a mint transaction
-// (Because Anchor needs to know what accounts to expect and how to validate them)
+// Used by: update_metadata, update_collection_status, update_config, update_platform_fee,
+//          update_allowlist_root, update_trading_freeze, pause, resume
 #[derive(Accounts)]
-pub struct MintNFT<'info> {
-    // The collection account - we need to read and update it
-    // (Because we need to check supply, update counts, etc.)
+pub struct UpdateCollection<'info> {
+    #[account(
+        mut,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub collection: Account<'info, Collection>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ProposeRegistryAdmin<'info> {
+    #[account(
+        mut,
+        seeds = [b"registry"],
+        bump = registry.bump,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptRegistryAdmin<'info> {
+    #[account(
+        mut,
+        seeds = [b"registry"],
+        bump = registry.bump
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    // Pending new authority must sign to prove key control
+    pub new_authority: Signer<'info>,
+}
+
+// update_featured is the only instruction gated on the registry authority, not the collection authority.
+// This was a security gap in the original code — any wallet could feature any collection.
+#[derive(Accounts)]
+pub struct UpdateFeatured<'info> {
     #[account(mut)]
     pub collection: Account<'info, Collection>,
 
-    // The buyer - the one who's minting the NFT
-    // They sign the transaction and pay for everything
+    #[account(
+        seeds = [b"registry"],
+        bump = registry.bump,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
+// update_platform_fee is gated on the registry authority — the platform controls the fee,
+// not individual collection creators (who could otherwise zero it out or set it to 100%).
+#[derive(Accounts)]
+pub struct UpdatePlatformFee<'info> {
+    #[account(mut)]
+    pub collection: Account<'info, Collection>,
+
+    #[account(
+        seeds = [b"registry"],
+        bump = registry.bump,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct MintNFT<'info> {
+    #[account(mut)]
+    pub collection: Account<'info, Collection>,
+
     #[account(mut)]
     pub buyer: Signer<'info>,
 
-    /// CHECK: Creator's wallet (receives payment minus platform fee directly on mint)
-    /// This is where the creator gets paid (minus our platform fee)
-    /// (Because creators need to get paid, or they won't create)
-    #[account(mut)]
+    /// CHECK: Verified to match collection.creator_wallet
+    #[account(
+        mut,
+        address = collection.creator_wallet @ NexusError::Unauthorized
+    )]
     pub creator_wallet: UncheckedAccount<'info>,
 
-    /// CHECK: Platform wallet (receives platform fee from mints only)
-    /// This is where we get our cut of the mint price
-    /// (Because even platforms need to pay the bills)
-    #[account(mut)]
+    /// CHECK: Verified to match collection.platform_wallet
+    #[account(
+        mut,
+        address = collection.platform_wallet @ NexusError::Unauthorized
+    )]
     pub platform_wallet: UncheckedAccount<'info>,
 
-    /// Wallet mint tracker - tracks how many NFTs this wallet has minted
-    /// RENT-OPTIMIZED: Only stores u8 count - PDA seeds prove wallet+collection ownership
-    /// PDA derived from collection and buyer to ensure one tracker per wallet per collection
-    /// This is how we enforce per-wallet mint limits
-    /// (Because we can't let whales hoard all the NFTs - fairness matters, even in crypto)
-    /// 
-    /// The PDA seeds prove ownership, so we don't need to store wallet/collection again
-    /// (Because storing data we can derive is wasteful, and we're not wasteful)
-    /// This saves us 64 bytes per tracker, which adds up FAST
-    /// (For 1000 minters, that's 64KB saved - which is a lot of SOL in rent)
+    // 9 bytes per minter. Seeds prove ownership — no need to store wallet or collection pubkey.
+    // That's 64 bytes saved per tracker, which matters at scale.
     #[account(
         init_if_needed,
         payer = buyer,
@@ -871,41 +944,29 @@ pub struct MintNFT<'info> {
     )]
     pub wallet_tracker: Account<'info, WalletMintTracker>,
 
-    /// Optional MintSplitConfig PDA; required when collection.has_split(). Seed = ["split", collection].
-    /// When collection.has_split(), client must pass MintSplitConfig PDA. Omitted otherwise.
+    // Optional — only required when collection.has_split(). Seed: ["split", collection].
+    // Read-only during mint: only num/shares/recipients are accessed, nothing is written.
     #[account(
-        mut,
         seeds = [b"split", collection.key().as_ref()],
         bump
     )]
     pub split_config: Option<Account<'info, MintSplitConfig>>,
 
-    // The system program - needed for account creation (if tracker is new)
-    // (Because Solana needs to know how to create accounts)
     pub system_program: Program<'info, System>,
 }
 
-// Account validation struct for updating collection settings
-#[derive(Accounts)]
-pub struct UpdateCollection<'info> {
-    #[account(
-        mut,
-        has_one = authority @ LaunchpadError::Unauthorized
-    )]
-    pub collection: Account<'info, Collection>,
-    pub authority: Signer<'info>,
-}
-
-/// Optional base URI PDA. Created only when creator sets URI; collections without URI pay zero rent. Seed = ["uri", collection].
 #[derive(Accounts)]
 pub struct UpdateBaseUri<'info> {
     #[account(
         mut,
-        has_one = authority @ LaunchpadError::Unauthorized
+        has_one = authority @ NexusError::Unauthorized
     )]
     pub collection: Account<'info, Collection>,
+
     #[account(mut)]
     pub authority: Signer<'info>,
+
+    // Created on first call, reused on subsequent calls. Zero rent when not used.
     #[account(
         init_if_needed,
         payer = authority,
@@ -914,18 +975,20 @@ pub struct UpdateBaseUri<'info> {
         bump
     )]
     pub collection_uri: Account<'info, CollectionUri>,
+
     pub system_program: Program<'info, System>,
 }
 
-/// Close CollectionUri PDA; rent goes to authority.
 #[derive(Accounts)]
 pub struct CloseCollectionUri<'info> {
     #[account(
         mut,
-        has_one = authority @ LaunchpadError::Unauthorized
+        has_one = authority @ NexusError::Unauthorized
     )]
     pub collection: Account<'info, Collection>,
+
     pub authority: Signer<'info>,
+
     #[account(
         mut,
         close = authority,
@@ -935,16 +998,17 @@ pub struct CloseCollectionUri<'info> {
     pub collection_uri: Account<'info, CollectionUri>,
 }
 
-/// Context for init_mint_split_config: creates MintSplitConfig PDA. Seed = ["split", collection].
 #[derive(Accounts)]
 pub struct InitMintSplitConfig<'info> {
     #[account(
         mut,
-        has_one = authority @ LaunchpadError::Unauthorized
+        has_one = authority @ NexusError::Unauthorized
     )]
     pub collection: Account<'info, Collection>,
+
     #[account(mut)]
     pub authority: Signer<'info>,
+
     #[account(
         init,
         payer = authority,
@@ -953,18 +1017,20 @@ pub struct InitMintSplitConfig<'info> {
         bump
     )]
     pub mint_split_config: Account<'info, MintSplitConfig>,
+
     pub system_program: Program<'info, System>,
 }
 
-/// Context for update_mint_fund_splits. When num > 0, pass MintSplitConfig PDA (must exist via init_mint_split_config).
 #[derive(Accounts)]
 pub struct UpdateMintFundSplits<'info> {
     #[account(
         mut,
-        has_one = authority @ LaunchpadError::Unauthorized
+        has_one = authority @ NexusError::Unauthorized
     )]
     pub collection: Account<'info, Collection>,
+
     pub authority: Signer<'info>,
+
     #[account(
         mut,
         seeds = [b"split", collection.key().as_ref()],
@@ -973,15 +1039,16 @@ pub struct UpdateMintFundSplits<'info> {
     pub mint_split_config: Option<Account<'info, MintSplitConfig>>,
 }
 
-/// Close MintSplitConfig PDA; rent goes to authority. Clears has_split on collection.
 #[derive(Accounts)]
 pub struct CloseMintSplitConfig<'info> {
     #[account(
         mut,
-        has_one = authority @ LaunchpadError::Unauthorized
+        has_one = authority @ NexusError::Unauthorized
     )]
     pub collection: Account<'info, Collection>,
+
     pub authority: Signer<'info>,
+
     #[account(
         mut,
         close = authority,
@@ -991,71 +1058,72 @@ pub struct CloseMintSplitConfig<'info> {
     pub mint_split_config: Account<'info, MintSplitConfig>,
 }
 
-/// Context for checking trading status (read-only, no authority required)
-/// This is used for read-only operations that check trading freeze status
-/// (Because anyone should be able to check if trading is frozen)
+#[derive(Accounts)]
+pub struct CloseWalletTracker<'info> {
+    pub collection: Account<'info, Collection>,
+
+    #[account(mut)]
+    pub buyer: Signer<'info>,
+
+    #[account(
+        mut,
+        close = buyer,
+        seeds = [b"wallet_mint", collection.key().as_ref(), buyer.key().as_ref()],
+        bump
+    )]
+    pub wallet_tracker: Account<'info, WalletMintTracker>,
+}
+
 #[derive(Accounts)]
 pub struct CheckTradingStatus<'info> {
-    /// CHECK: Collection account (read-only)
-    /// We just need to read the collection config to check freeze status
-    /// (No authority required, because checking status doesn't modify anything)
+    // Read-only — no authority required. Anyone can query freeze status.
     pub collection: Account<'info, Collection>,
 }
 
-
-/// Context for transferring NFTs with freeze enforcement
-/// This defines what accounts are needed for an NFT transfer
-/// (Because we need to check freeze status before allowing transfers)
 #[derive(Accounts)]
 pub struct TransferNFT<'info> {
-    /// CHECK: Collection account (read-only, to check freeze status)
-    /// We need this to check if trading is frozen
-    /// (Because we can't allow transfers if trading is frozen)
     pub collection: Account<'info, Collection>,
 
-    /// CHECK: NFT mint account (to verify it belongs to this collection)
-    /// In a real implementation, you'd verify the NFT belongs to the collection
-    /// (For now, we just trust that it's correct)
+    /// CHECK: NFT mint account — must match collection.mint to prevent freeze bypass
+    #[account(address = collection.mint @ NexusError::Unauthorized)]
     pub nft_mint: UncheckedAccount<'info>,
 
-    /// CHECK: Current owner of the NFT
-    /// This is who's sending the NFT
-    /// (They need to have the NFT, or the transfer will fail)
-    #[account(mut)]
+    /// CHECK: Current NFT owner (sender)
     pub from: UncheckedAccount<'info>,
 
-    /// CHECK: New owner of the NFT
-    /// This is who's receiving the NFT
-    /// (They'll own it after the transfer, if we allow it)
-    #[account(mut)]
+    /// CHECK: New NFT owner (receiver)
     pub to: UncheckedAccount<'info>,
 
-    /// CHECK: Authority signing the transfer (usually the current owner)
-    /// This is who's authorizing the transfer
-    /// (Usually the current owner, but could be a delegate)
+    // Usually the current owner; could be a delegate
     pub authority: Signer<'info>,
 
-    /// CHECK: Token program for SPL Token transfers
-    /// This is the program that handles the actual token transfer
-    /// (Because we don't handle transfers ourselves, we delegate to SPL Token)
-    pub token_program: UncheckedAccount<'info>,
 }
 
-// Candy Machine–style minimal core: ~214 bytes + 8 discriminator ≈ 0.02–0.03 SOL rent.
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCOUNT STRUCTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// THE UNIFIED COLLECTION ACCOUNT
 //
-// We do NOT store: base_uri, metadata strings, split arrays, royalty logic.
-// Those live in optional PDAs (CollectionUri, MintSplitConfig) or off-chain / client.
-// On-chain is enforcement only; complexity stays in SDKs and backend.
+// Previously: two separate accounts across two programs (nexus-collection ~215 bytes +
+// nexus-launchpad ~222 bytes = 437 bytes total, two rent payments per collection).
+// Now: one account, ~396 bytes, one rent payment. Math did win.
 //
-// Layout (fixed, always needed at mint):
-//   authority, mint_authority, creator_wallet, platform_wallet (4×32)
-//   max_supply, minted, price, start_time, end_time, freeze_until
-//   platform_fee_bps, mint_limit_per_wallet, metadata_standard, flags
-//   allowlist_root (32), bump
+// Layout (all fixed-size except metadata_uri):
+//   5 Pubkeys:         5 × 32  = 160
+//   3 u64:             3 × 8   =  24
+//   4 i64:             4 × 8   =  32
+//   1 u16:                      =   2
+//   5 u8:              5 × 1   =   5
+//   1 bool:                     =   1
+//   allowlist_root:   [u8;32]  =  32
+//   metadata_uri:   4+128      = 132
+//   INIT_SPACE total            = 388  (+8 discriminator = 396 bytes)
 #[account]
 #[derive(InitSpace)]
 pub struct Collection {
     pub authority: Pubkey,
+    pub mint: Pubkey,
     pub mint_authority: Pubkey,
     pub creator_wallet: Pubkey,
     pub platform_wallet: Pubkey,
@@ -1063,102 +1131,125 @@ pub struct Collection {
     pub minted: u64,
     pub price: u64,
     pub start_time: i64,
-    pub end_time: i64,       // -1 = disabled
-    pub freeze_until: i64,   // -1 = disabled
+    pub end_time: i64,             // DISABLED_I64 = no end time
+    pub freeze_until: i64,         // DISABLED_I64 = no date-based freeze
+    pub created_at: i64,
     pub platform_fee_bps: u16,
     pub mint_limit_per_wallet: u8, // 0 = unlimited
-    pub metadata_standard: u8,     // 0=Legacy .. 7=Custom
+    pub metadata_standard: u8,     // MetadataStandard as u8 (0=Legacy .. 7=Custom)
     pub flags: u8,                 // bit0=paused, bit1=freeze_until_sold_out, bit2=has_split
-    pub allowlist_root: [u8; 32],   // [0;32] = public mint
+    // INFORMATIONAL ONLY — status has no enforcement effect. Minting is controlled
+    // exclusively by flags.bit0 (set by pause()/resume()). A status=5 collection
+    // is NOT paused unless flags.bit0 is also set. Frontends must read flags, not status.
+    pub status: u8,                // 0=draft, 1=preparing, 2=ready, 3=minting, 4=completed, 5=paused
+    pub featured: bool,
     pub bump: u8,
+    pub allowlist_root: [u8; 32],  // [0;32] = public mint, anything else = allowlist active
+    #[max_len(128)]
+    pub metadata_uri: String,
 }
 
-// Flag constants and helper methods for the Collection struct
-// Because we need to actually USE these flags, not just set them
-// (And helper methods make the code cleaner, which is important when you're debugging at 3am)
 impl Collection {
-    // Flag constants for our bitmask - because magic numbers are bad, named constants are good
-    // (And because we're professionals, even if we write cheeky comments)
     pub const FLAG_PAUSED: u8 = 1 << 0;
     pub const FLAG_FREEZE_UNTIL_SOLD_OUT: u8 = 1 << 1;
     pub const FLAG_HAS_SPLIT: u8 = 1 << 2;
-    
-    // Sentinel values - because None costs bytes, and we're cheap
-    // We use these instead of Options because Options waste space
-    // (And we're not about that wasteful lifestyle)
-    pub const DISABLED_I64: i64 = -1; // -1 = disabled (because timestamps can't be negative, so this is safe)
-    pub const DISABLED_U8: u8 = 0; // 0 = unlimited/disabled (because 0 is a nice round number)
-    
-    // Helper methods for flags - because bit manipulation is hard, and we want easy APIs
-    // (Also because we're lazy, and helper methods make our lives easier)
+
+    // Sentinels instead of Options — saves 1 byte per field (no discriminant byte).
+    // i64::MIN avoids the "valid 1969 timestamp" ambiguity of -1 and is obviously not real data.
+    pub const DISABLED_I64: i64 = i64::MIN;
+    pub const DISABLED_U8: u8 = 0;
+
     pub fn is_paused(&self) -> bool {
-        // Check if the paused flag is set (because we need to know if minting is paused)
-        // (And because checking flags manually is error-prone, so we wrap it in a function)
         self.flags & Self::FLAG_PAUSED != 0
     }
-    
-    pub fn set_paused(&mut self, paused: bool) {
-        // Set or clear the paused flag (because we need to control minting)
-        // (And because bit manipulation is fun, but we want it to be safe)
-        if paused {
-            self.flags |= Self::FLAG_PAUSED; // Set the bit (because we're pausing)
+    pub fn set_paused(&mut self, v: bool) {
+        if v {
+            self.flags |= Self::FLAG_PAUSED;
         } else {
-            self.flags &= !Self::FLAG_PAUSED; // Clear the bit (because we're resuming)
+            self.flags &= !Self::FLAG_PAUSED;
         }
     }
-    
     pub fn freeze_until_sold_out(&self) -> bool {
-        // Check if we're freezing until sold out (because we want everyone to get a chance)
-        // (And because checking this manually is annoying, so we made a helper)
         self.flags & Self::FLAG_FREEZE_UNTIL_SOLD_OUT != 0
     }
-    
-    pub fn set_freeze_until_sold_out(&mut self, freeze: bool) {
-        if freeze {
+    pub fn set_freeze_until_sold_out(&mut self, v: bool) {
+        if v {
             self.flags |= Self::FLAG_FREEZE_UNTIL_SOLD_OUT;
         } else {
             self.flags &= !Self::FLAG_FREEZE_UNTIL_SOLD_OUT;
         }
     }
-    
     pub fn has_split(&self) -> bool {
         self.flags & Self::FLAG_HAS_SPLIT != 0
     }
-    
-    pub fn set_has_split(&mut self, has: bool) {
-        if has {
+    pub fn set_has_split(&mut self, v: bool) {
+        if v {
             self.flags |= Self::FLAG_HAS_SPLIT;
         } else {
             self.flags &= !Self::FLAG_HAS_SPLIT;
         }
     }
-    
-    // Helper methods for sentinels - because checking sentinels manually is error-prone
-    // (And because we want readable code, not cryptic sentinel checks everywhere)
     pub fn has_end_time(&self) -> bool {
-        // Check if we have an end time (because not all mints have end times)
-        // (And because checking for -1 manually is ugly, so we made it pretty)
         self.end_time != Self::DISABLED_I64
     }
-    
     pub fn has_freeze_date(&self) -> bool {
-        // Check if we have a freeze date (because not all collections freeze trading)
-        // (And because we want readable code, not magic number checks)
         self.freeze_until != Self::DISABLED_I64
     }
-    
     pub fn has_allowlist(&self) -> bool {
-        // Check if we have an allowlist (because not all mints are allowlist-only)
-        // (And because checking for [0u8;32] manually is annoying, so we made it easy)
         self.allowlist_root != [0u8; 32]
     }
-    
     pub fn has_mint_limit(&self) -> bool {
         self.mint_limit_per_wallet != Self::DISABLED_U8
     }
 }
 
-/// Optional base URI PDA. Only created when creator sets URI; collections without URI pay zero rent. Seed = ["uri", collection].
+// Global collection registry for fast querying.
+// Without this you'd need getProgramAccounts to list collections — slow and expensive.
+// With this you load one PDA and get up to 300 pubkeys instantly.
+//
+// Authority field added vs the original: now update_featured is actually gated.
+// Space: 8 + 32 + 33 + 4 + (300×32) + 1 = 9,678 bytes — set manually in InitializeRegistry.
+#[account]
+pub struct CollectionRegistry {
+    pub authority: Pubkey,
+    pub pending_authority: Option<Pubkey>, // two-step admin rotation; None when idle
+    pub collections: Vec<Pubkey>, // max 300 — cap keeps initial alloc under 10KB CPI limit
+    pub bump: u8,
+}
+
+impl CollectionRegistry {
+    pub const MAX_COLLECTIONS: usize = 300;
+
+    pub fn add_collection(&mut self, collection: Pubkey) -> anchor_lang::Result<bool> {
+        // Deduplicate — idempotent is better than erroring on retry
+        if self.collections.iter().any(|&k| k == collection) {
+            return Ok(true);
+        }
+        if self.collections.len() >= Self::MAX_COLLECTIONS {
+            return Ok(false); // full, but not a hard error
+        }
+        self.collections.push(collection);
+        Ok(true)
+    }
+
+    pub fn remove_collection(&mut self, collection: Pubkey) -> Result<()> {
+        self.collections.retain(|&k| k != collection);
+        Ok(())
+    }
+}
+
+// 9 bytes per minter (8 disc + 1 minted).
+// PDA seeds [b"wallet_mint", collection, buyer] prove wallet+collection ownership,
+// so we don't need to store either pubkey — that's 64 bytes saved per tracker.
+// At 10,000 minters that's 640KB of rent you're not paying. (You're welcome.)
+#[account]
+#[derive(InitSpace)]
+pub struct WalletMintTracker {
+    pub minted: u8, // u8 cap matches mint_limit_per_wallet (both max 255)
+}
+
+// Optional base URI PDA. Seed: [b"uri", collection].
+// Created only when the creator sets a URI. Collections without one pay zero rent here.
 #[account]
 #[derive(InitSpace)]
 pub struct CollectionUri {
@@ -1166,236 +1257,171 @@ pub struct CollectionUri {
     pub base_uri: String,
 }
 
-/// Mint split config in separate PDA; only created when splits are used. Seed = ["split", collection].
+// Optional split config PDA. Seed: [b"split", collection].
+// Created only when multi-recipient splits are needed. Close it after mint to reclaim rent.
 #[account]
 #[derive(InitSpace)]
 pub struct MintSplitConfig {
-    pub num: u8,
+    pub num: u8,                   // number of active recipients (0 = disabled)
     pub recipients: [Pubkey; 10],
-    pub shares: [u8; 10],
+    pub shares: [u8; 10],          // shares in whole percent, must sum to 100
 }
 
-/// Metadata standard for the collection. Set by creator at creation; all mints use this.
-/// 
-/// THE COMPLETE REALITY MAP: All NFT/digital asset standards on Solana that developers actually encounter.
-/// This is the future-proof enum that matches reality - because we're coding during a transition era.
-/// 
-/// Cost estimates (on-chain costs; we don't add fees):
-/// - Legacy: ~0.021 SOL (expensive but universal)
-/// - Programmable: ~0.021 SOL + rule set costs (enforced royalties)
-/// - Core: ~0.008 SOL (cheaper, future-proof)
-/// - Compressed: ~0.005 SOL (dirt cheap, millions possible)
-/// - SemiFungible: ~0.021 SOL (NFT metadata + fungible supply)
-/// - Token2022: Variable (newer, more features)
-/// - NativeMetadata: Variable (SPL native, no Metaplex)
-/// - Custom: Variable (private implementations)
-/// 
-/// NOTE: Stored as u8 in Collection struct to save space
-/// (Because storing the full enum wastes bytes, and we're not about that wasteful lifestyle)
-/// We use #[repr(u8)] to ensure the enum values match their u8 representation
-/// (Because we want predictable conversions, not surprises)
-/// 
-/// Migration path: Legacy → pNFT → Core → Token-2022 Native Assets
-/// (You're literally coding during a transition era - embrace it)
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
-#[repr(u8)]
-pub enum MetadataStandard {
-    /// Metaplex Legacy NFT (Token Metadata) - AKA "Classic NFT"
-    /// Program: mpl-token-metadata
-    /// Uses SPL Token (mint = 1, decimals = 0)
-    /// External JSON metadata, royalties optional, high rent cost
-    /// Still dominates marketplaces - universal support, tooling everywhere
-    /// (Because sometimes you need compatibility, even if it costs more)
-    /// Pros: Universal support, tooling everywhere
-    /// Cons: Expensive, no enforced royalties
-    Legacy = 0,
-    
-    /// Programmable NFT (pNFT) - AKA Rule-based NFT, Enforced Royalty NFT
-    /// Built on Token Metadata program, adds rule sets
-    /// Enforced royalties, transfer restrictions, staking locks, gating logic
-    /// Used by games, royalty-sensitive projects, utility NFTs
-    /// This is NOT legacy — it's an extension layer on top of Legacy
-    /// (Because sometimes you need rules, and rules need enforcement)
-    Programmable = 1,
-    
-    /// Metaplex Core (Digital Asset Standard) - AKA DAS, Core Asset
-    /// New Metaplex protocol, no SPL token mint required
-    /// Lower account count, lower rent, designed to replace legacy NFTs long-term
-    /// (Because the future is cheaper, and we're building for the future)
-    /// Pros: Much cheaper, cleaner account model, better composability
-    /// Cons: Marketplace support still catching up
-    Core = 2,
-    
-    /// Compressed NFT (cNFT) - AKA Bubblegum NFT
-    /// Stored in Merkle Trees, uses state compression
-    /// Off-chain proof verification, extremely cheap
-    /// (Because sometimes you want millions of NFTs, and that's valid)
-    /// Pros: Millions of NFTs possible, dirt cheap minting
-    /// Cons: Limited programmability, harder UX, no native token ownership
-    Compressed = 3,
-    
-    /// Semi-Fungible Token (SFT)
-    /// TokenStandard::SemiFungible, supply > 1
-    /// NFT-style metadata with fungible supply
-    /// Used for game items, tickets, badges, packs
-    /// (Because sometimes you want NFT metadata but multiple copies - like trading cards)
-    /// Basically NFT metadata + fungible supply
-    SemiFungible = 4,
-    
-    /// Token-2022 NFTs
-    /// NFTs built using spl-token-2022 instead of legacy SPL Token
-    /// Features: Transfer hooks, confidential transfers, native royalties (in progress), metadata extensions
-    /// This is where Solana core devs are pushing long-term
-    /// (Because the future is Token-2022, and we're ready for it)
-    Token2022 = 5,
-    
-    /// SPL Token Extensions Metadata - AKA Token-2022 Metadata Extension
-    /// Native SPL token metadata, no Metaplex dependency
-    /// Stored directly in token account
-    /// Supports: Name, Symbol, URI, Custom fields
-    /// Used by people trying to move away from Metaplex monopoly
-    /// (Because sometimes you want to break free from the ecosystem, and that's valid)
-    NativeMetadata = 6,
-    
-    /// Custom / Private Standards
-    /// Custom metadata programs, custom NFT logic, custom asset registries
-    /// Non-standard private implementations (WNS, spNFT, SPL-404, Nifty, etc.)
-    /// (Because sometimes you need something custom, and that's okay)
-    /// Think of it as the "escape hatch" for experimental standards
-    Custom = 7,
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// INPUT STRUCTS
+// ═══════════════════════════════════════════════════════════════════════════
 
-// On-chain: only from_u8 for validation. Name, program_id, cost, etc. live in client/SDK to reduce binary size.
-impl MetadataStandard {
-    pub fn from_u8(value: u8) -> Option<Self> {
-        match value {
-            0 => Some(MetadataStandard::Legacy),
-            1 => Some(MetadataStandard::Programmable),
-            2 => Some(MetadataStandard::Core),
-            3 => Some(MetadataStandard::Compressed),
-            4 => Some(MetadataStandard::SemiFungible),
-            5 => Some(MetadataStandard::Token2022),
-            6 => Some(MetadataStandard::NativeMetadata),
-            7 => Some(MetadataStandard::Custom),
-            _ => None,
-        }
-    }
-}
-
-// CollectionConfig - DEPRECATED: Now flattened into Collection struct
-// Kept for backward compatibility with initialize_collection function signature
-// This struct is only used for input parsing, not on-chain storage
-// (Because we flattened everything to save rent - no nested structs means less padding)
-// Think of this as a temporary container that gets unpacked into the Collection struct
-// (Like unpacking groceries - you don't keep the bags, you put everything in the fridge)
-// We keep it because changing function signatures is annoying, and we're lazy
-// (But we don't store it on-chain, because that would be wasteful, and we're not wasteful)
+// CollectionConfig is an input-only struct — it's never stored on-chain.
+// Fields are unpacked into Collection directly to avoid nested struct padding.
+// Think of it as the moving box, not the furniture.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CollectionConfig {
     pub max_supply: u64,
     pub price_per_nft: u64,
     pub start_time: i64,
-    pub end_time: Option<i64>, // Still Option here because it's input - we convert to sentinel on-chain
-    pub mint_limit_per_wallet: Option<u8>, // Still Option here because it's input - we convert to sentinel on-chain
+    pub end_time: Option<i64>,
+    pub mint_limit_per_wallet: Option<u8>,
     pub metadata_standard: MetadataStandard,
-    pub freeze_trading_until_date: Option<i64>, // Still Option here because it's input - we convert to sentinel on-chain
+    pub freeze_trading_until_date: Option<i64>,
     pub freeze_trading_until_sold_out: bool,
 }
 
-/// Tracks how many NFTs a specific wallet has minted from a collection
-/// RENT-OPTIMIZED: Only stores the count - PDA seeds prove wallet+collection ownership
-/// 
-/// This is how we enforce per-wallet mint limits
-/// (Because we can't let whales hoard all the NFTs - fairness matters, even in crypto)
-/// 
-/// MASSIVE SAVINGS: Removed wallet (32 bytes) + collection (32 bytes) = 64 bytes saved per tracker
-/// PDA derivation already proves ownership, so we don't need to store it again
-/// (Because storing data we can derive is wasteful, and we're not wasteful)
-/// 
-/// Before: 73 bytes per tracker (32 + 32 + 8 + 1)
-/// After: ~9 bytes per tracker (1 byte + discriminator)
-/// Savings: ~64 bytes per tracker, which adds up FAST when you have many minters
-/// (For 1000 minters, that's 64KB saved - which is a lot of SOL in rent)
-/// 
-/// We use u8 instead of u64 because mint limits are typically small (max 255)
-/// (Because if someone needs to mint more than 255 NFTs, they can use multiple wallets)
-/// (And because we're not about to let one wallet hoard everything anyway)
-#[account]
-#[derive(InitSpace)]
-pub struct WalletMintTracker {
-    // How many NFTs this wallet has minted from this collection
-    // Using u8 since mint limits are typically small (max 255)
-    // (Because we need to track this to enforce limits, but we don't need u64 for small limits)
-    // The PDA seeds (wallet + collection) prove ownership, so we don't store them
-    // (Because storing data we can derive is like storing your address when you're already at home)
-    pub minted: u8,
+// ═══════════════════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// All NFT/digital asset standards on Solana — stored as u8 to save 7 bytes vs full enum.
+// Immutable after collection creation: it determines the minting flow, account structures,
+// and programs used. Changing it mid-collection means mixed NFT types in one collection.
+// (That's not a feature. That's a support ticket.)
+//
+// Cost estimates (on-chain only; we don't add fees):
+//   Legacy:      ~0.021 SOL  — expensive but universal marketplace support
+//   Programmable:~0.021 SOL  — enforced royalties, rule sets
+//   Core:        ~0.008 SOL  — cheaper, cleaner, the future
+//   Compressed:  ~0.005 SOL  — millions possible, Merkle tree storage
+//   SemiFungible:~0.021 SOL  — NFT metadata + fungible supply (game items, tickets)
+//   Token2022:   variable    — where Solana core is heading
+//   NativeMetadata: variable — SPL native, no Metaplex dependency
+//   Custom:      variable    — escape hatch for private/experimental standards
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(u8)]
+pub enum MetadataStandard {
+    Legacy = 0,
+    Programmable = 1,
+    Core = 2,
+    Compressed = 3,
+    SemiFungible = 4,
+    Token2022 = 5,
+    NativeMetadata = 6,
+    Custom = 7,
 }
 
-// Error codes for the launchpad program
-// These are the various ways things can go wrong
-// (And trust us, things will go wrong. That's why we have error codes.)
+impl MetadataStandard {
+    // Validation only — name, program_id, cost descriptions live in the client SDK.
+    // Keeping that info off-chain saves binary size (and binary size saves deploy cost).
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            0 => Some(Self::Legacy),
+            1 => Some(Self::Programmable),
+            2 => Some(Self::Core),
+            3 => Some(Self::Compressed),
+            4 => Some(Self::SemiFungible),
+            5 => Some(Self::Token2022),
+            6 => Some(Self::NativeMetadata),
+            7 => Some(Self::Custom),
+            _ => None,
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[event]
+pub struct CollectionConfigUpdated {
+    pub collection: Pubkey,
+}
+
+#[event]
+pub struct PlatformFeeUpdated {
+    pub collection: Pubkey,
+    pub old_fee_bps: u16,
+    pub new_fee_bps: u16,
+}
+
+#[event]
+pub struct AllowlistRootUpdated {
+    pub collection: Pubkey,
+    pub timestamp: i64,
+    pub old_root: [u8; 32],
+    pub new_root: [u8; 32],
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ERROR CODES — merged from all three original programs
+// ═══════════════════════════════════════════════════════════════════════════
+
 #[error_code]
-pub enum LaunchpadError {
-    // Start time is in the past (time travel not supported yet)
-    #[msg("Invalid start time")]
-    InvalidStartTime,
-    // Supply is zero or invalid (can't have a collection with no NFTs)
-    #[msg("Invalid supply")]
-    InvalidSupply,
-    // Minting is currently paused (usually because something broke)
-    #[msg("Minting is paused")]
-    MintingPaused,
-    // Minting hasn't started yet (patience is a virtue)
-    #[msg("Minting has not started yet")]
-    MintingNotStarted,
-    // Minting has ended (all good things must come to an end)
-    #[msg("Minting has ended")]
-    MintingEnded,
-    // Trying to mint more than the max supply (infinite NFTs not supported)
-    #[msg("Supply exceeded")]
-    SupplyExceeded,
-    // Not authorized to perform this action (permissions matter)
+pub enum NexusError {
+    // Auth
     #[msg("Unauthorized")]
     Unauthorized,
-    // Metadata standard cannot be changed after collection creation (it's immutable)
-    #[msg("Metadata standard cannot be changed")]
+    // Collection catalog
+    #[msg("Invalid collection status (must be 0-5)")]
+    InvalidStatus,
+    #[msg("Metadata URI exceeds maximum length (128 bytes)")]
+    MetadataUriTooLong,
+    // Launchpad config
+    #[msg("Invalid start time — must be now or in the future; end time must be after start time")]
+    InvalidStartTime,
+    #[msg("Invalid supply — must be greater than zero")]
+    InvalidSupply,
+    #[msg("Invalid fee percentage — must be 0-1500 basis points (15% hard cap)")]
+    InvalidFeePercentage,
+    #[msg("Metadata standard is immutable after collection creation")]
     InvalidMetadataStandard,
-    // Math overflow (numbers got too big, which is bad)
-    #[msg("Math overflow")]
-    MathOverflow,
-    // Wallet has exceeded its mint limit (no hoarding allowed)
+    // Minting
+    #[msg("Minting is paused")]
+    MintingPaused,
+    #[msg("Minting has not started yet")]
+    MintingNotStarted,
+    #[msg("Minting has ended")]
+    MintingEnded,
+    #[msg("Supply exceeded")]
+    SupplyExceeded,
     #[msg("Mint limit per wallet exceeded")]
     MintLimitExceeded,
-    // Fee percentage is invalid (must be 0-10000 basis points)
-    #[msg("Invalid fee percentage (must be 0-10000 basis points)")]
-    InvalidFeePercentage,
-    // Trading is frozen (can't transfer NFTs right now)
-    #[msg("Trading is frozen - transfers are blocked until conditions are met")]
-    TradingFrozen,
-    // Trading is not frozen (can't perform freeze operation)
-    #[msg("Trading is not frozen - cannot perform freeze operation")]
-    TradingNotFrozen,
-    // Allowlist phase is active, but no proof was provided
-    #[msg("Allowlist phase active: valid Merkle proof and leaf index required")]
+    // Allowlist
+    #[msg("Allowlist phase active: valid Merkle proof required")]
     AllowlistRequired,
-    // Allowlist proof is invalid or wallet is not on the allowlist
     #[msg("Allowlist proof invalid or wallet not in allowlist")]
     AllowlistInvalid,
-    // Public mint is active, but proof data was provided (unnecessary)
-    #[msg("Public mint: do not pass allowlist proof or leaf index")]
+    #[msg("Public mint: do not pass an allowlist proof")]
     AllowlistNotRequired,
-    // Mint fund split: num must be 0-10
-    #[msg("Invalid mint fund split count (must be 0-10)")]
+    // Splits
+    #[msg("Invalid mint split count (must be 0-10)")]
     InvalidMintSplitCount,
-    // Mint fund split: shares must sum to 100
-    #[msg("Invalid mint fund split: shares must total 100")]
+    #[msg("Mint split shares must sum to 100")]
     InvalidMintSplitSum,
-    // Mint fund split: remaining_accounts must match recipients and count
-    #[msg("Invalid mint fund split: pass recipient wallets in order as remaining_accounts")]
+    #[msg("Invalid mint split: pass recipient wallets in order as remaining_accounts")]
     InvalidMintSplitAccounts,
+    // Trading freeze
+    #[msg("Trading is frozen")]
+    TradingFrozen,
+    #[msg("Trading is not frozen")]
+    TradingNotFrozen,
+    // Admin rotation
+    #[msg("No pending authority — call propose_registry_admin first")]
+    NoPendingAuthority,
+    // Wallet tracker
+    #[msg("Minting is still active — tracker can only be closed after sold out or end_time passed")]
+    MintingStillActive,
+    // Math
+    #[msg("Math overflow")]
+    MathOverflow,
 }
 
-// Coded by Juan - because every good program needs a developer signature
-// (Even if it's just a comment at the bottom)
-// P.S. - If this breaks, it's not my fault. Blame the blockchain.
-// P.P.S. - Actually, if this breaks, it probably is my fault. But still blame the blockchain.
+// One program. One deploy. One upgrade authority.
+// (One less thing to forget on mainnet launch day.)

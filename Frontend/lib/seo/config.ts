@@ -14,9 +14,9 @@ export const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nexus-web3.com'
 
 export const siteName = 'NeXus'
-export const siteTitleDefault = 'NeXus Web3 Launchpad – Beyond NFTs'
+export const siteTitleDefault = 'NeXus Web3 Launchpad – Tokenize Assets & Launch Projects'
 export const siteDescription =
-  'NeXus is a next-generation blockchain incubation and tokenization platform. Launch tokens, tokenize real estate, mint NFTs, and access DeFi tools — powered by MarTech Networks.'
+  'Launch tokens, tokenize real estate, and mint NFTs on NeXus — the next-generation Web3 launchpad powered by MarTech Networks.'
 export const siteKeywords = [
   'Web3 launchpad',
   'blockchain tokenization',
@@ -36,7 +36,7 @@ export const siteCopyright = 'MarTech Networks'
 export const twitterHandle = '@nexusweb3' // Update with real handle
 export const locale = 'en_US'
 export const themeColor = '#0a0a0f'
-export const ogImagePath = '/hero-bg.jpg'
+export const ogImagePath = '/share-image.png'
 
 export function absoluteUrl(path: string): string {
   return path.startsWith('http') ? path : `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`

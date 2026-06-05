@@ -14,26 +14,6 @@ const nextConfig = {
           },
         ],
       },
-      {
-        // Cache Next.js static files
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        // Cache fonts
-        source: '/_next/static/media/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
     ]
   },
   // Optimize images
@@ -67,9 +47,10 @@ const nextConfig = {
     // framer-motion removed as it's not used in source code
     optimizePackageImports: ['lucide-react'],
   },
+  // Turbopack (Next.js 16 default) — empty config silences the webpack-vs-turbopack warning
+  turbopack: {},
   // Webpack configuration for better code splitting
-  // Note: Next.js has excellent default code splitting, so we only enhance it
-  // This will be used when running with --webpack flag
+  // Used when running with --webpack flag or when webpack is the active bundler
   webpack: (config, { isServer, dev }) => {
     // Suppress spurious dynamic-require warning from ox/viem/walletconnect transitive dep
     config.ignoreWarnings = [

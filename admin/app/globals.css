@@ -4,59 +4,155 @@
 
 @layer base {
   :root {
-    --surface: #ffffff;
-    --surface-muted: #f9fafb;
-    --border: #e5e7eb;
-    --ring: #3b82f6;
+    /* Dark-first design tokens — matches Frontend palette */
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #111118;
+    --bg-tertiary: #1a1a24;
+    --bg-hover: #1f1f2e;
+    --border-primary: #252535;
+    --border-secondary: #2a2a3a;
+    --border-accent: #3a3a4a;
+    --text-primary: #ffffff;
+    --text-secondary: #b8b8c8;
+    --text-tertiary: #8a8a9a;
+    --accent: #00d4ff;
+    --accent-secondary: #7c3aed;
+    --accent-success: #10b981;
+    --accent-warning: #f59e0b;
+    --accent-error: #ef4444;
+
+    /* Aliases used by existing components */
+    --surface: #111118;
+    --surface-muted: #1a1a24;
+    --border: #252535;
+    --ring: #00d4ff;
   }
 
-  .dark {
-    --surface: #111827;
-    --surface-muted: #1f2937;
-    --border: #374151;
-    --ring: #60a5fa;
+  * {
+    box-sizing: border-box;
   }
 
   html {
-    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0a0a0f;
+    color: #ffffff;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   body {
-    @apply bg-surface text-gray-900 dark:text-gray-100;
+    background: #0a0a0f;
+    color: #ffffff;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   }
 
-  /* Focus visible for keyboard accessibility */
   *:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-surface dark:ring-offset-surface;
+    outline: 2px solid #00d4ff;
+    outline-offset: 2px;
   }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+  background: #252535;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a3a;
+}
+
+::selection {
+  background-color: rgba(0, 212, 255, 0.3);
+  color: #ffffff;
 }
 
 @layer components {
   .btn-base {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn-base bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200;
+    @apply btn-base;
+    color: #0a0a0f;
+    background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.25);
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.45);
+    filter: brightness(1.08);
   }
 
   .btn-secondary {
-    @apply btn-base bg-surface-muted text-gray-700 hover:bg-gray-200 dark:bg-surface-muted dark:text-gray-300 dark:hover:bg-gray-600 border border-border;
+    @apply btn-base;
+    background: #1a1a24;
+    color: #b8b8c8;
+    border: 1px solid #252535;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: #1f1f2e;
+    color: #ffffff;
+    border-color: #2a2a3a;
   }
 
   .btn-ghost {
-    @apply btn-base text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700;
+    @apply btn-base;
+    color: #b8b8c8;
+    background: transparent;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: #1f1f2e;
+    color: #ffffff;
   }
 
   .btn-danger {
-    @apply btn-base bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600;
+    @apply btn-base;
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
   }
 
   .input-base {
-    @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-ring dark:placeholder:text-gray-400;
+    @apply w-full rounded-lg px-3 py-2 text-sm transition-colors duration-150;
+    background: #0a0a0f;
+    border: 1px solid #252535;
+    color: #ffffff;
+  }
+  .input-base::placeholder {
+    color: #8a8a9a;
+  }
+  .input-base:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 1px #00d4ff, 0 0 12px rgba(0, 212, 255, 0.15);
   }
 
   .card {
-    @apply rounded-lg border border-border bg-surface shadow-card dark:shadow-card-dark;
+    @apply rounded-xl;
+    background: rgba(17, 17, 24, 0.85);
+    border: 1px solid #252535;
+    backdrop-filter: blur(16px);
+  }
+}
+
+@layer utilities {
+  .bg-gradient-accent {
+    background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  }
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  }
+  .shadow-glow-lg {
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
   }
 }

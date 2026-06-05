@@ -6,21 +6,17 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-nexus_collection = "BUkDSb56YuM9Q1BsiokLKPfaUYP84AzE7xLfVXtqQzTi"
-nexus_launchpad = "w6ELig1b3oETMQmiJkvPtyu99fnPwAGMJYSnaTXphma"
-nexus_payment = "8VLcrDKmzMXM1hDBzEU9ifRvaYSbuC4kfAF2tNa1qU9Z"
+nexus_launchpad = "CzpjY2BnGvr97kJihy5DDAbExqu8Gqzz9j1U8RV5j7Cm"
 
 [programs.devnet]
-nexus_collection = "BUkDSb56YuM9Q1BsiokLKPfaUYP84AzE7xLfVXtqQzTi"
 nexus_launchpad = "w6ELig1b3oETMQmiJkvPtyu99fnPwAGMJYSnaTXphma"
-nexus_payment = "8VLcrDKmzMXM1hDBzEU9ifRvaYSbuC4kfAF2tNa1qU9Z"
 
 [registry]
 url = "https://api.apr.anchor.fm"
 
 [provider]
 # Use explicit URL so Windows connects to 127.0.0.1:8899 (avoids 0.0.0.0:8900 error)
-cluster = "http://127.0.0.1:8899"
+cluster = "http://93.115.17.115:8899"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

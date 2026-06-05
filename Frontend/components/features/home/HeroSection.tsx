@@ -195,7 +195,6 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
                                       loading="lazy"
                                     />
                                   </div>
-                                  <span className={styles.creatorLabel}>by</span>
                                   <span className={styles.creatorName}>{collection.creator}</span>
                                 </div>
                               </div>
