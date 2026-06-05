@@ -31,13 +31,13 @@ export const formUtils = {
 
 // Common input change handlers
 export const inputUtils = {
-  createTextChangeHandler: (setter: (value: string) => void) => {
+  createTextChangeHandler: (setter: (_value: string) => void) => {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setter(e.target.value)
     }
   },
   
-  createSelectChangeHandler: (setter: (value: string) => void) => {
+  createSelectChangeHandler: (setter: (_value: string) => void) => {
     return (e: React.ChangeEvent<HTMLSelectElement>) => {
       setter(e.target.value)
     }

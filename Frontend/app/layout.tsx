@@ -183,14 +183,6 @@ export const metadata: Metadata = {
     },
   },
 
-  // Icons — favicon and Apple touch icon
-  // The tiny image that lives in browser tabs and bookmark folders
-  // Yes, it matters. People notice when it's missing. They don't say anything. But they notice.
-  icons: {
-    icon: '/favicon.png',           // Standard favicon — tabs, bookmarks, history
-    apple: '/NeXus_Web3_Logo.png',  // Apple touch icon — iOS home screen, because Apple
-  },
-
   // Manifest — PWA manifest for progressive web app capabilities
   // Install-to-home-screen, offline mode, native-feel. Future-proofing.
   // (Or just checking the "has manifest" box. Both are valid motivations.)

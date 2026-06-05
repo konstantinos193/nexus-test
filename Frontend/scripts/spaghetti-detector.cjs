@@ -149,7 +149,7 @@ class SpaghettiDetector {
     }
   }
 
-  detectPropsDrilling(analysis, content, lines) {
+  detectPropsDrilling(analysis, content, _lines) {
     const interfaceMatches = content.match(/interface\s+\w+Props\s*{([^}]*)}/gs) || [];
     const typeMatches = content.match(/type\s+\w+Props\s*=\s*{([^}]*)}/gs) || [];
     
@@ -166,7 +166,7 @@ class SpaghettiDetector {
     }
   }
 
-  detectUseEffectSoup(analysis, content, lines) {
+  detectUseEffectSoup(analysis, content, _lines) {
     const useEffectMatches = content.match(/useEffect\s*\(/g) || [];
     if (useEffectMatches.length > this.options.maxUseEffects) {
       this.stats.complexHooks++;
@@ -263,7 +263,7 @@ class SpaghettiDetector {
     }
   }
 
-  detectEslintDisables(analysis, content, lines) {
+  detectEslintDisables(analysis, content, _lines) {
     const disableMatches = content.match(/\/\/\s*eslint-disable-next-line|\/\*\s*eslint-disable/g) || [];
     if (disableMatches.length > 5) {
       analysis.issues.push({
@@ -275,7 +275,7 @@ class SpaghettiDetector {
     }
   }
 
-  detectMagicValues(analysis, content, lines) {
+  detectMagicValues(analysis, content, _lines) {
     // Magic numbers (not 0, 1, -1, 2, 100)
     const magicNumbers = content.match(/\b(?!0|1|-1|2|100)\d{2,}\b/g) || [];
     if (magicNumbers.length > 10) {
@@ -321,7 +321,7 @@ class SpaghettiDetector {
     }
   }
 
-  detectDuplicatePatterns(analysis, content, lines) {
+  detectDuplicatePatterns(analysis, content, _lines) {
     // Simple duplicate detection for common patterns
     const patterns = [
       /useState<\w+>/g,
@@ -332,7 +332,7 @@ class SpaghettiDetector {
     for (const pattern of patterns) {
       const matches = content.match(pattern) || [];
       if (matches.length > 7) {
-        const patternName = pattern.toString().replace(/[\\\/]/g, '');
+        const patternName = pattern.toString().replace(/[\\/]/g, '');
         analysis.issues.push({
           type: 'DUPLICATE_PATTERN',
           severity: 'LOW',

@@ -33,7 +33,7 @@
 // Card components — the UI boxes that contain each individual tool
 // CardContent provides the padding; Card provides the elevation and border treatment
 // Each tool lives in its own Card. Organization. Structure. Professional.
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Card, CardContent } from '@/components/ui/Card'
 
 // Button — the "Use Tool" / "Coming Soon" call-to-action for each tool
 // variant="primary" for available tools (clickable, branded)

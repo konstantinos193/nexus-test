@@ -29,9 +29,6 @@ env:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: Backend
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -41,7 +38,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: Backend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma validate
 
@@ -57,8 +53,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: ./Backend
-          file: ./Backend/Dockerfile
+          context: .
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
             ${{ env.IMAGE }}:latest
@@ -72,7 +67,6 @@ jobs:
     needs: [quality, docker]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    environment: ${{ github.event.inputs.environment || 'staging' }}
     env:
       ENV: ${{ github.event.inputs.environment || 'staging' }}
     steps:
@@ -104,7 +98,12 @@ jobs:
             PORT=${PORT:-3001}
             ALT_PORT=$((PORT + 10))
 
-            docker run --rm --network host --env-file $DOCKER_ENV $IMAGE:${{ github.sha }} sh -c "npx prisma migrate deploy"
+            DATABASE_URL=$(grep "^DATABASE_URL=" $DOCKER_ENV | cut -d= -f2-)
+            docker run --rm --network host --env-file $DOCKER_ENV -e DATABASE_URL="$DATABASE_URL" $IMAGE:${{ github.sha }} sh -c \
+              "npx prisma migrate resolve --rolled-back 20260605000005_add_constraints 2>/dev/null || true; \
+               npx prisma migrate resolve --rolled-back 20260605000010_traits_jsonb_constraint 2>/dev/null || true; \
+               npx prisma migrate resolve --rolled-back 20260605000012_fix_ending_soon_index 2>/dev/null || true"
+            docker run --rm --network host --env-file $DOCKER_ENV -e DATABASE_URL="$DATABASE_URL" $IMAGE:${{ github.sha }} sh -c "npx prisma migrate deploy"
 
             docker rm -f nexus-backend-new 2>/dev/null || true
             docker run -d --name nexus-backend-new --restart no --network host --env-file $DOCKER_ENV -e PORT=$ALT_PORT $IMAGE:${{ github.sha }}

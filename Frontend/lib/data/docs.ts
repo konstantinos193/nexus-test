@@ -2,8 +2,7 @@
  * Documentation data - shared by desktop and mobile docs pages
  */
 
-import type { LucideIcon } from 'lucide-react'
-import { Book, Code, Wallet, Image as ImageIcon, Settings, Zap } from 'lucide-react'
+import { type LucideIcon, Book, Code, Wallet, Image as ImageIcon, Settings, Zap } from 'lucide-react'
 
 export interface DocTopic {
   title: string

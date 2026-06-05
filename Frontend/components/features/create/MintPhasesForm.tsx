@@ -30,8 +30,7 @@ import Button from '@/components/ui/Button'
 // Custom calendar popover — knows the user's timezone, unlike the native input
 import DateTimePicker from '@/components/ui/DateTimePicker'
 import type { MintPhase } from '@/hooks/useCreateCollectionForm'
-import type { ShareAddressRow } from '@/components/features/create/create-types'
-import { ROYALTY_SPLIT_MAX } from '@/components/features/create/create-types'
+import { type ShareAddressRow, ROYALTY_SPLIT_MAX } from '@/components/features/create/create-types'
 
 interface MintPhasesFormProps {
   totalSupply:    number

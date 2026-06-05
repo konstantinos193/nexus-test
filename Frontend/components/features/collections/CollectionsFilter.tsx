@@ -27,7 +27,7 @@ import { FilterState } from "@/types";
 import CustomDropdown from "./CustomDropdown";
 // Status mapping utilities — because "live" in the UI is "minting" in the DB
 // Abstracted here so we don't encode that mapping in 14 different places
-import { mapDisplayStatusToInternal, mapInternalStatusToDisplay } from "@/lib/type-utils";
+import { mapDisplayStatusToInternal } from "@/lib/type-utils";
 // Scoped CSS — the filter sidebar doesn't style anything it doesn't own
 import styles from "./CollectionsFilter.module.css";
 

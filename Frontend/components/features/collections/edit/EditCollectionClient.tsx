@@ -41,19 +41,21 @@ import {
   PublicKey,
   Transaction,
   TransactionInstruction,
-  SystemProgram,
 } from '@solana/web3.js'
 // Lucide icons — the visual language of this editor's UI
-// ArrowLeft: back to dashboard. Save: save info. Zap: update on-chain (lightning = blockchain).
+// Layers: placeholder thumbnail when no image is uploaded yet (matches create page).
+// Save: save info. Zap: update on-chain (lightning = blockchain).
 // Pause/Play: the collection pause toggle. Loader2: spinning wait indicator.
 // AlertCircle: error state. CheckCircle: success state.
-import { ArrowLeft, Save, Zap, Pause, Play, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { Layers, Save, Zap, Pause, Play, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 
 // collectionsApi: the typed API client for database operations (get, update)
 // uploadImageToIpfs: uploads image files to IPFS and returns the ipfs:// URI
 import { collectionsApi, uploadImageToIpfs } from '@/lib/api/client'
 // getChainConfig: reads the chain configuration (programId, RPC URL, etc.) for the current network
 import { getChainConfig } from '@/lib/solana/chain-config'
+// pollForConfirmation: HTTP-polling replacement for confirmTransaction() — no WebSocket dependency
+import { pollForConfirmation } from '@/lib/solana/confirm'
 // WalletReadyContext: boolean context that guards against useWallet() being called before ready
 import { WalletReadyContext } from '@/components/providers/WalletReadyContext'
 // Button: the platform's styled button component — handles loading states, variants, etc.
@@ -175,7 +177,7 @@ export default function EditCollectionClient() {
   if (!walletReady) {
     // Wallet adapter isn't ready yet — show a prompt instead of crashing
     return (
-      <div className="max-w-3xl mx-auto px-4 py-24 text-center">
+      <div className="min-h-screen bg-dark-bg-primary flex items-center justify-center">
         <p className="text-dark-text-secondary">Connect your wallet to edit collections.</p>
       </div>
     )
@@ -462,7 +464,7 @@ function EditCollectionInner() {
       const sig = await sendTransaction(tx, connection)
 
       // Wait for confirmation — 'confirmed' commitment = included in a confirmed block
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+      await pollForConfirmation(connection, sig, blockhash, lastValidBlockHeight)
 
       // Sync the new config back to the database — the source of truth needs to stay current
       await collectionsApi.update(id, {
@@ -522,7 +524,7 @@ function EditCollectionInner() {
 
       // Send and confirm
       const sig = await sendTransaction(tx, connection)
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+      await pollForConfirmation(connection, sig, blockhash, lastValidBlockHeight)
 
       // Toggle local state — UI updates immediately after confirmation
       setIsPaused(p => !p)
@@ -555,9 +557,8 @@ function EditCollectionInner() {
   // Loading state — show a spinner while the initial fetch is in-flight
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-24 text-center">
-        {/* Loader2 with spin animation — Next.js Tailwind animation class */}
-        <Loader2 className="w-8 h-8 animate-spin text-dark-accent-primary mx-auto" />
+      <div className="min-h-screen bg-dark-bg-primary flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-dark-accent-primary" />
       </div>
     )
   }
@@ -565,311 +566,330 @@ function EditCollectionInner() {
   // Error or missing collection state — show message and a way back to safety
   if (error || !collection) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-        <p className="text-dark-text-secondary mb-4">{error ?? 'Collection not found'}</p>
+      <div className="min-h-screen bg-dark-bg-primary flex flex-col items-center justify-center gap-4">
+        <p className="text-dark-text-secondary">{error ?? 'Collection not found'}</p>
         <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
       </div>
     )
   }
 
   // Ownership check — non-owners can see the form but can't save anything
-  // (We disable buttons and show a warning, but we don't hide the form entirely)
   const isOwner = collection.creatorAddress === walletAddress
+
+  // Maps collection status to Tailwind classes for color-coded badges
+  function statusBadgeClass(status: string): string {
+    switch (status) {
+      case 'minting':   return 'bg-green-500/15 text-green-400 border border-green-500/30'
+      case 'paused':    return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+      case 'completed': return 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+      case 'ready':
+      case 'preparing': return 'bg-dark-accent-primary/15 text-dark-accent-primary border border-dark-accent-primary/30'
+      default:          return 'bg-dark-bg-tertiary text-dark-text-tertiary border border-dark-border-primary'
+    }
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+    <div className="min-h-screen bg-dark-bg-primary">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex flex-col lg:flex-row gap-10">
 
-      {/* ── Page Header ─────────────────────────────────────────────────────
-          Back button + collection name + "Edit Collection" subtitle */}
-      <div className="flex items-center gap-3">
-        {/* Back button — returns to dashboard. The escape hatch. */}
-        <button type="button" onClick={() => router.push('/dashboard')}
-          className="p-2 rounded-lg hover:bg-dark-bg-secondary transition-colors">
-          <ArrowLeft className="w-5 h-5 text-dark-text-secondary" />
-        </button>
-        <div>
-          {/* Collection name as page heading — confirms which collection we're editing */}
-          <h1 className="text-2xl font-bold text-dark-text-primary">{collection.name}</h1>
-          <p className="text-sm text-dark-text-tertiary">Edit Collection</p>
+          {/* ── Left Sidebar ─────────────────────────────────────────────────────
+              Sticky on desktop — back link, collection heading, status, and live preview.
+              Mirrors the sidebar pattern from CreatePageContent for consistent design language. */}
+          <div className="w-full lg:w-60 shrink-0 lg:sticky lg:top-24 lg:self-start space-y-6">
+
+            {/* Back link — text style mirrors CreatePageContent's "← Collections" link */}
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard')}
+              className="text-sm text-dark-text-tertiary hover:text-dark-text-primary transition-colors"
+            >
+              ← Dashboard
+            </button>
+
+            {/* Collection heading + status — name updates live as the user edits it */}
+            <div>
+              <h1 className="text-xl font-bold text-dark-text-primary leading-tight">{name || collection.name}</h1>
+              <p className="text-sm text-dark-text-tertiary mt-0.5">Edit Collection</p>
+              <span className={`inline-block mt-2 px-2 py-0.5 rounded text-xs font-medium ${statusBadgeClass(collection.status)}`}>
+                {collection.status}
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-dark-border-primary" />
+
+            {/* Live preview card — image updates instantly when the user swaps the PFP */}
+            <div className="rounded-xl overflow-hidden border border-dark-border-primary">
+              {/* Square image area — shows the PFP preview or a Layers placeholder */}
+              <div className="aspect-square bg-dark-bg-secondary flex items-center justify-center overflow-hidden">
+                {imagePreview
+                  ? <img src={imagePreview} alt={name} className="w-full h-full object-cover" />
+                  : <Layers className="w-10 h-10 text-dark-text-tertiary" />}
+              </div>
+              {/* Metadata strip below the image */}
+              <div className="bg-dark-bg-secondary border-t border-dark-border-primary p-3 space-y-1.5">
+                <p className="text-sm font-medium text-dark-text-primary truncate">{name || 'Untitled Collection'}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-dark-bg-tertiary text-dark-text-tertiary border border-dark-border-primary">Solana</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${statusBadgeClass(collection.status)}`}>{collection.status}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Right Main Content ────────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0 space-y-8">
+
+            {/* Ownership warning — shown when the connected wallet is not the creator */}
+            {!isOwner && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                You are not the owner of this collection.
+              </div>
+            )}
+
+            {/* ── Section A: Collection Info ─────────────────────────────────── */}
+            <section className="rounded-xl border border-dark-border-primary bg-dark-bg-secondary p-6 space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold text-dark-text-primary">Collection Info</h2>
+                <p className="text-xs text-dark-text-tertiary mt-0.5">Saved directly to the database — no wallet signature needed.</p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Name</label>
+                  <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary resize-none"
+                  />
+                </div>
+
+                {/* Image Upload Grid — PFP + Banner */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-dark-text-secondary mb-1">PFP Image</label>
+                    <label className="flex flex-col items-center justify-center h-32 rounded-lg border border-dashed border-dark-border-primary bg-dark-bg-primary cursor-pointer hover:bg-dark-bg-tertiary transition-colors overflow-hidden">
+                      {imagePreview
+                        ? <img src={imagePreview} alt="PFP" className="w-full h-full object-cover" />
+                        : <span className="text-xs text-dark-text-tertiary">Click to upload</span>}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => pickImage(e, 'pfp')} />
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-text-secondary mb-1">Banner</label>
+                    <label className="flex flex-col items-center justify-center h-32 rounded-lg border border-dashed border-dark-border-primary bg-dark-bg-primary cursor-pointer hover:bg-dark-bg-tertiary transition-colors overflow-hidden">
+                      {bannerPreview
+                        ? <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
+                        : <span className="text-xs text-dark-text-tertiary">Click to upload</span>}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => pickImage(e, 'banner')} />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Royalty % */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Royalty %</label>
+                  <input
+                    type="number" min={0} max={50} step={0.5}
+                    value={royaltyPct}
+                    onChange={e => setRoyaltyPct(parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                  />
+                </div>
+
+                {/* Social links — Twitter, Discord, Website */}
+                {[
+                  { label: 'Twitter', value: twitterUrl, set: setTwitterUrl, placeholder: 'https://twitter.com/…' },
+                  { label: 'Discord', value: discordUrl, set: setDiscordUrl, placeholder: 'https://discord.gg/…' },
+                  { label: 'Website', value: websiteUrl, set: setWebsiteUrl, placeholder: 'https://…' },
+                ].map(({ label, value, set, placeholder }) => (
+                  <div key={label}>
+                    <label className="block text-sm font-medium text-dark-text-secondary mb-1">{label}</label>
+                    <input
+                      value={value}
+                      onChange={e => set(e.target.value)}
+                      placeholder={placeholder}
+                      className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary placeholder:text-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveInfo}
+                  disabled={!isOwner || infoState === 'saving'}
+                  isLoading={infoState === 'saving'}
+                >
+                  <Save className="w-4 h-4 mr-1.5" />
+                  Save Info
+                </Button>
+                {infoMsg && (
+                  <span className={`text-sm flex items-center gap-1 ${infoState === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {infoState === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                    {infoMsg}
+                  </span>
+                )}
+              </div>
+            </section>
+
+            {/* ── Section B: Mint Configuration (On-Chain) ───────────────────── */}
+            <section className="rounded-xl border border-dark-border-primary bg-dark-bg-secondary p-6 space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold text-dark-text-primary">Mint Configuration</h2>
+                <p className="text-xs text-dark-text-tertiary mt-0.5">
+                  Requires your wallet signature — changes go directly on-chain.
+                  {!onChain && collection.mintAddress && (
+                    <span className="ml-1 text-amber-400">Loading on-chain data…</span>
+                  )}
+                  {!collection.mintAddress && (
+                    <span className="ml-1 text-amber-400">No on-chain address found — collection may not be deployed yet.</span>
+                  )}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Price + Free checkbox */}
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Mint Price (SOL)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number" min={0} step={0.01}
+                      value={freeMint ? '' : mintPrice}
+                      onChange={e => { setMintPrice(parseFloat(e.target.value) || ''); setFreeMint(false) }}
+                      disabled={freeMint}
+                      placeholder="0.00"
+                      className="flex-1 rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary disabled:opacity-40"
+                    />
+                    <label className="flex items-center gap-1.5 text-sm text-dark-text-secondary cursor-pointer select-none">
+                      <input type="checkbox" checked={freeMint} onChange={e => setFreeMint(e.target.checked)} className="rounded" />
+                      Free
+                    </label>
+                  </div>
+                </div>
+
+                {/* Max Supply */}
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Max Supply</label>
+                  <input
+                    type="number" min={1} step={1}
+                    value={maxSupply}
+                    onChange={e => setMaxSupply(parseInt(e.target.value) || '')}
+                    placeholder={onChain ? String(onChain.maxSupply) : '—'}
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                  />
+                </div>
+
+                {/* Mint Start */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Mint Start</label>
+                  <input
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                  />
+                </div>
+
+                {/* Mint End (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Mint End (optional)</label>
+                  <input
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                  />
+                </div>
+
+                {/* Max per Wallet (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-dark-text-secondary mb-1">Max per Wallet (optional)</label>
+                  <input
+                    type="number" min={1} max={255} step={1}
+                    value={maxPerWallet}
+                    onChange={e => setMaxPerWallet(parseInt(e.target.value) || '')}
+                    placeholder="No limit"
+                    className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
+                  />
+                </div>
+              </div>
+
+              {!freeMint && typeof mintPrice === 'number' && mintPrice > 0 && (
+                <p className="text-xs text-dark-text-tertiary">
+                  Buyers will pay <span className="text-dark-text-primary font-medium">{(mintPrice * 1.01).toFixed(4)} SOL</span>
+                  {' '}— you receive {mintPrice} SOL (1% goes to NeXus)
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleUpdateOnChain}
+                  disabled={!isOwner || !onChain || mintState === 'saving'}
+                  isLoading={mintState === 'saving'}
+                >
+                  <Zap className="w-4 h-4 mr-1.5" />
+                  Update On-Chain
+                </Button>
+                {mintMsg && (
+                  <span className={`text-sm flex items-center gap-1 break-all ${mintState === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {mintState === 'success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                    {mintMsg}
+                  </span>
+                )}
+              </div>
+            </section>
+
+            {/* ── Section C: Minting Status (Pause / Resume) ─────────────────── */}
+            <section className="rounded-xl border border-dark-border-primary bg-dark-bg-secondary p-6">
+              <h2 className="text-lg font-semibold text-dark-text-primary mb-1">Minting Status</h2>
+              <p className="text-xs text-dark-text-tertiary mb-4">
+                {isPaused ? 'Minting is currently paused.' : 'Minting is currently active.'}
+                {' '}Requires wallet signature.
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant={isPaused ? 'primary' : 'outline'}
+                  onClick={handleTogglePause}
+                  disabled={!isOwner || !collection.mintAddress || pauseState === 'saving'}
+                  isLoading={pauseState === 'saving'}
+                >
+                  {isPaused
+                    ? <><Play className="w-4 h-4 mr-1.5" />Resume Minting</>
+                    : <><Pause className="w-4 h-4 mr-1.5" />Pause Minting</>}
+                </Button>
+                {pauseState === 'error' && (
+                  <span className="text-sm text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" /> Transaction failed
+                  </span>
+                )}
+              </div>
+            </section>
+
+          </div>
         </div>
       </div>
-
-      {/* ── Ownership Warning ────────────────────────────────────────────────
-          Shown when the connected wallet is not the collection's creator.
-          Non-owners can view the form but all save buttons are disabled. */}
-      {!isOwner && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          You are not the owner of this collection.
-        </div>
-      )}
-
-      {/* ── Section A: Collection Info ──────────────────────────────────────── */}
-      <section className="rounded-xl border border-dark-border-primary bg-dark-bg-secondary p-6 space-y-5">
-        <h2 className="text-lg font-semibold text-dark-text-primary">Collection Info</h2>
-        {/* Reminder that this section doesn't need a wallet signature — it's just DB */}
-        <p className="text-xs text-dark-text-tertiary -mt-3">Saved directly to the database — no wallet signature needed.</p>
-
-        <div className="space-y-4">
-          {/* ── Name Field ─────────────────────────────────────────────────── */}
-          <div>
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-            />
-          </div>
-
-          {/* ── Description Field ──────────────────────────────────────────── */}
-          <div>
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary resize-none"
-            />
-          </div>
-
-          {/* ── Image Upload Grid — PFP + Banner ──────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* PFP Image picker */}
-            <div>
-              <label className="block text-sm font-medium text-dark-text-secondary mb-1">PFP Image</label>
-              {/* The label IS the clickable area — covers the preview and triggers the file input */}
-              <label className="flex flex-col items-center justify-center h-32 rounded-lg border border-dashed border-dark-border-primary bg-dark-bg-primary cursor-pointer hover:bg-dark-bg-tertiary transition-colors overflow-hidden">
-                {/* Show preview if we have one, otherwise show "Click to upload" hint */}
-                {imagePreview
-                  ? <img src={imagePreview} alt="PFP" className="w-full h-full object-cover" />
-                  : <span className="text-xs text-dark-text-tertiary">Click to upload</span>}
-                {/* Hidden file input — triggered by the label above */}
-                <input type="file" accept="image/*" className="hidden" onChange={e => pickImage(e, 'pfp')} />
-              </label>
-            </div>
-
-            {/* Banner image picker — same pattern as PFP */}
-            <div>
-              <label className="block text-sm font-medium text-dark-text-secondary mb-1">Banner</label>
-              <label className="flex flex-col items-center justify-center h-32 rounded-lg border border-dashed border-dark-border-primary bg-dark-bg-primary cursor-pointer hover:bg-dark-bg-tertiary transition-colors overflow-hidden">
-                {bannerPreview
-                  ? <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
-                  : <span className="text-xs text-dark-text-tertiary">Click to upload</span>}
-                <input type="file" accept="image/*" className="hidden" onChange={e => pickImage(e, 'banner')} />
-              </label>
-            </div>
-          </div>
-
-          {/* ── Royalty Percentage ────────────────────────────────────────── */}
-          <div>
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Royalty %</label>
-            <input
-              type="number" min={0} max={50} step={0.5}
-              value={royaltyPct}
-              onChange={e => setRoyaltyPct(parseFloat(e.target.value) || 0)}
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-            />
-          </div>
-
-          {/* ── Social Links — Twitter, Discord, Website ─────────────────── */}
-          {/* Rendered via map to avoid repeating the same input pattern three times.
-              DRY principle. Juan respects DRY. (He doesn't always practice it, but he respects it.) */}
-          {[
-            { label: 'Twitter', value: twitterUrl, set: setTwitterUrl, placeholder: 'https://twitter.com/…' },
-            { label: 'Discord', value: discordUrl, set: setDiscordUrl, placeholder: 'https://discord.gg/…' },
-            { label: 'Website', value: websiteUrl, set: setWebsiteUrl, placeholder: 'https://…' },
-          ].map(({ label, value, set, placeholder }) => (
-            <div key={label}>
-              <label className="block text-sm font-medium text-dark-text-secondary mb-1">{label}</label>
-              <input
-                value={value}
-                onChange={e => set(e.target.value)}
-                placeholder={placeholder}
-                className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary placeholder:text-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* ── Save Info Button + Status ────────────────────────────────────── */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleSaveInfo}
-            // Disabled for non-owners and while saving — prevent double-submits
-            disabled={!isOwner || infoState === 'saving'}
-            isLoading={infoState === 'saving'}
-          >
-            <Save className="w-4 h-4 mr-1.5" />
-            Save Info
-          </Button>
-          {/* Status message — green for success, red for error, hidden when idle */}
-          {infoMsg && (
-            <span className={`text-sm flex items-center gap-1 ${infoState === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-              {infoState === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-              {infoMsg}
-            </span>
-          )}
-        </div>
-      </section>
-
-      {/* ── Section B: Mint Configuration (On-Chain) ────────────────────────── */}
-      <section className="rounded-xl border border-dark-border-primary bg-dark-bg-secondary p-6 space-y-5">
-        <div>
-          <h2 className="text-lg font-semibold text-dark-text-primary">Mint Configuration</h2>
-          {/* Warning reminders about signature requirement and on-chain data loading state */}
-          <p className="text-xs text-dark-text-tertiary mt-0.5">
-            Requires your wallet signature — changes go directly on-chain.
-            {/* On-chain data loading in progress */}
-            {!onChain && collection.mintAddress && (
-              <span className="ml-1 text-amber-400">Loading on-chain data…</span>
-            )}
-            {/* No mint address — collection hasn't been deployed yet */}
-            {!collection.mintAddress && (
-              <span className="ml-1 text-amber-400">No on-chain address found — collection may not be deployed yet.</span>
-            )}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* ── Price Field + Free Mint Checkbox ─────────────────────────── */}
-          <div className="col-span-2 sm:col-span-1">
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Mint Price (SOL)</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number" min={0} step={0.01}
-                value={freeMint ? '' : mintPrice}
-                onChange={e => { setMintPrice(parseFloat(e.target.value) || ''); setFreeMint(false) }}
-                // Disabled when free mint is checked — no price to enter if it's free
-                disabled={freeMint}
-                placeholder="0.00"
-                className="flex-1 rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary disabled:opacity-40"
-              />
-              {/* Free mint checkbox — checking this zeroes out the price */}
-              <label className="flex items-center gap-1.5 text-sm text-dark-text-secondary cursor-pointer select-none">
-                <input type="checkbox" checked={freeMint} onChange={e => setFreeMint(e.target.checked)} className="rounded" />
-                Free
-              </label>
-            </div>
-          </div>
-
-          {/* ── Max Supply Field ──────────────────────────────────────────── */}
-          <div className="col-span-2 sm:col-span-1">
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Max Supply</label>
-            <input
-              type="number" min={1} step={1}
-              value={maxSupply}
-              onChange={e => setMaxSupply(parseInt(e.target.value) || '')}
-              // Show on-chain supply as placeholder hint when field is empty
-              placeholder={onChain ? String(onChain.maxSupply) : '—'}
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-            />
-          </div>
-
-          {/* ── Mint Start Date ───────────────────────────────────────────── */}
-          <div>
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Mint Start</label>
-            <input
-              type="datetime-local"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-            />
-          </div>
-
-          {/* ── Mint End Date (Optional) ──────────────────────────────────── */}
-          <div>
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Mint End (optional)</label>
-            <input
-              type="datetime-local"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-            />
-          </div>
-
-          {/* ── Max Per Wallet (Optional) ─────────────────────────────────── */}
-          <div>
-            <label className="block text-sm font-medium text-dark-text-secondary mb-1">Max per Wallet (optional)</label>
-            <input
-              type="number" min={1} max={255} step={1}
-              value={maxPerWallet}
-              onChange={e => setMaxPerWallet(parseInt(e.target.value) || '')}
-              placeholder="No limit"
-              className="w-full rounded-lg border border-dark-border-primary bg-dark-bg-primary px-3 py-2 text-sm text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-primary"
-            />
-          </div>
-        </div>
-
-        {/* ── Platform Fee Notice ────────────────────────────────────────────
-            Informational — tells the creator the buyer's actual cost.
-            Transparency is better than discovering the fee after a Discord complaint. */}
-        {!freeMint && typeof mintPrice === 'number' && mintPrice > 0 && (
-          <p className="text-xs text-dark-text-tertiary">
-            Buyers will pay <span className="text-dark-text-primary font-medium">{(mintPrice * 1.01).toFixed(4)} SOL</span>
-            — you receive {mintPrice} SOL (1% goes to NeXus)
-          </p>
-        )}
-
-        {/* ── Update On-Chain Button + Status ────────────────────────────── */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleUpdateOnChain}
-            // Disabled for non-owners, when on-chain data isn't loaded, or while saving
-            disabled={!isOwner || !onChain || mintState === 'saving'}
-            isLoading={mintState === 'saving'}
-          >
-            {/* Zap icon — visual shorthand for "this touches the blockchain" */}
-            <Zap className="w-4 h-4 mr-1.5" />
-            Update On-Chain
-          </Button>
-          {/* Status message — tx hash on success, error message on failure */}
-          {mintMsg && (
-            <span className={`text-sm flex items-center gap-1 break-all ${mintState === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-              {mintState === 'success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-              {mintMsg}
-            </span>
-          )}
-        </div>
-      </section>
-
-      {/* ── Pause / Resume Section ────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-dark-border-primary bg-dark-bg-secondary p-6">
-        <h2 className="text-lg font-semibold text-dark-text-primary mb-1">Minting Status</h2>
-        {/* Current status + wallet signature reminder */}
-        <p className="text-xs text-dark-text-tertiary mb-4">
-          {isPaused ? 'Minting is currently paused.' : 'Minting is currently active.'}
-          {' '}Requires wallet signature.
-        </p>
-        <div className="flex items-center gap-3">
-          {/* Pause/Resume button — variant flips between primary (resume) and outline (pause)
-              Primary = the recommended action. When paused, resume is the positive action.
-              When active, pause is the cautious action — outline communicates that. */}
-          <Button
-            type="button"
-            variant={isPaused ? 'primary' : 'outline'}
-            onClick={handleTogglePause}
-            // Disabled for non-owners, when there's no mint address, or while the tx is pending
-            disabled={!isOwner || !collection.mintAddress || pauseState === 'saving'}
-            isLoading={pauseState === 'saving'}
-          >
-            {isPaused
-              ? <><Play className="w-4 h-4 mr-1.5" />Resume Minting</>   // Paused → offer resume
-              : <><Pause className="w-4 h-4 mr-1.5" />Pause Minting</>} {/* Active → offer pause */}
-          </Button>
-          {/* Error state for pause toggle — transaction failed */}
-          {pauseState === 'error' && (
-            <span className="text-sm text-red-400 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" /> Transaction failed
-            </span>
-          )}
-        </div>
-      </section>
     </div>
   )
 }

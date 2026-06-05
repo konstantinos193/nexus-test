@@ -21,8 +21,7 @@
 
 // Shared types + constants for the create flow.
 // ROYALTY_SPLIT_MAX = 10. Ten recipients maximum. Enough for anyone's extended family.
-import type { ShareAddressRow } from './create-types'
-import { sanitizeSymbol, ROYALTY_SPLIT_MAX } from './create-types'
+import { type ShareAddressRow, sanitizeSymbol, ROYALTY_SPLIT_MAX } from './create-types'
 
 // FreezzeUntilDatePicker — the custom calendar with the extra 'z'.
 // We import it, check if it's a function or has a .default, and use whichever works.
@@ -158,7 +157,7 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
     draftSavedAgo, identityValid, sectionTradingExpanded, sectionRevenueExpanded,
     setSectionTradingExpanded, setSectionRevenueExpanded, isRoyaltySplitValid, fundReceiverError,
     step1Errors, collectionName, setCollectionName, symbol, setSymbol, collectionDescription,
-    setCollectionDescription, step1Touched, setStep1Touched, collectionNameRef, symbolRef,
+    setCollectionDescription, setStep1Touched, collectionNameRef, symbolRef,
     collectionImage, collectionImageUploading, collectionImageError, bannerImage,
     bannerImageUploading, bannerImageError, onDrop, onFileSelect, metadataStandard,
     setMetadataStandard, mintMode, setMintMode, freezeCollection, setFreezeCollection,

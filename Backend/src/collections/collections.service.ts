@@ -406,10 +406,17 @@ export class CollectionsService {
   async findOne(idOrSlug: string): Promise<NFTCollection | null> {
     // Is it a UUID? The regex knows. The regex always knows.
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+    // Solana mint addresses: base58-encoded, 32–44 chars, no hyphens — edit page links use these
+    const isMintAddress = !isUuid && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(idOrSlug);
     const cols = DETAIL_SELECT.map(c => `c.${c}`); // Full detail columns — blobs included.
     const collection = await this.baseQb()
       .select(cols)
-      .andWhere(isUuid ? 'c.id = :val' : 'c.slug = :val', { val: idOrSlug })
+      .andWhere(
+        isUuid        ? 'c.id = :val' :
+        isMintAddress ? 'c.mintAddress = :val' :
+                        'c.slug = :val',
+        { val: idOrSlug },
+      )
       .getOne();
     return collection ? toNFTCollection(collection) : null; // null means it doesn't exist. Or it was deleted. Or we typo'd the slug.
   }

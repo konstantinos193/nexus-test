@@ -42,14 +42,6 @@ import styles from './Footer.module.css'
  */
 export default function Footer() {
 
-  // scrollToTop — smooth scrolls to the top of the page.
-  // Currently orphaned — no button calls it. But it's here, waiting, patient,
-  // ready for the day a "Back to top" button appears in a design mockup.
-  // That day will come. Probably.
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   return (
     // Fragment — we render both footers. CSS controls which one is visible.
     // This avoids conditional rendering logic that would complicate the component.

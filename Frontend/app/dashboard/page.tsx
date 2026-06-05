@@ -95,7 +95,7 @@ function DashboardContent() {
   const walletAddress = publicKey?.toBase58() ?? null
 
   // router — for programmatic navigation to the edit page
-  // router.push(`/dashboard/collections/${c.id}/edit`) — where "Manage" takes you
+  // Uses mintAddress when available (deployed collections); falls back to UUID for drafts
   const router = useRouter()
 
   // collections — the creator's NFT collections fetched from the API
@@ -245,7 +245,7 @@ function DashboardContent() {
                     border variant because it's secondary to the card above it */}
                 <button
                   type="button"
-                  onClick={() => router.push(`/dashboard/collections/${c.id}/edit`)}
+                  onClick={() => router.push(`/dashboard/collections/${c.mintAddress ?? c.id}/edit`)}
                   className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dark-border-primary bg-dark-bg-secondary text-dark-text-secondary text-sm hover:bg-dark-bg-tertiary hover:text-dark-text-primary transition-colors"
                 >
                   <Settings className="w-3.5 h-3.5" />

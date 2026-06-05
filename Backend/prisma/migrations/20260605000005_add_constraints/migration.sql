@@ -28,5 +28,5 @@ END $$;
 --   SELECT "creatorAddress", name, COUNT(*) FROM "Collection"
 --   GROUP BY "creatorAddress", name HAVING COUNT(*) > 1;
 -- Resolve duplicates before applying, or skip this step and clean up manually.
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_collection_creator_name_unique
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collection_creator_name_unique
   ON "Collection" ("creatorAddress", name);

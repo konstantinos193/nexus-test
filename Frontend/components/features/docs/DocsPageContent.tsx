@@ -34,7 +34,7 @@ export default function DocsPageContent() {
 
 function DocsPageContentDesktop() {
   const [activeSection, setActiveSection] = useState(docSections[0].id)
-  const [isScrolling, setIsScrolling] = useState(false)
+  const [, setIsScrolling] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {

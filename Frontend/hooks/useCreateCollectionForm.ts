@@ -10,9 +10,9 @@ import {
   SystemProgram,
 } from '@solana/web3.js'
 import { collectionsApi, ipfsApi, uploadImageToIpfs } from '@/lib/api/client'
+import { pollForConfirmation } from '@/lib/solana/confirm'
 import { NFTCollection } from '@/types'
-import type { ShareAddressRow, CreateDraftPayload } from '@/components/features/create/create-types'
-import { ROYALTY_SPLIT_MAX, DRAFT_STORAGE_KEY } from '@/components/features/create/create-types'
+import { type ShareAddressRow, type CreateDraftPayload, ROYALTY_SPLIT_MAX, DRAFT_STORAGE_KEY } from '@/components/features/create/create-types'
 
 export type SubmitState  = 'idle' | 'uploading' | 'deploying' | 'signing' | 'confirming' | 'success' | 'error'
 export type Step2State   = 'idle' | 'uploading' | 'done' | 'error'
@@ -193,7 +193,7 @@ export function useCreateCollectionForm() {
       if (d.phases?.length)                          setPhases(d.phases as unknown as MintPhase[])
       if (d.fundReceivers?.length)                   setFundReceivers(d.fundReceivers)
       if (d.baseUri)                                 setMetadataBaseUri(d.baseUri)
-    } catch {}
+    } catch { /* intentional: ignore corrupt/missing draft */ }
   }, []) // mount only — eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save draft to localStorage (debounced 800 ms)
@@ -219,7 +219,7 @@ export function useCreateCollectionForm() {
           baseUri: metadataBaseUri ?? undefined,
         }
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
-      } catch {}
+      } catch { /* intentional: localStorage may be unavailable */ }
     }, 800)
     return () => clearTimeout(t)
   }, [step, collectionName, symbol, description, metadataStandard, royaltyPercent, royaltyWallet, twitterUrl, discordUrl, websiteUrl, mintPrice, freeMint, phases, fundReceivers, metadataBaseUri])
@@ -399,7 +399,7 @@ export function useCreateCollectionForm() {
 
       // 6. Wait for confirmation
       setSubmitState('confirming')
-      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
+      await pollForConfirmation(connection, signature, blockhash, lastValidBlockHeight)
 
       // 7. Save to backend DB
       const saveResult = await collectionsApi.deploy({

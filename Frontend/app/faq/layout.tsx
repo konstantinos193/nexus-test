@@ -23,7 +23,7 @@ import type { Metadata } from 'next'
 
 // SEO config — pageTitle formats "FAQ | NeXus", absoluteUrl builds full canonical URLs
 // siteDescription is available as a fallback (we use a custom description instead)
-import { pageTitle, absoluteUrl, siteDescription } from '@/lib/seo/config'
+import { pageTitle, absoluteUrl } from '@/lib/seo/config'
 
 // FaqJsonLd — injects schema.org FAQPage structured data into <head>
 // This is what enables the expandable FAQ results in Google Search (the fancy accordion ones)

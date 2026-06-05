@@ -22,7 +22,7 @@ const MAX_DISPLAY = 6
 export default function DiscoverSection() {
   const [activeTab, setActiveTab] = useState<DiscoverTab>('trending')
 
-  const { data: apiCollections = [], isLoading } = useDiscoverCollections(activeTab)
+  const { data: apiCollections = [] } = useDiscoverCollections(activeTab)
   const collections =
     apiCollections && apiCollections.length > 0
       ? apiCollections

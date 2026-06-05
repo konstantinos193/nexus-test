@@ -4,10 +4,15 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:800
 const API_KEY = process.env.BACKEND_API_KEY
 
 export async function POST(req: NextRequest) {
+  if (!API_KEY) {
+    return NextResponse.json(
+      { success: false, error: 'Server misconfiguration: BACKEND_API_KEY is not set' },
+      { status: 500 },
+    )
+  }
   try {
     const form = await req.formData()
-    const headers: Record<string, string> = {}
-    if (API_KEY) headers['x-api-key'] = API_KEY
+    const headers: Record<string, string> = { 'x-api-key': API_KEY }
 
     const res = await fetch(`${BACKEND_URL}/api/ipfs/upload/directory`, {
       method: 'POST',

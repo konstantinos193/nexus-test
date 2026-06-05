@@ -26,7 +26,7 @@
 // React core hooks — the holy quartet of frontend survival
 // useState for local values, useCallback for stable handlers, useMemo for expensive transforms,
 // Suspense for the Next.js useSearchParams requirement we cannot escape
-import { useState, useCallback, useMemo, Suspense } from 'react'
+import { useCallback, useMemo, Suspense } from 'react'
 
 // useSearchParams — reads query string params from the URL
 // Lets us initialize the search input from ?search=xyz so shareable URLs work
@@ -36,10 +36,6 @@ import { useSearchParams } from 'next/navigation'
 // Lucide icons — Search (the magnifying glass everyone recognizes) and ChevronDown (the sort arrow)
 // These are UI chrome. Functional and aesthetically correct.
 import { Search, ChevronDown } from 'lucide-react'
-
-// CollectionGrid — the card grid component that renders individual collection tiles
-// The actual product. The reason the page exists.
-import CollectionGrid from '@/components/features/collections/CollectionGrid'
 
 // CollectionsPageContent (aliased as CollectionsContent) — handles loading/empty/error states
 // We let it own the conditional rendering logic so this file stays clean

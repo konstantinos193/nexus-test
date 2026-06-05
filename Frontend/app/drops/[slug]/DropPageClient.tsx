@@ -69,6 +69,7 @@ import NFTGalleryGrid        from '@/components/features/collections/collection-
 // ActivityFeed — the recent activity/transaction feed
 // Recent mints, transfers, and events. "Other people are doing this" — FOMO generator.
 import ActivityFeed          from '@/components/features/collections/collection-detail/ActivityFeed'
+import SolIcon               from '@/components/features/collections/collection-detail/SolIcon'
 
 // Types — CollectionDetail is the richer client-side shape; NFTCollection is the API shape
 // toCollectionDetail() maps between them (see below)
@@ -109,7 +110,7 @@ function toCollectionDetail(c: NFTCollection): CollectionDetail {
  */
 function fmtDate(iso: string) {
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    return new Date(iso).toLocaleDateString('en-US', {
       month: 'short',   // "Jun" not "June" — brevity in data-dense UI
       day: 'numeric',   // "15" not "15th" — also brevity
       hour: '2-digit',  // "10" — two digits for consistent alignment
@@ -334,11 +335,11 @@ export default function DropPageClient() {
                             Price: phase override → collection default → "Free"
                             Date: start → end (if set) formatted via fmtDate() */}
                         <div className="cp-phase-detail">
-                          {phase.priceOverride
-                            ? `◎ ${phase.priceOverride}`         // Phase has its own price
+                          {phase.priceOverride != null
+                            ? <><SolIcon size={14} /> {phase.priceOverride}</>
                             : collection.price != null
-                              ? `◎ ${collection.price}`          // Use collection default price
-                              : 'Free'}                          // No price = free mint
+                              ? <><SolIcon size={14} /> {collection.price}</>
+                              : 'Free'}
                           <br />
                           {/* Start date — always shown */}
                           {fmtDate(phase.startDateTime)}

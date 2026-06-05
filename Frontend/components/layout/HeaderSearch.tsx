@@ -31,11 +31,6 @@ import { placeholderBannerUrl } from '@/lib/utils/placeholderBanners'
 // styles - the CSS module. Pill, popover, overlay, highlight. All the good stuff.
 import styles from './HeaderSearch.module.css'
 
-/** Blur placeholder - tiny gray JPEG so thumbs don't pop-in like a jumpscare
- * Avoids that ugly "white flash then image" moment. We have standards. */
-const SEARCH_THUMB_BLUR_DATA_URL =
-  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDBAMBAAAAAAAAAAAAAQIDAAQRBRIhBjFBUf/EABUBAQEAAAAAAAAAAAAAAAAAAAME/8QAGBEAAgMAAAAAAAAAAAAAAAAAAAIAAxH/2gAMAwEAAhEDEEA/AL+AB//Z'
-
 // Thumb size - 56×56. Big enough to recognize, small enough to not dominate. Goldilocks zone.
 const THUMB_SIZE = 56
 

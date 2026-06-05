@@ -4,9 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 // API client - the thing that talks to our backend
 // Because frontend can't live in a vacuum (it needs data)
 import { collectionsApi } from '@/lib/api/client'
-// Types - because TypeScript needs to know what we're working with
-// Otherwise it gets confused (and so do we)
-import { NFTCollection } from '@/types'
 
 /**
  * React Query hooks for collections

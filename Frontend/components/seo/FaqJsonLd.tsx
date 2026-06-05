@@ -3,7 +3,6 @@
  * Renders FAQ structured data to help search engines understand the FAQ content
  */
 
-import { siteUrl } from '@/lib/seo/config'
 
 const faqs = [
   {
