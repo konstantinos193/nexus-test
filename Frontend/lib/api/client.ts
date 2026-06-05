@@ -55,12 +55,6 @@ export interface DeployCollectionResponse {
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
-const API_KEY      = process.env.NEXT_PUBLIC_API_KEY
-
-// Attaches x-api-key when present — required by the IPFS guard in production
-function ipfsHeaders(): Record<string, string> {
-  return API_KEY ? { 'x-api-key': API_KEY } : {}
-}
 
 /**
  * Fetch wrapper with error handling
@@ -202,7 +196,7 @@ export const ipfsApi = {
     try {
       const form = new FormData()
       form.append('file', file)
-      const response = await fetch(`${API_BASE_URL}/api/ipfs/upload/file`, { method: 'POST', headers: ipfsHeaders(), body: form })
+      const response = await fetch('/api/ipfs/upload/file', { method: 'POST', body: form })
       const data = await response.json()
       if (!response.ok) return { success: false, error: data.error || 'Upload failed' }
       return { success: true, data: { gatewayUrl: data.data.gatewayUrl, hash: data.data.hash } }
@@ -215,7 +209,7 @@ export const ipfsApi = {
     try {
       const form = new FormData()
       for (const file of files) form.append(file.name, file)
-      const response = await fetch(`${API_BASE_URL}/api/ipfs/upload/directory`, { method: 'POST', headers: ipfsHeaders(), body: form })
+      const response = await fetch('/api/ipfs/upload/directory', { method: 'POST', body: form })
       const data = await response.json()
       if (!response.ok) return { success: false, error: data.error || 'Directory upload failed' }
       return { success: true, data: { hash: data.data.hash, gatewayUrl: data.data.gatewayUrl, baseUri: data.data.baseUri } }
@@ -225,16 +219,15 @@ export const ipfsApi = {
   },
 }
 
-// Image upload helper — uploads to IPFS via the backend directly
+// Image upload helper — routes through the Next.js proxy to keep the API key server-side.
 // Returns the IPFS URI (e.g. ipfs://Qm...) on success
 export async function uploadImageToIpfs(file: File): Promise<ApiResponse<{ uri: string; hash: string }>> {
   try {
     const form = new FormData()
     form.append('file', file)
 
-    const response = await fetch(`${API_BASE_URL}/api/ipfs/upload/file`, {
+    const response = await fetch('/api/ipfs/upload/file', {
       method: 'POST',
-      headers: ipfsHeaders(),
       body: form,
     })
 
