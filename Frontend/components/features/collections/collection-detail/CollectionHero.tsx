@@ -75,6 +75,8 @@ function hideBrokenImg(e: React.SyntheticEvent<HTMLImageElement>) {
 export default function CollectionHero({ collection }: CollectionHeroProps) {
   // copied: shows "✓" in the creator address chip for 1.8 seconds after copying
   const [copied, setCopied] = useState(false)
+  // pfpFailed: true when the PFP image fails to load — triggers the initials fallback
+  const [pfpFailed, setPfpFailed] = useState(false)
 
   // ── Status Derivation ───────────────────────────────────────────────────────
   // Map the internal collection.status to a display label and a CSS class modifier
@@ -160,19 +162,21 @@ export default function CollectionHero({ collection }: CollectionHeroProps) {
           <div className="cp-hero-info-inner">
 
             {/* PFP — the collection's profile picture, overlapping the banner bottom via negative margin-top.
-                Falls back to invisible (visibility: hidden) on error so the layout space is preserved.
-                (CSS could also use a placeholder background color via initials. Future enhancement.) */}
-            <img
-              src={resolveUrl(collection.imageUrl) ?? ''}
-              alt={collection.name}
-              className="cp-hero-pfp"
-              width={104}
-              height={104}
-              onError={(e) => {
-                // PFP failed to load — hide it but keep its layout space so nothing shifts
-                e.currentTarget.style.visibility = 'hidden'
-              }}
-            />
+                Falls back to an initials circle when imageUrl is missing or fails to load. */}
+            <div className="cp-hero-pfp">
+              {!pfpFailed && collection.imageUrl ? (
+                <img
+                  src={resolveUrl(collection.imageUrl) ?? ''}
+                  alt={collection.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                  onError={() => setPfpFailed(true)}
+                />
+              ) : (
+                <span className="cp-hero-pfp-initial">
+                  {collection.name[0]?.toUpperCase() ?? '?'}
+                </span>
+              )}
+            </div>
 
             <div className="cp-hero-text">
 

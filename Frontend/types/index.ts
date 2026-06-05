@@ -47,6 +47,7 @@ export interface NFTCollection {
   platformFeeBasisPoints?: number
   ipfsHash?: string
   mintStart?: string
+  effectiveStatus?: CollectionStatus
   twitterUrl?: string
   discordUrl?: string
   websiteUrl?: string

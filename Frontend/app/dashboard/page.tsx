@@ -227,12 +227,13 @@ function DashboardContent() {
 
         {/* Loading state — simple text while the API request is in-flight
             A skeleton loader would be nicer but text is honest and fast to ship */}
-        {loading ? (
+        {loading && (
           <p className="text-dark-text-secondary py-12 text-center">Loading your collections…</p>
+        )}
 
-        ) : collections.length > 0 ? (
-          // Has collections — render the grid of collection cards with Manage buttons
-          // 1 col mobile → 2 col tablet → 3 col desktop → 4 col wide desktop
+        {/* Has collections — render the grid of collection cards with Manage buttons
+            1 col mobile → 2 col tablet → 3 col desktop → 4 col wide desktop */}
+        {!loading && collections.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {collections.map(c => (
               // Each collection gets a card + a Manage button below it
@@ -245,7 +246,7 @@ function DashboardContent() {
                     border variant because it's secondary to the card above it */}
                 <button
                   type="button"
-                  onClick={() => router.push(`/dashboard/collections/${c.mintAddress ?? c.id}/edit`)}
+                  onClick={() => router.push(`/dashboard/collections/${c.slug ?? c.id}/edit`)}
                   className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dark-border-primary bg-dark-bg-secondary text-dark-text-secondary text-sm hover:bg-dark-bg-tertiary hover:text-dark-text-primary transition-colors"
                 >
                   <Settings className="w-3.5 h-3.5" />
@@ -254,10 +255,11 @@ function DashboardContent() {
               </div>
             ))}
           </div>
+        )}
 
-        ) : (
-          // No collections yet — empty state card with a "Create Collection" CTA
-          // Encouraging, not judgy. Everyone starts with zero collections. Even the big ones.
+        {/* No collections yet — empty state card with a "Create Collection" CTA
+            Encouraging, not judgy. Everyone starts with zero collections. Even the big ones. */}
+        {!loading && collections.length === 0 && (
           <Card variant="elevated">
             <CardContent className="p-12 text-center">
               {/* ImageIcon — the visual centerpiece of the empty state */}

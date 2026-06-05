@@ -31,7 +31,6 @@ import {
   FileJson,
   FolderUp,
   Image,
-  Loader2,
   RefreshCw,
   X,
 } from 'lucide-react'
@@ -653,6 +652,7 @@ interface MediaMetadataFormProps {
   metadataBaseUri:  string | null
   step2State:       Step2State
   step2Error:       string | null
+  uploadProgress:   number
   onUpload:         () => void
   onNext:           () => void
   onBack:           () => void
@@ -664,7 +664,7 @@ export default function MediaMetadataForm({
   imageFiles, setImageFiles,
   metadataFiles, setMetadataFiles,
   imagesBaseUri, metadataBaseUri,
-  step2State, step2Error,
+  step2State, step2Error, uploadProgress,
   onUpload, onNext, onBack,
 }: MediaMetadataFormProps) {
 
@@ -844,7 +844,7 @@ export default function MediaMetadataForm({
                      disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isUploading
-            ? <><Loader2 className="w-5 h-5 animate-spin" /> Uploading to IPFS…</>
+            ? <><span className="tabular-nums font-mono">{uploadProgress}%</span> Uploading to IPFS…</>
             : <><CloudUpload className="w-5 h-5" /> Upload to IPFS</>
           }
         </button>

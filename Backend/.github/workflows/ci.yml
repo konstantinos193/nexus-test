@@ -70,81 +70,10 @@ jobs:
     env:
       ENV: ${{ github.event.inputs.environment || 'staging' }}
     steps:
-      - uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          timeout: 300s
-          command_timeout: 240s
-          script: |
-            set -e
-            IMAGE="ghcr.io/martechnetworks/nexus-backend"
-            ENV="${{ env.ENV }}"
-            ENV_FILE="/var/www/nexus-backend/.env.$ENV"
-
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull $IMAGE:${{ github.sha }}
-
-            if [ ! -f "$ENV_FILE" ]; then
-              echo "ERROR: env file $ENV_FILE not found — create it on the VPS before deploying"
-              exit 1
-            fi
-
-            DOCKER_ENV="/tmp/nexus-backend-$ENV.env"
-            grep -v '^#' $ENV_FILE | grep -v '^$' | sed "s/^export //; s/='\(.*\)'$/=\1/; s/=\"\(.*\)\"$/=\1/" > $DOCKER_ENV
-
-            PORT=$(grep "^PORT=" $DOCKER_ENV | cut -d= -f2 || echo "3001")
-            PORT=${PORT:-3001}
-            ALT_PORT=$((PORT + 10))
-
-            DATABASE_URL=$(grep "^DATABASE_URL=" $DOCKER_ENV | cut -d= -f2-)
-            docker run --rm --network host --env-file $DOCKER_ENV -e DATABASE_URL="$DATABASE_URL" $IMAGE:${{ github.sha }} sh -c \
-              "npx prisma migrate resolve --rolled-back 20260605000005_add_constraints 2>/dev/null || true; \
-               npx prisma migrate resolve --rolled-back 20260605000010_traits_jsonb_constraint 2>/dev/null || true; \
-               npx prisma migrate resolve --rolled-back 20260605000012_fix_ending_soon_index 2>/dev/null || true"
-            docker run --rm --network host --env-file $DOCKER_ENV -e DATABASE_URL="$DATABASE_URL" $IMAGE:${{ github.sha }} sh -c "npx prisma migrate deploy"
-
-            docker rm -f nexus-backend-new 2>/dev/null || true
-            docker run -d --name nexus-backend-new --restart no --network host --env-file $DOCKER_ENV -e PORT=$ALT_PORT $IMAGE:${{ github.sha }}
-
-            sleep 2
-            if ! docker inspect nexus-backend-new --format '{{.State.Running}}' 2>/dev/null | grep -q true; then
-              echo "Container exited immediately — startup error:"
-              docker logs nexus-backend-new --tail 50
-              docker rm -f nexus-backend-new
-              exit 1
-            fi
-
-            HEALTHY=false
-            DEADLINE=$(($(date +%s) + 60))
-            WAIT=2
-            while [ "$(date +%s)" -lt "$DEADLINE" ]; do
-              if curl -sf http://localhost:$ALT_PORT/health; then
-                HEALTHY=true; break
-              fi
-              sleep $WAIT
-              WAIT=$((WAIT < 10 ? WAIT * 2 : 10))
-            done
-
-            if [ "$HEALTHY" != "true" ]; then
-              docker logs nexus-backend-new --tail 50
-              docker rm -f nexus-backend-new
-              exit 1
-            fi
-
-            docker stop nexus-backend || true
-            docker rm nexus-backend || true
-            docker stop nexus-backend-new
-            docker rm nexus-backend-new
-            docker run -d --name nexus-backend --restart unless-stopped --network host --env-file $DOCKER_ENV $IMAGE:${{ github.sha }}
-
-            DEADLINE=$(($(date +%s) + 30))
-            WAIT=2
-            while [ "$(date +%s)" -lt "$DEADLINE" ]; do
-              if curl -sf http://localhost:$PORT/health; then echo "Live"; break; fi
-              sleep $WAIT
-              WAIT=$((WAIT < 8 ? WAIT * 2 : 8))
-            done || { docker logs nexus-backend --tail 30; exit 1; }
-
-            docker image prune -f
+      - name: Trigger deploy via webhook
+        run: |
+          curl -sf --max-time 300 \
+            -X POST http://${{ secrets.VPS_HOST }}:9000/hooks/nexus-deploy \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Token: ${{ secrets.VPS_DEPLOY_TOKEN }}" \
+            -d "{\"sha\":\"${{ github.sha }}\",\"env\":\"${{ env.ENV }}\"}"

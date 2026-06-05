@@ -282,6 +282,7 @@ function CreatePageContentInner() {
                 metadataBaseUri={form.metadataBaseUri}
                 step2State={form.step2State}
                 step2Error={form.step2Error}
+                uploadProgress={form.uploadProgress}
                 onUpload={form.handleMediaUpload}
                 onNext={form.nextStep}
                 onBack={form.prevStep}

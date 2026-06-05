@@ -217,6 +217,38 @@ export const ipfsApi = {
       return { success: false, error: error instanceof Error ? error.message : 'Directory upload failed' }
     }
   },
+
+  // XHR version — same route, but fires onProgress(0–100) as bytes travel over the wire.
+  // fetch() has no upload progress events; XHR does. This is why XHR still exists in 2025.
+  uploadDirectoryWithProgress: (
+    files: File[],
+    onProgress: (pct: number) => void,
+  ): Promise<ApiResponse<{ hash: string; gatewayUrl: string; baseUri: string }>> => {
+    return new Promise((resolve) => {
+      const form = new FormData()
+      for (const file of files) form.append(file.name, file)
+      const xhr = new XMLHttpRequest()
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText)
+          if (xhr.status < 200 || xhr.status >= 300) {
+            resolve({ success: false, error: data.error || 'Directory upload failed' })
+          } else {
+            onProgress(100)
+            resolve({ success: true, data: { hash: data.data.hash, gatewayUrl: data.data.gatewayUrl, baseUri: data.data.baseUri } })
+          }
+        } catch {
+          resolve({ success: false, error: 'Directory upload failed' })
+        }
+      }
+      xhr.onerror = () => resolve({ success: false, error: 'Directory upload failed' })
+      xhr.open('POST', '/api/ipfs/upload/directory')
+      xhr.send(form)
+    })
+  },
 }
 
 // Image upload helper — routes through the Next.js proxy to keep the API key server-side.

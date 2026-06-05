@@ -71,21 +71,15 @@ export default function SolanaWalletProvider({ children }: Props) {
     if (endpoint) setWalletReady(true)
   }, [endpoint])
 
-  // No endpoint yet — render children without providers.
-  // WalletReadyContext stays false, so WalletConnect shows Placeholder. No crash.
-  if (!endpoint) {
-    return (
-      <WalletReadyContext.Provider value={false}>
-        {children}
-      </WalletReadyContext.Provider>
-    )
-  }
+  // Always render the full provider tree so components using useWallet() / useConnection()
+  // at render time (e.g. DropPageClient) never throw from missing context.
+  // Before the real RPC endpoint loads: wallets=[] (no adapters) + placeholder URL.
+  // autoConnect is a no-op with an empty wallets array, so nothing connects prematurely.
+  const activeEndpoint = endpoint ?? 'https://api.mainnet-beta.solana.com'
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      {/* autoConnect=true: the adapter persists the last wallet choice in localStorage,
-          so users don't have to click "Connect" every time they reload the page */}
-      <WalletProvider wallets={wallets} autoConnect={true} onError={err => console.error('[Wallet]', err)}>
+    <ConnectionProvider endpoint={activeEndpoint}>
+      <WalletProvider wallets={wallets} autoConnect onError={err => console.error('[Wallet]', err)}>
         <WalletReadyContext.Provider value={walletReady}>
           {children}
         </WalletReadyContext.Provider>

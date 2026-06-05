@@ -124,6 +124,7 @@ export function useCreateCollectionForm() {
   const [metadataBaseUri, setMetadataBaseUri] = useState<string | null>(null)
   const [step2State,      setStep2State]      = useState<Step2State>('idle')
   const [step2Error,      setStep2Error]      = useState<string | null>(null)
+  const [uploadProgress,  setUploadProgress]  = useState(0)
 
   // Step 3
   const totalSupply = metadataFiles.length || imageFiles.length || 0
@@ -246,11 +247,19 @@ export function useCreateCollectionForm() {
       setStep2Error('Add at least one folder before uploading.')
       return
     }
+    setUploadProgress(0)
     setStep2State('uploading')
     try {
+      let imgPct = 0, metaPct = 0
+      const activeCount = (imageFiles.length ? 1 : 0) + (metadataFiles.length ? 1 : 0)
+      const update = () => setUploadProgress(Math.round((imgPct + metaPct) / activeCount))
       const [imgResult, metaResult] = await Promise.all([
-        imageFiles.length    ? ipfsApi.uploadDirectory(imageFiles)    : Promise.resolve(null),
-        metadataFiles.length ? ipfsApi.uploadDirectory(metadataFiles) : Promise.resolve(null),
+        imageFiles.length
+          ? ipfsApi.uploadDirectoryWithProgress(imageFiles,    p => { imgPct = p; update() })
+          : Promise.resolve(null),
+        metadataFiles.length
+          ? ipfsApi.uploadDirectoryWithProgress(metadataFiles, p => { metaPct = p; update() })
+          : Promise.resolve(null),
       ])
       if (imgResult  && !imgResult.success)  throw new Error(imgResult.error  ?? 'Images upload failed')
       if (metaResult && !metaResult.success) throw new Error(metaResult.error ?? 'Metadata upload failed')
@@ -326,7 +335,13 @@ export function useCreateCollectionForm() {
         ? 0n
         : BigInt(Math.round((typeof mintPrice === 'number' ? mintPrice : 0) * 1e9))
 
-      const validPhases = phases.filter(p => p.startDateTime)
+      const validPhases = phases
+        .filter(p => p.startDateTime)
+        .map(p => ({
+          ...p,
+          startDateTime: new Date(p.startDateTime).toISOString(),
+          ...(p.endDateTime ? { endDateTime: new Date(p.endDateTime).toISOString() } : {}),
+        }))
       const firstPhase  = validPhases[0]
       const lastPhase   = validPhases.at(-1)
       const nowTs       = BigInt(Math.floor(Date.now() / 1000))
@@ -467,7 +482,7 @@ export function useCreateCollectionForm() {
     imageFiles,     setImageFiles,
     metadataFiles,  setMetadataFiles,
     imagesBaseUri,  metadataBaseUri,
-    step2State,     step2Error,
+    step2State,     step2Error,   uploadProgress,
     handleMediaUpload,
     totalSupply,
     mintPrice,   setMintPrice,

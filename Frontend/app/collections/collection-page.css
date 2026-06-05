@@ -153,14 +153,17 @@
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  object-fit: cover;
   border: 3px solid var(--cp-bg);
   box-shadow: 0 0 0 1.5px var(--cp-border-2), 0 6px 24px rgba(0, 0, 0, 0.55);
   flex-shrink: 0;
   margin-top: -42px;
   position: relative;
   z-index: 10;
-  background: var(--cp-surface);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #8b5cf6 0%, #00c2ff 100%);
 }
 
 @media (min-width: 768px) {
@@ -169,6 +172,14 @@
     height: 104px;
     margin-top: -52px;
   }
+}
+
+.cp-hero-pfp-initial {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  user-select: none;
 }
 
 .cp-hero-text {
@@ -763,15 +774,32 @@
 
 /* CTA area */
 .cp-mint-cta-area {
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.25rem;
 }
 
 .cp-mint-total {
   display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.cp-mint-fee-row {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8125rem;
-  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--cp-text-muted);
+}
+
+.cp-mint-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--cp-border);
+  padding-top: 0.5rem;
+  margin-top: 0.1rem;
 }
 
 .cp-mint-total span:first-child { color: var(--cp-text-muted); }
@@ -815,6 +843,14 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--cp-red);
   cursor: not-allowed;
+}
+
+/* Mint error message shown below the mint button */
+.cp-mint-error {
+  color: #f87171;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  word-break: break-word;
 }
 
 /* Fund receivers */

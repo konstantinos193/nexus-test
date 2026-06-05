@@ -55,7 +55,7 @@ const MAX_MERKLE_PROOF_DEPTH: usize = 24;
 /// Restricts `initialize_registry` to this key only, preventing frontrunning.
 /// Get the value: `solana-keygen pubkey <path-to-keypair>`
 /// The System Program default (all 1s) is intentionally uncallable — forces you to set this.
-pub const PLATFORM_AUTHORITY: Pubkey = anchor_lang::solana_program::pubkey!("11111111111111111111111111111111");
+pub const PLATFORM_AUTHORITY: Pubkey = Pubkey::from_str_const("CZxh81rUdCbVnpMuUwQ3GwmeCRtCgZndF4Vu7ZqRT2qp");
 
 // Compile-time guard: build fails with a clear error if PLATFORM_AUTHORITY is still the
 // System Program placeholder. Replace the pubkey above with the actual deployer keypair:
@@ -403,7 +403,7 @@ pub mod nexus_launchpad {
                         rem[i + 1].key() == split.recipients[i],
                         NexusError::InvalidMintSplitAccounts
                     );
-                    require!(rem[i + 1].is_writable(), NexusError::InvalidMintSplitAccounts);
+                    require!(rem[i + 1].is_writable, NexusError::InvalidMintSplitAccounts);
                 }
                 let mut transferred: u64 = 0;
                 for i in 0..n {

@@ -529,10 +529,14 @@ export class CollectionsService {
     callerAddress: string,
   ): Promise<NFTCollection> {
     return this.dataSource.transaction(async (manager) => {
-      // Fetch with a pessimistic write lock. Nobody else touches this row until we're done.
-      // Optimistic locking would be cheaper, but also wrong in this context. Choose your battles.
+      // Resolve the identifier — same logic as findOne: UUID, mintAddress, or slug.
+      // The edit page passes mintAddress for deployed collections, so we need all three paths.
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      const isMintAddress = !isUuid && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(id);
       const collection = await manager.findOne(Collection, {
-        where: { id },
+        where: isUuid        ? { id }              :
+               isMintAddress ? { mintAddress: id } :
+                               { slug: id },
         lock: { mode: 'pessimistic_write' }, // Lock it. Own it. Save it.
       });
       if (!collection) throw new Error('Collection not found');       // Ghost collection. Sad.
