@@ -29,6 +29,9 @@ env:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -38,6 +41,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          cache-dependency-path: Backend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma validate
 
@@ -53,7 +57,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./Backend
+          file: ./Backend/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
             ${{ env.IMAGE }}:latest
@@ -87,6 +92,11 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker pull $IMAGE:${{ github.sha }}
 
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "ERROR: env file $ENV_FILE not found — create it on the VPS before deploying"
+              exit 1
+            fi
+
             DOCKER_ENV="/tmp/nexus-backend-$ENV.env"
             grep -v '^#' $ENV_FILE | grep -v '^$' | sed "s/^export //; s/='\(.*\)'$/=\1/; s/=\"\(.*\)\"$/=\1/" > $DOCKER_ENV
 
@@ -98,6 +108,14 @@ jobs:
 
             docker rm -f nexus-backend-new 2>/dev/null || true
             docker run -d --name nexus-backend-new --restart no --network host --env-file $DOCKER_ENV -e PORT=$ALT_PORT $IMAGE:${{ github.sha }}
+
+            sleep 2
+            if ! docker inspect nexus-backend-new --format '{{.State.Running}}' 2>/dev/null | grep -q true; then
+              echo "Container exited immediately — startup error:"
+              docker logs nexus-backend-new --tail 50
+              docker rm -f nexus-backend-new
+              exit 1
+            fi
 
             HEALTHY=false
             DEADLINE=$(($(date +%s) + 60))
