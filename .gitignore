@@ -1,0 +1,42 @@
+﻿# Dependencies
+node_modules/
+__pycache__/
+.venv/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.parcel-cache/
+coverage/
+.pytest_cache/
+
+# Rust
+/target/
+Cargo.lock
