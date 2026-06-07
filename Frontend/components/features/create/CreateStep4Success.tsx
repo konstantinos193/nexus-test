@@ -72,6 +72,15 @@ export default function CreateStep4Success({
   freezeCollection, freezeUntilDate, phases, metadataStandard, connected, draftSavedAt,
   onSaveDraft, onStartNewCollection,
 }: CreateStep4SuccessProps) {
+  let freezeText: string
+  if (!freezeCollection) {
+    freezeText = 'off'
+  } else if (freezeUntilDate) {
+    freezeText = `until ${new Date(freezeUntilDate).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}`
+  } else {
+    freezeText = 'until sold out'
+  }
+
   return (
     // Main container — step-level wrapper, full-width form flow
     <div className="nft-create-step-main">
@@ -104,13 +113,7 @@ export default function CreateStep4Success({
               <li>Royalties: {royaltyPercent}%</li>
               {/* Freeze — "until [date]", "until sold out", or "off".
                   Three distinct states. One line. It's compact but complete. */}
-              <li>
-                Freeze: {freezeCollection
-                  ? freezeUntilDate
-                    ? `until ${new Date(freezeUntilDate).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}`
-                    : 'until sold out'
-                  : 'off'}
-              </li>
+              <li>Freeze: {freezeText}</li>
               {/* Phases — only shows when phases exist. Count + comma-separated names.
                   If you named your phases "Phase 1", "Phase 2", "Phase 3"... that's fine.
                   Creative phase naming is encouraged but not required. */}

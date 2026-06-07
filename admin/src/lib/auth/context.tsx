@@ -8,41 +8,24 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Role, SessionUser } from '../types'
+import type { Permission } from '../types'
 
-/** Default demo user for development */
-const DEMO_USER: SessionUser = {
-  id: '1',
-  email: 'admin@nexus.dev',
-  name: 'Admin User',
-  role: 'admin',
-  lastActiveAt: new Date().toISOString(),
-  createdAt: new Date().toISOString(),
-  permissions: [
-    'users:read',
-    'users:write',
-    'settings:read',
-    'settings:write',
-    'logs:read',
-    'wallet:view',
-    'wallet:transact',
-    'api_keys:manage',
-  ],
+interface SessionUser {
+  name: string
+  permissions: Permission[]
 }
 
-const ROLE_PERMISSIONS: Record<Role, string[]> = {
-  admin: [
-    'users:read',
-    'users:write',
+const PLATFORM_ADMIN: SessionUser = {
+  name: 'Platform Admin',
+  permissions: [
+    'collections:read',
+    'collections:write',
+    'creators:read',
+    'infrastructure:read',
     'settings:read',
     'settings:write',
     'logs:read',
-    'wallet:view',
-    'wallet:transact',
-    'api_keys:manage',
   ],
-  editor: ['users:read', 'logs:read', 'wallet:view', 'wallet:transact'],
-  viewer: ['users:read', 'logs:read', 'wallet:view'],
 }
 
 interface AuthContextValue {
@@ -51,25 +34,23 @@ interface AuthContextValue {
   hasPermission: (permission: string) => boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
-  setUser: (user: SessionUser | null) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(DEMO_USER)
+  const [user, setUser] = useState<SessionUser | null>(PLATFORM_ADMIN)
 
   const hasPermission = useCallback(
     (permission: string) => {
       if (!user) return false
-      return user.permissions?.includes(permission) ?? false
+      return user.permissions?.includes(permission as Permission) ?? false
     },
     [user]
   )
 
   const login = useCallback(async (_email: string, _password: string) => {
-    // In production, call your auth API and set user from response
-    setUser(DEMO_USER)
+    setUser(PLATFORM_ADMIN)
   }, [])
 
   const logout = useCallback(() => {
@@ -77,14 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({
-      user,
-      isAuthenticated: !!user,
-      hasPermission,
-      login,
-      logout,
-      setUser,
-    }),
+    () => ({ user, isAuthenticated: !!user, hasPermission, login, logout }),
     [user, hasPermission, login, logout]
   )
 
@@ -95,9 +69,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx
-}
-
-/** Resolve permissions for a role (for API layer or backend reference) */
-export function getPermissionsForRole(role: Role): string[] {
-  return ROLE_PERMISSIONS[role] ?? []
 }

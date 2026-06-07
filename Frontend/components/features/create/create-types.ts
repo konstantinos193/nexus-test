@@ -117,6 +117,9 @@ export interface CreateDraftPayload {
   collectionImage?: string | null
   collectionImageHash?: string | null
   baseUri?: string | null
+  imagesBaseUri?: string | null
+  imageCount?: number
+  metadataCount?: number
   bannerImage?: string | null
   bannerImageHash?: string | null
   totalSupply?: string

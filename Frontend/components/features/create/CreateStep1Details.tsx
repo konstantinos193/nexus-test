@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable max-lines-per-function, complexity */
+
 /**
  * CreateStep1Details - Step 1 of the older Create flow.
  * Three sections: Collection Identity, Trading Rules (collapsible), Revenue Config (collapsible).
@@ -169,8 +171,7 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
   } = props
 
   return (
-    <>
-      <div className="nft-create-step1-main">
+    <div className="nft-create-step1-main">
         {/* Step header — title + draft saved indicator.
             Draft saved indicator is top-right when present.
             Green checkmark. Small text. Quietly reassuring. */}
@@ -262,11 +263,25 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
                   But seriously, write a description. Future collectors will read it. */}
               <div className="nft-create-details-field nft-create-details-field-full">
                 <label className="nft-create-details-label" htmlFor="create-collection-description">Collection Description</label>
-                <input
-                  id="create-collection-description" type="text" name="collectionDescription"
-                  className="nft-create-input nft-create-details-input"
+                <textarea
+                  id="create-collection-description" name="collectionDescription"
+                  className="nft-create-textarea nft-create-details-input"
                   placeholder="My collection description" maxLength={250} value={collectionDescription}
+                  rows={4}
                   onChange={(e) => setCollectionDescription(e.target.value)}
+                  onPaste={(e) => {
+                    const html = e.clipboardData.getData('text/html')
+                    if (!html) return
+                    e.preventDefault()
+                    const tmp = document.createElement('div')
+                    tmp.innerHTML = html
+                    tmp.querySelectorAll('p, div, li, h1, h2, h3, h4, h5, h6, section').forEach(el => {
+                      el.appendChild(document.createTextNode('\n'))
+                    })
+                    tmp.querySelectorAll('br').forEach(el => el.replaceWith('\n'))
+                    const cleaned = (tmp.textContent ?? '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 250)
+                    setCollectionDescription(cleaned)
+                  }}
                 />
               </div>
             </div>
@@ -291,13 +306,9 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
                     {/* Hidden file input — label is the clickable area */}
                     <input type="file" accept="image/png,image/jpeg,image/jpg" className="sr-only" onChange={(e) => onFileSelect(e, 'collection')} disabled={collectionImageUploading} />
                     {/* Three states: uploading (spinner text), uploaded (preview), empty (prompt) */}
-                    {collectionImageUploading ? (
-                      <div className="nft-create-upload-loading">Uploading…</div>
-                    ) : collectionImage ? (
-                      <div className="nft-create-preview-card nft-create-step1-collection-preview"><img src={collectionImage} alt="Collection" /></div>
-                    ) : (
-                      <><div className="nft-create-upload-text">Drop or select image</div><div className="nft-create-upload-hint">PNG / JPEG – square</div></>
-                    )}
+                    {collectionImageUploading && <div className="nft-create-upload-loading">Uploading…</div>}
+                    {!collectionImageUploading && collectionImage && <div className="nft-create-preview-card nft-create-step1-collection-preview"><img src={collectionImage} alt="Collection" /></div>}
+                    {!collectionImageUploading && !collectionImage && <><div className="nft-create-upload-text">Drop or select image</div><div className="nft-create-upload-hint">PNG / JPEG – square</div></>}
                   </label>
                   {/* Upload error — shown if IPFS or processing fails */}
                   {collectionImageError && <span className="nft-create-inline-error" role="alert">{collectionImageError}</span>}
@@ -313,13 +324,9 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
                     aria-busy={bannerImageUploading}
                   >
                     <input type="file" accept="image/png,image/jpeg,image/jpg" className="sr-only" onChange={(e) => onFileSelect(e, 'banner')} disabled={bannerImageUploading} />
-                    {bannerImageUploading ? (
-                      <div className="nft-create-upload-loading">Uploading…</div>
-                    ) : bannerImage ? (
-                      <div className="nft-create-preview-banner"><img src={bannerImage} alt="Banner" /></div>
-                    ) : (
-                      <><div className="nft-create-upload-text">Wide banner</div><div className="nft-create-upload-hint">PNG / JPG – 16:6</div></>
-                    )}
+                    {bannerImageUploading && <div className="nft-create-upload-loading">Uploading…</div>}
+                    {!bannerImageUploading && bannerImage && <div className="nft-create-preview-banner"><img src={bannerImage} alt="Banner" /></div>}
+                    {!bannerImageUploading && !bannerImage && <><div className="nft-create-upload-text">Wide banner</div><div className="nft-create-upload-hint">PNG / JPG – 16:6</div></>}
                   </label>
                   {bannerImageError && <span className="nft-create-inline-error" role="alert">{bannerImageError}</span>}
                 </div>
@@ -433,7 +440,7 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
                       aria-disabled + disabled so both AT and visual styling agree.
                       The blockchain enforces royalties. We just display the fact. */}
                   <div className="nft-create-details-switch-row">
-                    <button type="button" role="switch" aria-checked={true} aria-disabled disabled className="nft-create-switch on disabled">
+                    <button type="button" role="switch" aria-checked="true" aria-disabled disabled className="nft-create-switch on disabled">
                       <span className="nft-create-switch-thumb" />
                     </button>
                     <div className="nft-create-details-switch-copy">
@@ -609,7 +616,6 @@ export default function CreateStep1Details(props: CreateStep1DetailsProps) {
           </div>
         </div>
       </div>
-    </>
   )
 }
 

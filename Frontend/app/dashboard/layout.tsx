@@ -101,7 +101,7 @@ export default function DashboardLayout({
 }) {
   // Direct children render — no fragment even, just straight pass-through
   // The cleanest possible layout implementation. Aristotle would approve.
-  return <>{children}</>
+  return children
 }
 
 // ── Juan's Sign-Off ───────────────────────────────────────────────────────────

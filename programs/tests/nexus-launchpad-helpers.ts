@@ -136,6 +136,10 @@ export async function ensureProviderFunds(): Promise<void> {
   }
 }
 
+export const MPL_CORE_PROGRAM_ID = new anchor.web3.PublicKey(
+  "CoREENxT6tW1HoK8ypYmtXvZApgjbpa9xcfc1mpRj9DA"
+);
+
 /** Build mint accounts object using IDL account names (keeps tests in sync with program). */
 export function mintAccounts(params: {
   collection: anchor.web3.PublicKey;
@@ -143,14 +147,19 @@ export function mintAccounts(params: {
   creatorWallet: anchor.web3.PublicKey;
   platformWallet: anchor.web3.PublicKey;
   walletTracker: anchor.web3.PublicKey;
+  /** Core collection address (= collection.mint on-chain). Required for Core collections. */
+  coreCollection?: anchor.web3.PublicKey;
+  mintAuthority?: anchor.web3.PublicKey;
 }) {
   const systemProgram = anchor.web3.SystemProgram.programId;
   const [splitConfigPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("split"), params.collection.toBuffer()],
     program.programId
   );
-  // Anchor resolveOptionals() only copies keys that EXIST in the IDL (it iterates idlIx.accounts
-  // and does partialAccounts[acc.name]). Include both camelCase and snake_case so either IDL works.
+
+  const coreCollection = params.coreCollection ?? anchor.web3.PublicKey.default;
+  const mintAuthority = params.mintAuthority ?? anchor.web3.PublicKey.default;
+
   return {
     collection: params.collection,
     buyer: params.buyer,
@@ -162,9 +171,56 @@ export function mintAccounts(params: {
     wallet_tracker: params.walletTracker,
     splitConfig: splitConfigPda,
     split_config: splitConfigPda,
+    coreCollection,
+    core_collection: coreCollection,
+    mintAuthority,
+    mint_authority: mintAuthority,
+    mplCoreProgram: MPL_CORE_PROGRAM_ID,
+    mpl_core_program: MPL_CORE_PROGRAM_ID,
     systemProgram,
     system_program: systemProgram,
   };
+}
+
+/** Mint with Core asset keypairs in remaining_accounts (one signer per NFT). */
+export async function mintCore(
+  params: {
+    collection: anchor.web3.PublicKey;
+    buyer: anchor.web3.Keypair;
+    creatorWallet: anchor.web3.PublicKey;
+    platformWallet: anchor.web3.PublicKey;
+    coreCollection: anchor.web3.PublicKey;
+    mintAuthority: anchor.web3.PublicKey;
+    quantity?: number;
+  }
+) {
+  const qty = params.quantity ?? 1;
+  const [walletTracker] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("wallet_mint"), params.collection.toBuffer(), params.buyer.publicKey.toBuffer()],
+    program.programId
+  );
+  const assetSigners = Array.from({ length: qty }, () => anchor.web3.Keypair.generate());
+  const accounts = mintAccounts({
+    collection: params.collection,
+    buyer: params.buyer.publicKey,
+    creatorWallet: params.creatorWallet,
+    platformWallet: params.platformWallet,
+    walletTracker,
+    coreCollection: params.coreCollection,
+    mintAuthority: params.mintAuthority,
+  });
+  return program.methods
+    .mint(qty, [], 0)
+    .accountsStrict(accounts as any)
+    .signers([params.buyer, ...assetSigners])
+    .remainingAccounts(
+      assetSigners.map((k) => ({
+        pubkey: k.publicKey,
+        isSigner: true,
+        isWritable: true,
+      }))
+    )
+    .rpc(rpcOptions);
 }
 
 /** Metadata standard for collection: supports all 8 standards. Default core. */
@@ -331,25 +387,21 @@ export async function createCollection(config: {
     needsFunding = true;
   }
   
-  // Find collection PDA for the authority
+  let mintKeypair = anchor.web3.Keypair.generate();
   let [finalCollectionPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("collection"), finalAuthority.publicKey.toBuffer()],
+    [Buffer.from("collection"), mintKeypair.publicKey.toBuffer()],
     program.programId
   );
 
-  // Check if collection already exists - if so, generate a new unique authority
-  // This handles the edge case where a generated keypair happens to conflict
   try {
     await program.account.collection.fetch(finalCollectionPda);
-    // Collection exists - generate a new unique authority
-    finalAuthority = anchor.web3.Keypair.generate();
-    needsFunding = true;
+    mintKeypair = anchor.web3.Keypair.generate();
     [finalCollectionPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("collection"), finalAuthority.publicKey.toBuffer()],
+      [Buffer.from("collection"), mintKeypair.publicKey.toBuffer()],
       program.programId
     );
   } catch {
-    // Collection doesn't exist - proceed with current authority
+    // Collection doesn't exist — proceed
   }
   
   // Fund the authority if needed
@@ -358,8 +410,15 @@ export async function createCollection(config: {
   }
 
   const creatorWallet = anchor.web3.Keypair.generate();
-  const mintAuthority = anchor.web3.Keypair.generate();
   const platformWallet = anchor.web3.Keypair.generate();
+  const [mintAuthorityPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("mint_authority"), mintKeypair.publicKey.toBuffer()],
+    program.programId
+  );
+  const [registryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("registry")],
+    program.programId
+  );
 
   const now = Math.floor(Date.now() / 1000);
   // Set startTime to at least 60 seconds in the future to account for transaction processing delays
@@ -405,8 +464,24 @@ export async function createCollection(config: {
     throw new Error(`Failed to create valid BN for maxSupply: ${maxSupplyValue} -> ${maxSupplyBN.toString()}`);
   }
 
+  // Ensure global registry exists (one-time platform setup)
+  const registryInfo = await provider.connection.getAccountInfo(registryPda);
+  if (!registryInfo) {
+    await program.methods
+      .initializeRegistry()
+      .accountsStrict({
+        registry: registryPda,
+        authority: finalAuthority.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([finalAuthority])
+      .rpc(rpcOptions);
+  }
+
   const sig = await program.methods
-    .initializeCollection(
+    .createCollection(
+      "Test Collection",
+      "https://example.com/collection.json",
       {
         maxSupply: maxSupplyBN,
         pricePerNft: new anchor.BN(config.pricePerNft ?? anchor.web3.LAMPORTS_PER_SOL * 0.1),
@@ -421,13 +496,16 @@ export async function createCollection(config: {
     )
     .accountsStrict({
       collection: finalCollectionPda,
+      mint: mintKeypair.publicKey,
+      registry: registryPda,
       authority: finalAuthority.publicKey,
-      mintAuthority: mintAuthority.publicKey,
+      mintAuthority: mintAuthorityPda,
       creatorWallet: creatorWallet.publicKey,
       platformWallet: platformWallet.publicKey,
+      mplCoreProgram: MPL_CORE_PROGRAM_ID,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
-    .signers([finalAuthority])
+    .signers([finalAuthority, mintKeypair])
     .rpc(rpcOptions);
 
   // FORCE FINALIZATION: With skipPreflight + processed, .rpc() returns before account is readable.
@@ -436,5 +514,12 @@ export async function createCollection(config: {
   await provider.connection.confirmTransaction(sig, "confirmed");
   await program.account.collection.fetch(finalCollectionPda);
 
-  return { collectionPda: finalCollectionPda, creatorWallet, mintAuthority, platformWallet, authority: finalAuthority };
+  return {
+    collectionPda: finalCollectionPda,
+    creatorWallet,
+    mintAuthority: mintAuthorityPda,
+    coreCollection: mintKeypair.publicKey,
+    platformWallet,
+    authority: finalAuthority,
+  };
 }

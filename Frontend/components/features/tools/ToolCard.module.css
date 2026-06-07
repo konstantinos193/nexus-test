@@ -1,0 +1,99 @@
+/**
+ * ToolCard.module.css
+ * Styles for one tool card. Uses parent's --tools-* vars so we don't have to think.
+ * Hover = glow. No hover = just another box in the void.
+ *
+ * @author Juan – CSS poet and part-time nihilist
+ */
+
+.card {
+  background: var(--tools-bg-card);
+  border: 1px solid var(--tools-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.card:hover {
+  border-color: rgba(0, 212, 255, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.iconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--tools-accent-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.iconWrap .icon,
+.iconWrap svg {
+  width: 24px;
+  height: 24px;
+  color: var(--tools-accent);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--tools-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.desc {
+  font-size: 0.9375rem;
+  color: var(--tools-text-muted);
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+  flex: 1;
+}
+
+.actions {
+  margin-top: auto;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  color: #0a0a0f;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

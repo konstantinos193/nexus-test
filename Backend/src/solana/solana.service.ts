@@ -31,7 +31,7 @@ import { createSolanaConnection, getSolanaConfig, isDevnet } from './solana.conf
 
 // The single source of truth for program identity and fee parameters.
 // One program ID. One fee rate. One treasury wallet. A rare simplicity.
-import { PROGRAM_ID, PLATFORM_FEE_BPS, PLATFORM_WALLET } from './constants';
+import { PROGRAM_ID, PLATFORM_FEE_BPS, PLATFORM_WALLET, MPL_CORE_PROGRAM_ID } from './constants';
 
 /**
  * @injectable SolanaService
@@ -312,6 +312,9 @@ export class SolanaService implements OnModuleInit {
       // The program ID. The 32-byte address that IS our smart contract on-chain.
       // Permanent. Immutable. Right there forever, whether we like what it does or not.
       programId: PROGRAM_ID,
+      // The Metaplex Core program ID — used for Core standard NFT collections.
+      // Configurable per-network; must match the program deployed on the RPC endpoint.
+      mplCoreProgramId: MPL_CORE_PROGRAM_ID,
       // Platform fee in basis points. 100 = 1%. Additive model.
       // Creator gets their price in full. We collect separately. Nobody is surprised.
       platformFeeBps: PLATFORM_FEE_BPS,

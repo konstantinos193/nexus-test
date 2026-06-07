@@ -203,6 +203,25 @@ export class NFTCollection {
   featured?: boolean;
 
   /**
+   * The on-chain mint address for the deployed collection (base58, 32–44 chars).
+   * Used by the frontend to:
+   *   - Derive PDAs (collection, wallet_tracker, split_config) for the mint transaction
+   *   - Link out to secondary marketplaces (Magic Eden, Tensor)
+   * Absent until the collection has been deployed on-chain.
+   */
+  @ApiProperty({ required: false, description: 'Solana on-chain mint address (base58) — set after deployment' })
+  mintAddress?: string;
+
+  /**
+   * The resolved, time-aware status stored at write time by the sync service.
+   * Used by the frontend to determine display status without recomputing from phases.
+   * Falls back to `status` when absent (pre-migration rows).
+   * See computeEffectiveStatus() for the transition logic.
+   */
+  @ApiProperty({ required: false, enum: ['draft', 'preparing', 'ready', 'minting', 'completed', 'paused'] })
+  effectiveStatus?: string;
+
+  /**
    * Royalty in basis points (e.g., 500 = 5%).
    * The creator's ongoing cut of secondary sales.
    * Only indexed for tradable collections — not all collections have royalties.

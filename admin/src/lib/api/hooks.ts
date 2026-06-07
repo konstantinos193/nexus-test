@@ -8,216 +8,223 @@ import {
 import { endpoints } from './endpoints'
 import { api } from './client'
 import {
-  mockPaginatedUsers,
+  mockAdminStats,
+  mockCreators,
+  mockPaginatedCollections,
   mockActivityList,
-  mockKpis,
-  mockActivity,
-  mockGeneralSettings,
-  mockSecuritySettings,
-  mockApiKeys,
+  mockCollections,
 } from './mock'
 import type {
   ActivityLog,
-  ApiKey,
-  GeneralSettings,
+  AdminStats,
+  Collection,
+  Creator,
   PaginatedResponse,
-  SecuritySettings,
-  User,
 } from '../types'
 
+const useMock = !process.env.NEXT_PUBLIC_API_URL
+
 const QUERY_KEYS = {
-  users: ['users'] as const,
-  user: (id: string) => ['users', id] as const,
-  usersList: (page: number, pageSize: number, search?: string) =>
-    ['users', page, pageSize, search] as const,
-  activity: (page: number, pageSize: number, userId?: string) =>
-    ['activity', page, pageSize, userId] as const,
-  dashboardKpis: ['dashboard', 'kpis'] as const,
-  dashboardRecent: ['dashboard', 'recent'] as const,
-  settingsGeneral: ['settings', 'general'] as const,
-  settingsSecurity: ['settings', 'security'] as const,
-  settingsApiKeys: ['settings', 'apiKeys'] as const,
+  adminStats: ['admin', 'stats'] as const,
+  collections: (filters: object) => ['collections', filters] as const,
+  collection: (id: string) => ['collections', id] as const,
+  creators: ['admin', 'creators'] as const,
+  health: ['infra', 'health'] as const,
+  ipfsHealth: ['infra', 'ipfs', 'health'] as const,
+  ipfsPins: ['infra', 'ipfs', 'pins'] as const,
+  solanaNetwork: ['infra', 'solana', 'network'] as const,
+  solanaConfig: ['infra', 'solana', 'config'] as const,
+  contractStatus: ['infra', 'contracts'] as const,
+  activity: (page: number, pageSize: number) => ['activity', page, pageSize] as const,
 }
 
-/** Check if we have a real API (e.g. VITE_API_URL set); otherwise use mocks */
-const useMock = !import.meta.env.VITE_API_URL
+// --- Admin Stats ---
 
-// --- Users ---
-
-export function useUsersList(
-  page: number,
-  pageSize: number,
-  search?: string,
-  options?: UseQueryOptions<PaginatedResponse<User>>
-) {
+export function useAdminStats(options?: UseQueryOptions<AdminStats>) {
   return useQuery({
-    queryKey: QUERY_KEYS.usersList(page, pageSize, search),
+    queryKey: QUERY_KEYS.adminStats,
     queryFn: async () => {
-      if (useMock) return mockPaginatedUsers(page, pageSize, search)
-      return api.get<PaginatedResponse<User>>(endpoints.users.list, {
-        params: { page, pageSize, search: search ?? undefined },
+      if (useMock) return mockAdminStats
+      return api.get<AdminStats>(endpoints.admin.stats)
+    },
+    ...options,
+  })
+}
+
+// --- Collections ---
+
+export interface CollectionFilters {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: string
+  featured?: boolean
+}
+
+export function useCollections(
+  filters: CollectionFilters = {},
+  options?: UseQueryOptions<PaginatedResponse<Collection>>
+) {
+  const { page = 1, pageSize = 10, search, status, featured } = filters
+  return useQuery({
+    queryKey: QUERY_KEYS.collections(filters),
+    queryFn: async () => {
+      if (useMock) return mockPaginatedCollections(page, pageSize, search, status, featured)
+      return api.get<PaginatedResponse<Collection>>(endpoints.collections.list, {
+        params: {
+          page,
+          pageSize,
+          search: search || undefined,
+          status: status && status !== 'all' ? status : undefined,
+          featured: featured || undefined,
+        },
       })
     },
     ...options,
   })
 }
 
-export function useUser(
+export function useCollection(
   id: string | null,
-  options?: UseQueryOptions<User | null>
+  options?: UseQueryOptions<Collection | null>
 ) {
   return useQuery({
-    queryKey: QUERY_KEYS.user(id ?? ''),
+    queryKey: QUERY_KEYS.collection(id ?? ''),
     queryFn: async () => {
       if (!id) return null
-      if (useMock) {
-        const u = (await import('./mock')).mockUsers.find((x) => x.id === id)
-        return u ?? null
-      }
-      return api.get<User>(endpoints.users.byId(id))
+      if (useMock) return mockCollections.find((c) => c.id === id) ?? null
+      return api.get<Collection>(endpoints.collections.byId(id))
     },
     enabled: !!id,
     ...options,
   })
 }
 
-export function useCreateUser(
-  options?: UseMutationOptions<User, Error, Omit<User, 'id' | 'createdAt' | 'lastActiveAt'>>
-) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (data) => {
-      if (useMock) {
-        const newUser: User = {
-          ...data,
-          id: String(Date.now()),
-          createdAt: new Date().toISOString(),
-          lastActiveAt: new Date().toISOString(),
-        }
-        return newUser
-      }
-      return api.post<User>(endpoints.users.create, data)
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.users })
-    },
-    ...options,
-  })
-}
+// --- Admin Collection Mutations ---
 
-export function useUpdateUser(
-  options?: UseMutationOptions<User, Error, { id: string; data: Partial<User> }>
+export function useAdminUpdateCollection(
+  options?: UseMutationOptions<void, Error, { id: string; data: { featured?: boolean; status?: string } }>
 ) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, data }) => {
-      if (useMock) {
-        return { ...(await import('./mock')).mockUsers.find((u) => u.id === id)!, ...data }
-      }
-      return api.patch<User>(endpoints.users.update(id), data)
+      if (useMock) return
+      await api.patch(endpoints.admin.updateCollection(id), data)
     },
-    onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.user(id) })
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.users })
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['collections'] })
     },
     ...options,
   })
 }
 
-export function useDeleteUser(options?: UseMutationOptions<void, Error, string>) {
+export function useAdminDeleteCollection(
+  options?: UseMutationOptions<void, Error, string>
+) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id) => {
       if (useMock) return
-      await api.delete(endpoints.users.delete(id))
+      await api.delete(endpoints.admin.deleteCollection(id))
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.users })
+      qc.invalidateQueries({ queryKey: ['collections'] })
     },
     ...options,
   })
 }
 
-// --- Activity / Logs ---
+export function useTriggerSync(options?: UseMutationOptions<void, Error, void>) {
+  return useMutation({
+    mutationFn: async () => {
+      if (useMock) return
+      await api.post(endpoints.collections.sync)
+    },
+    ...options,
+  })
+}
+
+// --- Creators ---
+
+export function useCreators(options?: UseQueryOptions<Creator[]>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.creators,
+    queryFn: async () => {
+      if (useMock) return mockCreators
+      return api.get<Creator[]>(endpoints.admin.creators)
+    },
+    ...options,
+  })
+}
+
+// --- Infrastructure ---
+
+export function useHealthCheck(options?: UseQueryOptions<Record<string, unknown>>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.health,
+    queryFn: () => api.get<Record<string, unknown>>(endpoints.infrastructure.health),
+    refetchInterval: 30_000,
+    ...options,
+  })
+}
+
+export function useIpfsHealth(options?: UseQueryOptions<Record<string, unknown>>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.ipfsHealth,
+    queryFn: () => api.get<Record<string, unknown>>(endpoints.infrastructure.ipfsHealth),
+    refetchInterval: 30_000,
+    ...options,
+  })
+}
+
+export function useIpfsPins(options?: UseQueryOptions<unknown[]>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.ipfsPins,
+    queryFn: () => api.get<unknown[]>(endpoints.infrastructure.ipfsPins),
+    ...options,
+  })
+}
+
+export function useSolanaNetwork(options?: UseQueryOptions<Record<string, unknown>>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.solanaNetwork,
+    queryFn: () => api.get<Record<string, unknown>>(endpoints.infrastructure.solanaNetwork),
+    refetchInterval: 30_000,
+    ...options,
+  })
+}
+
+export function useSolanaConfig(options?: UseQueryOptions<Record<string, unknown>>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.solanaConfig,
+    queryFn: () => api.get<Record<string, unknown>>(endpoints.infrastructure.solanaConfig),
+    ...options,
+  })
+}
+
+export function useContractStatus(options?: UseQueryOptions<Record<string, unknown>>) {
+  return useQuery({
+    queryKey: QUERY_KEYS.contractStatus,
+    queryFn: () => api.get<Record<string, unknown>>(endpoints.infrastructure.contractStatus),
+    refetchInterval: 60_000,
+    ...options,
+  })
+}
+
+// --- Activity Logs ---
 
 export function useActivityList(
   page: number,
   pageSize: number,
-  userId?: string,
   options?: UseQueryOptions<PaginatedResponse<ActivityLog>>
 ) {
   return useQuery({
-    queryKey: QUERY_KEYS.activity(page, pageSize, userId),
+    queryKey: QUERY_KEYS.activity(page, pageSize),
     queryFn: async () => {
-      if (useMock) return mockActivityList(page, pageSize, userId)
+      if (useMock) return mockActivityList(page, pageSize)
       return api.get<PaginatedResponse<ActivityLog>>(endpoints.activity.list, {
-        params: { page, pageSize, userId: userId ?? undefined },
+        params: { page, pageSize },
       })
-    },
-    ...options,
-  })
-}
-
-// --- Dashboard ---
-
-export function useDashboardKpis(options?: UseQueryOptions<typeof mockKpis>) {
-  return useQuery({
-    queryKey: QUERY_KEYS.dashboardKpis,
-    queryFn: async () => {
-      if (useMock) return mockKpis
-      return api.get(endpoints.dashboard.kpis)
-    },
-    ...options,
-  })
-}
-
-export function useDashboardRecentActivity(
-  options?: UseQueryOptions<ActivityLog[]>
-) {
-  return useQuery({
-    queryKey: QUERY_KEYS.dashboardRecent,
-    queryFn: async () => {
-      if (useMock) return mockActivity
-      return api.get(endpoints.dashboard.recentActivity)
-    },
-    ...options,
-  })
-}
-
-// --- Settings ---
-
-export function useSettingsGeneral(
-  options?: UseQueryOptions<GeneralSettings>
-) {
-  return useQuery({
-    queryKey: QUERY_KEYS.settingsGeneral,
-    queryFn: async () => {
-      if (useMock) return mockGeneralSettings
-      return api.get(endpoints.settings.general)
-    },
-    ...options,
-  })
-}
-
-export function useSettingsSecurity(
-  options?: UseQueryOptions<SecuritySettings>
-) {
-  return useQuery({
-    queryKey: QUERY_KEYS.settingsSecurity,
-    queryFn: async () => {
-      if (useMock) return mockSecuritySettings
-      return api.get(endpoints.settings.security)
-    },
-    ...options,
-  })
-}
-
-export function useSettingsApiKeys(options?: UseQueryOptions<ApiKey[]>) {
-  return useQuery({
-    queryKey: QUERY_KEYS.settingsApiKeys,
-    queryFn: async () => {
-      if (useMock) return mockApiKeys
-      return api.get(endpoints.settings.apiKeys)
     },
     ...options,
   })

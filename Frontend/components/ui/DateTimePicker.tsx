@@ -123,6 +123,7 @@ function dayKey(d: Date) {
  * Trigger button shows formatted date or placeholder.
  * Portal-rendered calendar popover appears below (or above if near bottom of viewport).
  */
+// eslint-disable-next-line complexity
 export default function DateTimePicker({
   value, onChange,
   placeholder = 'Pick date & time',
@@ -139,10 +140,11 @@ export default function DateTimePicker({
   // These can be different when the user navigates without selecting.
   const [viewYear,  setViewYear]  = useState(selected?.getFullYear()  ?? now.getFullYear())
   const [viewMonth, setViewMonth] = useState(selected?.getMonth()     ?? now.getMonth())
-  // timeH/timeM — current time selection. String format for the <select> value.
-  // Default to 12:00. Time is local. Always local. Not UTC.
-  const [timeH,     setTimeH]     = useState(selected ? pad(selected.getHours())   : '12')
+  // timeH/timeM/timeP — current time selection. String format.
+  // 12-hour format with AM/PM. Default to 12:00 PM. Time is local. Always local. Not UTC.
+  const [timeH,     setTimeH]     = useState(selected ? pad(selected.getHours() % 12 || 12) : '12')
   const [timeM,     setTimeM]     = useState(selected ? pad(selected.getMinutes()) : '00')
+  const [timeP,     setTimeP]     = useState(selected ? (selected.getHours() >= 12 ? 'PM' : 'AM') : 'AM')
 
   // pos — fixed-position coordinates for the portal.
   // Computed on open from the trigger's getBoundingClientRect.
@@ -157,24 +159,19 @@ export default function DateTimePicker({
   const popoverRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Timezone detection — browser only (Intl not available on server).
-  // tzName = "America/New_York". tzAbbr = "EST". Both used in the UI.
-  // tzAbbr shown in the trigger button so users know which timezone they're scheduling in.
-  const tzName = typeof window !== 'undefined'
-    ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC'
-  const tzAbbr = typeof window !== 'undefined'
-    ? (new Intl.DateTimeFormat('en', { timeZoneName: 'short' })
-        .formatToParts(now).find(p => p.type === 'timeZoneName')?.value ?? 'local')
-    : 'UTC'
 
   // Sync time state when value changes externally.
   // If the parent updates the value (e.g., resets the form), we update our local state.
-  // Without this, the picker would show stale hour/minute from the previous selection.
+  // Without this, the picker would show stale hour/minute/AM-PM from the previous selection.
   useEffect(() => {
     const d = parseValue(value)
     if (d) {
-      setTimeH(pad(d.getHours()))
+      const hours24 = d.getHours()
+      const hours12 = hours24 % 12 || 12
+      const ampm = hours24 >= 12 ? 'PM' : 'AM'
+      setTimeH(pad(hours12))
       setTimeM(pad(d.getMinutes()))
+      setTimeP(ampm)
       setViewYear(d.getFullYear())
       setViewMonth(d.getMonth())
     }
@@ -239,32 +236,34 @@ export default function DateTimePicker({
   }
 
   // pickDay — user clicks a calendar day.
-  // Applies the current timeH/timeM to the clicked date and calls onChange.
+  // Applies the current timeH/timeM/timeP to the clicked date and calls onChange.
   function pickDay(date: Date) {
     const d = new Date(date)
-    d.setHours(parseInt(timeH, 10))
+    let hour24 = parseInt(timeH, 10)
+    // Convert 12-hour to 24-hour format
+    if (timeP === 'PM' && hour24 !== 12) hour24 += 12
+    if (timeP === 'AM' && hour24 === 12) hour24 = 0
+    d.setHours(hour24)
     d.setMinutes(parseInt(timeM, 10))
     d.setSeconds(0)
     onChange(toInputValue(d))
   }
 
-  // applyTime — user changes a time dropdown.
+  // applyTime — user changes time inputs (hour, minute, or AM/PM).
   // If a date is already selected, updates it with the new time. Otherwise no-op.
-  function applyTime(h: string, m: string) {
+  function applyTime(h: string, m: string, p: string) {
     if (selected) {
       const d = new Date(selected)
-      d.setHours(parseInt(h, 10))
+      let hour24 = parseInt(h, 10)
+      // Convert 12-hour to 24-hour format
+      if (p === 'PM' && hour24 !== 12) hour24 += 12
+      if (p === 'AM' && hour24 === 12) hour24 = 0
+      d.setHours(hour24)
       d.setMinutes(parseInt(m, 10))
       d.setSeconds(0)
       onChange(toInputValue(d))
     }
   }
-
-  // HOURS — 00 through 23. 24 options. Full 24-hour clock.
-  const HOURS   = Array.from({ length: 24 }, (_, i) => pad(i))
-  // MINUTES — 00, 05, 10 ... 55. 5-minute increments. 12 options.
-  // Nobody schedules a mint at 2:43pm. 5-minute granularity is plenty.
-  const MINUTES = Array.from({ length: 12 }, (_, i) => pad(i * 5))
 
   // Calendar grid — built from viewYear and viewMonth. 42 cells. Always 42.
   const cells       = buildCalendar(viewYear, viewMonth)
@@ -301,10 +300,9 @@ export default function DateTimePicker({
         <span className={`flex-1 ${selected ? 'text-dark-text-primary' : 'text-dark-text-tertiary'}`}>
           {selected ? formatDisplay(selected) : placeholder}
         </span>
-        {/* Timezone badge — shows the local timezone abbreviation.
-            Monospace font, bordered pill. Subtle. Informative. Appreciated. */}
-        <span className="text-[10px] font-mono text-dark-text-tertiary shrink-0 bg-dark-bg-secondary border border-dark-border-primary px-1.5 py-0.5 rounded">
-          {tzAbbr}
+        {/* Local time indicator badge — shows this is local time. */}
+        <span className="text-[10px] font-semibold text-dark-text-secondary shrink-0">
+          LOCAL
         </span>
       </button>
 
@@ -348,21 +346,16 @@ export default function DateTimePicker({
               const key        = dayKey(date)
               const isSelected = key === selectedKey
               const isToday    = key === todayKey
+              let dayClass: string
+              if (isSelected) dayClass = 'bg-dark-accent-primary text-white font-bold'
+              else if (isToday) dayClass = 'text-dark-accent-primary ring-1 ring-dark-accent-primary/40 hover:bg-dark-bg-tertiary'
+              else if (current) dayClass = 'text-dark-text-primary hover:bg-dark-bg-tertiary'
+              else dayClass = 'text-dark-text-tertiary/40 hover:bg-dark-bg-tertiary'
               return (
                 <button key={i} type="button" onClick={() => pickDay(date)}
                   className={[
                     'h-8 w-full rounded-lg text-xs font-medium transition-colors',
-                    // Selected: accent background + white text. Bold because it matters.
-                    isSelected
-                      ? 'bg-dark-accent-primary text-white font-bold'
-                      // Today: accent text + ring indicator. "You are here."
-                      : isToday
-                        ? 'text-dark-accent-primary ring-1 ring-dark-accent-primary/40 hover:bg-dark-bg-tertiary'
-                        // Current month day: primary text, hover bg.
-                        : current
-                          ? 'text-dark-text-primary hover:bg-dark-bg-tertiary'
-                          // Non-current month day: very muted. Present but not prominent.
-                          : 'text-dark-text-tertiary/40 hover:bg-dark-bg-tertiary',
+                    dayClass,
                   ].join(' ')}
                 >
                   {date.getDate()}
@@ -371,36 +364,80 @@ export default function DateTimePicker({
             })}
           </div>
 
-          {/* ── Time dropdowns + timezone ───────────────────────────────────── */}
-          {/* Hour and minute as <select> dropdowns. Minute in 5-minute steps.
-              Both update the selected date's time via applyTime when changed.
+          {/* ── Time text inputs + AM/PM toggle + timezone ────────────────────── */}
+          {/* Hour and minute as text inputs in 12-hour format.
+              AM/PM toggle is required — user must select one.
               Timezone name shown on the right — full name (e.g., "America/New_York").
               truncated to max-w-30 because long timezone names are long. */}
           <div className="border-t border-dark-border-primary px-4 py-3 flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              {/* Hour selector — 00 through 23. 24-hour format. No AM/PM ambiguity. */}
-              <select
+              {/* Hour input — 1 through 12. 12-hour format. Direct typing. */}
+              <input
+                type="number"
+                min="1"
+                max="12"
                 value={timeH}
-                onChange={(e) => { setTimeH(e.target.value); applyTime(e.target.value, timeM) }}
-                className="bg-dark-bg-tertiary border border-dark-border-primary rounded-lg px-2 py-1.5 text-sm font-mono text-dark-text-primary focus:outline-none focus:border-dark-accent-primary/50 transition-colors cursor-pointer"
-              >
-                {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+                onChange={(e) => {
+                  let val = e.target.value
+                  // Allow 1-12, pad with zero if single digit
+                  const num = parseInt(val, 10)
+                  if (!isNaN(num) && num >= 1 && num <= 12) {
+                    val = pad(num)
+                    setTimeH(val)
+                    applyTime(val, timeM, timeP)
+                  } else if (val === '') {
+                    setTimeH('')
+                  }
+                }}
+                className="w-12 bg-dark-bg-tertiary border border-dark-border-primary rounded-lg px-2 py-1.5 text-sm font-mono text-dark-text-primary focus:outline-none focus:border-dark-accent-primary/50 transition-colors text-center"
+                placeholder="12"
+              />
               {/* Separator — the colon between hour and minute. Critical for readability. */}
               <span className="text-dark-text-tertiary font-bold">:</span>
-              {/* Minute selector — 5-minute increments. 00 to 55. */}
-              <select
+              {/* Minute input — 00 through 59. Direct typing. */}
+              <input
+                type="number"
+                min="0"
+                max="59"
                 value={timeM}
-                onChange={(e) => { setTimeM(e.target.value); applyTime(timeH, e.target.value) }}
-                className="bg-dark-bg-tertiary border border-dark-border-primary rounded-lg px-2 py-1.5 text-sm font-mono text-dark-text-primary focus:outline-none focus:border-dark-accent-primary/50 transition-colors cursor-pointer"
-              >
-                {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+                onChange={(e) => {
+                  let val = e.target.value
+                  const num = parseInt(val, 10)
+                  if (!isNaN(num) && num >= 0 && num <= 59) {
+                    val = pad(num)
+                    setTimeM(val)
+                    applyTime(timeH, val, timeP)
+                  } else if (val === '') {
+                    setTimeM('')
+                  }
+                }}
+                className="w-12 bg-dark-bg-tertiary border border-dark-border-primary rounded-lg px-2 py-1.5 text-sm font-mono text-dark-text-primary focus:outline-none focus:border-dark-accent-primary/50 transition-colors text-center"
+                placeholder="00"
+              />
+              {/* AM/PM toggle — required. User must select one. */}
+              <div className="flex gap-1 ml-1">
+                {['AM', 'PM'].map(period => (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => {
+                      setTimeP(period)
+                      applyTime(timeH, timeM, period)
+                    }}
+                    className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                      timeP === period
+                        ? 'bg-dark-accent-primary text-white'
+                        : 'bg-dark-bg-tertiary border border-dark-border-primary text-dark-text-primary hover:border-dark-accent-primary/50'
+                    }`}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
             </div>
-            {/* Full timezone name — truncated, right-aligned.
-                title attribute shows the full name on hover for long timezone names. */}
-            <span className="ml-auto text-[10px] text-dark-text-tertiary truncate max-w-30 text-right" title={tzName}>
-              {tzName}
+            {/* Local time indicator — shows user is scheduling in their local timezone. */}
+            <span className="ml-auto text-[10px] font-semibold text-dark-text-secondary">
+              LOCAL TIME
             </span>
           </div>
 

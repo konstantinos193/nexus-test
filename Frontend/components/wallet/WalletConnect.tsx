@@ -280,10 +280,11 @@ export function WalletModal({ onSelect, onClose }: WalletModalProps) {
  * Reads wallet state from useWallet and useConnection.
  * Two render branches: disconnected (connect button + modal) and connected (address chip + dropdown).
  */
+// eslint-disable-next-line complexity
 function WalletConnectInner() {
   // Wallet adapter state — connected, publicKey (null when disconnected), connecting,
   // disconnect, wallet (the adapter object), connect, select.
-  const { connected, publicKey, connecting, disconnect, wallet, connect, select } = useWallet()
+  const { connected, publicKey, connecting, disconnect, wallet, connect, select, wallets } = useWallet()
 
   // connection — for fetching the SOL balance. Queries the chain directly.
   const { connection } = useConnection()
@@ -302,7 +303,7 @@ function WalletConnectInner() {
 
   // pendingConnect — true after wallet selection, before connect() resolves.
   // The effect below fires connect() once the wallet adapter is ready.
-  const [pendingConnect, setPendingConnect] = useState(false)
+  
 
   // containerRef — for click-outside detection on the dropdown.
   const containerRef = useRef<HTMLDivElement>(null)
@@ -313,12 +314,7 @@ function WalletConnectInner() {
   // pendingConnect effect — fires connect() after select() has set the wallet.
   // select() is async-ish — the wallet might not be ready immediately after calling it.
   // We watch for wallet being set + not yet connected + not connecting → fire connect().
-  useEffect(() => {
-    if (pendingConnect && wallet && !connected && !connecting) {
-      setPendingConnect(false)
-      connect().catch(err => console.error('[Wallet connect]', err))
-    }
-  }, [pendingConnect, wallet, connected, connecting, connect])
+  
 
   // Balance fetch effect — queries on-chain balance when publicKey is available.
   // Cancellation flag prevents stale setState on slow networks or rapid re-renders.
@@ -367,9 +363,23 @@ function WalletConnectInner() {
   // handleWalletSelect — called when the user picks a wallet in the modal.
   // Selects the adapter, closes the modal, sets pendingConnect.
   function handleWalletSelect(name: WalletName) {
-    select(name)
+    // Try to connect the adapter directly during the user's click so the
+    // browser treats it as a user gesture and shows the wallet popup.
+    const entry = wallets.find(w => w.adapter.name === name)
+    // Close modal and select in provider state regardless.
     setModalOpen(false)
-    setPendingConnect(true)
+    select(name)
+
+    if (entry && typeof entry.adapter.connect === 'function') {
+      // Call the adapter's connect method directly. If it fails, fall back
+      // to the provider's connect() which may wait until the adapter is ready.
+      entry.adapter.connect().catch(err => {
+        console.error('[Wallet adapter connect]', err)
+        connect().catch(err2 => console.error('[Wallet connect]', err2))
+      })
+    } else {
+      connect().catch(err => console.error('[Wallet connect]', err))
+    }
   }
 
   // handleCopy — copies the address to clipboard, shows a check for 2 seconds.

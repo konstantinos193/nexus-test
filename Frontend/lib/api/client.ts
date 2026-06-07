@@ -182,8 +182,8 @@ export const collectionsApi = {
   },
 
   /** Fetch raw on-chain collection state — used by edit page to get metadataStandard and current config */
-  getOnChain: async (mintAddress: string): Promise<ApiResponse<any>> => {
-    return fetchApi<any>(`/api/collections/onchain/${mintAddress}`)
+  getOnChain: async (mintAddress: string): Promise<ApiResponse<unknown>> => {
+    return fetchApi<unknown>(`/api/collections/onchain/${mintAddress}`)
   },
 }
 
@@ -227,7 +227,7 @@ export const ipfsApi = {
     return new Promise((resolve) => {
       const form = new FormData()
       for (const file of files) form.append(file.name, file)
-      const xhr = new XMLHttpRequest()
+      const xhr = new window.XMLHttpRequest()
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
       }

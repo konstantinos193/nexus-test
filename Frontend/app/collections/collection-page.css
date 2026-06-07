@@ -368,6 +368,9 @@
   color: var(--cp-text-muted);
   font-size: 0.9375rem;
   line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .cp-section-content.cp-clamped {
@@ -487,11 +490,24 @@
   align-items: center;
   gap: 0.875rem;
   flex-wrap: wrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
+
+.cp-phase-item:hover { background: rgba(255, 255, 255, 0.03); }
 
 .cp-phase-item.active {
   border-color: var(--cp-accent);
   background: rgba(0, 194, 255, 0.03);
+}
+
+.cp-phase-item.selected {
+  border-left: 3px solid var(--cp-accent);
+  background: rgba(0, 194, 255, 0.06);
+}
+
+.cp-phase-item.active.selected {
+  background: rgba(0, 194, 255, 0.09);
 }
 
 .cp-phase-badge {

@@ -1,0 +1,50 @@
+/**
+ * ToolsPageHero.module.css
+ * Badge, title, subtitle. The first thing you see before the existential grid.
+ * Same look as the old tools-page-hero so the redesign didn't break the vibe.
+ *
+ * @author Juan – pixel plumber and CSS masochist
+ */
+
+.hero {
+  text-align: center;
+  margin-bottom: 3.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--tools-border);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--tools-accent);
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--tools-text);
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.sub {
+  font-size: 1.0625rem;
+  color: var(--tools-text-muted);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    margin-bottom: 4rem;
+    padding-bottom: 3rem;
+  }
+}
+
+/* — Juan. Clamp() because we're not animals. */

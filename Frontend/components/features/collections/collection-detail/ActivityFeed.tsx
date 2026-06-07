@@ -25,12 +25,14 @@ import SolIcon from './SolIcon'
  * (Though they will read the word. It's right there. Belt and suspenders.)
  */
 function ActivityLabel({ type }: { type: ActivityItem['type'] }) {
+  let activityLabel: string
+  if (type === 'minted') activityLabel = 'Mint'
+  else if (type === 'listed') activityLabel = 'List'
+  else activityLabel = 'Sale'
   return (
     // cp-activity-type class handles base styling; `type` class handles the color coding
     <span className={`cp-activity-type ${type}`}>
-      {/* Map internal type values to readable labels — "minted" → "Mint", etc.
-          "Minted" is past tense in the DB but "Mint" reads better as a label. English is hard. */}
-      {type === 'minted' ? 'Mint' : type === 'listed' ? 'List' : 'Sale'}
+      {activityLabel}
     </span>
   )
 }

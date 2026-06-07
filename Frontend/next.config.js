@@ -45,10 +45,16 @@ const nextConfig = {
   experimental: {
     // Only optimize packages that are actually used
     // framer-motion removed as it's not used in source code
-    optimizePackageImports: ['lucide-react'],
+    optimizePackageImports: [
+      'lucide-react',
+      '@solana/wallet-adapter-react',
+      '@solana/wallet-adapter-wallets',
+      'framer-motion'
+    ],
   },
   // Turbopack (Next.js 16 default) — empty config silences the webpack-vs-turbopack warning
   turbopack: {},
+  
   // Webpack configuration for better code splitting
   // Used when running with --webpack flag or when webpack is the active bundler
   webpack: (config, { isServer, dev }) => {
@@ -99,6 +105,12 @@ const nextConfig = {
   poweredByHeader: false, // Remove X-Powered-By header for security
   // Optimize output
   output: 'standalone', // Creates optimized standalone build
+  
+  // Build caching for faster subsequent builds
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 }
 
 export default nextConfig

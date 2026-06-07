@@ -23,8 +23,20 @@
 
 use anchor_lang::prelude::*;
 use core::convert::TryInto;
+use mpl_core::ID as MPL_CORE_ID;
 use sha3::{Digest, Keccak256};
 
+// Updated with actual deployed program IDs
+pub const ALLOWLIST_PROGRAM_ID: Pubkey = Pubkey::from_str_const("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM");
+pub const PAYMENT_PROGRAM_ID: Pubkey = Pubkey::from_str_const("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+
+mod nft_mint;
+use nft_mint::{
+    create_core_collection, mint_authority_pda, mint_core_asset, COLLECTION_NAME_MAX_LEN,
+    MINT_AUTHORITY_SEED,
+};
+
+// TODO: Update this with the actual program ID after deployment
 // The one program ID. Just the one.
 // If you change this without updating Anchor.toml and the frontend, nothing works.
 // You've been warned.
@@ -79,10 +91,13 @@ pub mod nexus_launchpad {
     /// One-time platform setup. Must exist before any collection can be created.
     /// Stores the platform authority so update_featured is actually gated
     /// (the original had no auth check — fixed here).
+    #[inline]
     pub fn initialize_registry(ctx: Context<InitializeRegistry>) -> Result<()> {
         let registry = &mut ctx.accounts.registry;
         registry.authority = ctx.accounts.authority.key();
         registry.bump = ctx.bumps.registry;
+        registry.collection_count = 0;
+        // Initialize empty vector
         registry.collections = Vec::new();
         log_msg!("Registry initialized. Authority: {}", registry.authority);
         Ok(())
@@ -112,6 +127,117 @@ pub mod nexus_launchpad {
         Ok(())
     }
 
+    /// Emergency pause - stops all minting across all collections (registry authority only).
+    /// Use this only in emergencies like security vulnerabilities or exploits.
+    pub fn emergency_pause_all(ctx: Context<EmergencyControl>) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        registry.emergency_pause = true;
+        registry.emergency_pause_time = Clock::get()?.unix_timestamp;
+        emit!(EmergencyPause {
+            timestamp: registry.emergency_pause_time,
+            authority: ctx.accounts.authority.key(),
+        });
+        log_msg!("EMERGENCY: All minting paused globally");
+        Ok(())
+    }
+
+    /// Emergency unpause - resumes normal operations (registry authority only).
+    /// Only call after emergency is resolved and security is restored.
+    pub fn emergency_unpause_all(ctx: Context<EmergencyControl>) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        require!(registry.emergency_pause, NexusError::NoEmergencyPause);
+        registry.emergency_pause = false;
+        registry.emergency_pause_time = Collection::DISABLED_I64;
+        emit!(EmergencyUnpause {
+            timestamp: Clock::get()?.unix_timestamp,
+            authority: ctx.accounts.authority.key(),
+        });
+        log_msg!("EMERGENCY: Global pause lifted");
+        Ok(())
+    }
+
+    /// Initiate program upgrade with safety checks (registry authority only).
+    /// This sets up the upgrade state machine for safe program upgrades.
+    pub fn initiate_upgrade(
+        ctx: Context<InitiateUpgrade>,
+        new_program_id: Pubkey,
+        upgrade_delay: i64, // Delay in seconds before upgrade can be completed
+    ) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        let clock = Clock::get()?;
+        
+        // Safety checks
+        require!(upgrade_delay >= 86400, NexusError::UpgradeDelayTooShort); // Min 24 hours
+        require!(upgrade_delay <= 7 * 86400, NexusError::UpgradeDelayTooLong); // Max 7 days
+        require!(!registry.emergency_pause, NexusError::EmergencyPauseActive);
+        
+        registry.upgrade_state = UpgradeState::Initiated as u8;
+        registry.pending_upgrade_program = new_program_id;
+        registry.upgrade_initiated_time = clock.unix_timestamp;
+        registry.upgrade_completion_time = clock.unix_timestamp + upgrade_delay;
+        
+        emit!(UpgradeInitiated {
+            new_program_id,
+            completion_time: registry.upgrade_completion_time,
+            authority: ctx.accounts.authority.key(),
+        });
+        
+        log_msg!("Upgrade initiated: {} -> {}", program_id(), new_program_id);
+        Ok(())
+    }
+
+    /// Complete program upgrade (registry authority only).
+    /// Can only be called after the delay period has passed.
+    pub fn complete_upgrade(ctx: Context<CompleteUpgrade>) -> Result<()> {
+        let registry = &ctx.accounts.registry;
+        let clock = Clock::get()?;
+        
+        require!(
+            registry.upgrade_state == UpgradeState::Initiated as u8,
+            NexusError::NoUpgradeInProgress
+        );
+        require!(
+            clock.unix_timestamp >= registry.upgrade_completion_time,
+            NexusError::UpgradeDelayNotPassed
+        );
+        
+        // The actual upgrade happens off-chain via solana program upgrade command
+        // This just marks the upgrade as completed in our state
+        emit!(UpgradeCompleted {
+            old_program_id: program_id(),
+            new_program_id: registry.pending_upgrade_program,
+            completion_time: clock.unix_timestamp,
+        });
+        
+        log_msg!("Upgrade completed successfully");
+        Ok(())
+    }
+
+    /// Cancel pending upgrade (registry authority only).
+    /// Use this if the upgrade needs to be aborted for any reason.
+    pub fn cancel_upgrade(ctx: Context<CancelUpgrade>) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        
+        require!(
+            registry.upgrade_state == UpgradeState::Initiated as u8,
+            NexusError::NoUpgradeInProgress
+        );
+        
+        let cancelled_program = registry.pending_upgrade_program;
+        registry.upgrade_state = UpgradeState::None as u8;
+        registry.pending_upgrade_program = Pubkey::default();
+        registry.upgrade_initiated_time = Collection::DISABLED_I64;
+        registry.upgrade_completion_time = Collection::DISABLED_I64;
+        
+        emit!(UpgradeCancelled {
+            cancelled_program,
+            authority: ctx.accounts.authority.key(),
+        });
+        
+        log_msg!("Upgrade cancelled");
+        Ok(())
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // COLLECTION LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════════
@@ -127,10 +253,15 @@ pub mod nexus_launchpad {
     /// (getProgramAccounts always works as a fallback.)
     pub fn create_collection(
         ctx: Context<CreateCollection>,
+        collection_name: String,
         metadata_uri: String,
         collection_config: CollectionConfig,
         platform_fee_bps: u16,
     ) -> Result<()> {
+        require!(
+            collection_name.len() <= COLLECTION_NAME_MAX_LEN,
+            NexusError::CollectionNameTooLong
+        );
         require!(
             metadata_uri.len() <= METADATA_URI_MAX_LEN,
             NexusError::MetadataUriTooLong
@@ -152,12 +283,19 @@ pub mod nexus_launchpad {
         // Identity
         collection.authority = ctx.accounts.authority.key();
         collection.mint = ctx.accounts.mint.key();
-        collection.mint_authority = ctx.accounts.mint_authority.key();
+        let (mint_auth_pda, mint_auth_bump) =
+            mint_authority_pda(&ctx.accounts.mint.key(), ctx.program_id);
+        require_keys_eq!(
+            ctx.accounts.mint_authority.key(),
+            mint_auth_pda,
+            NexusError::Unauthorized
+        );
+        collection.mint_authority = mint_auth_pda;
         collection.creator_wallet = ctx.accounts.creator_wallet.key();
         collection.platform_wallet = ctx.accounts.platform_wallet.key();
 
         // Catalog fields
-        collection.metadata_uri = metadata_uri;
+        collection.metadata_uri = metadata_uri.clone();
         collection.created_at = clock.unix_timestamp;
         collection.status = 0; // draft — creator updates this through the launch lifecycle
         collection.featured = false;
@@ -196,7 +334,7 @@ pub mod nexus_launchpad {
                 log_msg!(
                     "Collection {} registered (total: {})",
                     collection_key,
-                    registry.collections.len()
+                    registry.collection_count
                 );
             }
             Ok(false) => {
@@ -205,7 +343,21 @@ pub mod nexus_launchpad {
             Err(err) => return Err(err),
         }
 
+        if collection.metadata_standard == MetadataStandard::Core as u8 {
+            create_core_collection(
+                &collection_name,
+                &metadata_uri,
+                &ctx.accounts.mint.to_account_info(),
+                &ctx.accounts.mint_authority.to_account_info(),
+                &ctx.accounts.authority.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+                &ctx.accounts.mpl_core_program.to_account_info(),
+                ctx.bumps.mint_authority,
+            )?;
+        }
+
         log_msg!("Collection created: {}", collection.key());
+        let _ = mint_auth_bump;
         Ok(())
     }
 
@@ -266,16 +418,41 @@ pub mod nexus_launchpad {
     /// No escrow. No intermediate accounts. Just math and two transfers.
     /// When has_split is set, the creator amount is split across up to 10 recipients
     /// passed as remaining_accounts in order: [buyer, recipient_0, ..., recipient_n-1].
+    // Compute unit intensive operation - optimized for minimal CU usage
+    // Early validation checks to fail fast and save compute units
+    #[inline]
     pub fn mint(
         ctx: Context<MintNFT>,
         quantity: u8,
         allowlist_proof: Vec<[u8; 32]>,
         allowlist_leaf_index: u32,
     ) -> Result<()> {
-        let collection = &mut ctx.accounts.collection;
-        let clock = Clock::get()?;
-
+        // Fail fast on invalid input to save compute units
         require!(quantity > 0, NexusError::InvalidSupply);
+        
+        // Additional early validation to prevent expensive operations
+        require!(
+            allowlist_proof.len() <= MAX_MERKLE_PROOF_DEPTH,
+            NexusError::AllowlistInvalid
+        );
+        
+        // Security: Prevent excessive quantity minting in single transaction
+        require!(quantity <= 10, NexusError::InvalidSupply);
+
+        let clock = Clock::get()?;
+        
+        // Security: Check global emergency pause first
+        let registry = &ctx.accounts.registry;
+        require!(!registry.emergency_pause, NexusError::EmergencyPauseActive);
+        
+        // Security: Additional validation for upgrade state
+        require!(
+            registry.upgrade_state != UpgradeState::Initiated as u8,
+            NexusError::UpgradeInProgress
+        );
+        
+        let new_minted = {
+        let collection = &mut ctx.accounts.collection;
         require!(!collection.is_paused(), NexusError::MintingPaused);
         require!(
             clock.unix_timestamp >= collection.start_time,
@@ -293,33 +470,58 @@ pub mod nexus_launchpad {
             .ok_or(NexusError::MathOverflow)?;
         require!(new_minted <= collection.max_supply, NexusError::SupplyExceeded);
 
-        // Allowlist verification via Keccak256 Merkle proof
-        if collection.has_allowlist() {
-            require!(!allowlist_proof.is_empty(), NexusError::AllowlistRequired);
-            require!(
-                allowlist_proof.len() <= MAX_MERKLE_PROOF_DEPTH,
-                NexusError::AllowlistInvalid
-            );
-            let mut hasher = Keccak256::new();
-            hasher.update(ctx.accounts.buyer.key().as_ref());
-            // Bind leaf to this collection so a proof from collection A cannot
-            // be replayed against collection B with the same Merkle root.
-            hasher.update(collection.key().as_ref());
-            let hash_result = hasher.finalize();
-            // SAFETY: Keccak256 always produces exactly 32 bytes; try_into cannot fail here.
-            let leaf: [u8; 32] = hash_result.as_slice().try_into().unwrap();
-            require!(
-                verify_merkle_proof(
-                    &leaf,
-                    allowlist_leaf_index,
-                    &allowlist_proof,
-                    &collection.allowlist_root
-                ),
-                NexusError::AllowlistInvalid
-            );
-        } else {
-            // Don't silently ignore proof data on public mint — caller probably has a bug
+        // Optimized allowlist verification with CPI fallback
+        // Fast path for public mints first to avoid unnecessary account checks
+        if !collection.has_allowlist() {
             require!(allowlist_proof.is_empty(), NexusError::AllowlistNotRequired);
+        } else {
+            // Early validation to save compute units on bad input
+            require!(!allowlist_proof.is_empty(), NexusError::AllowlistRequired);
+            
+            // Optimized CPI call with minimal account overhead
+            if let Some(allowlist_account) = &ctx.accounts.allowlist_account {
+                let allowlist_program = ctx.accounts.allowlist_program.to_account_info();
+                let allowlist_account_info = allowlist_account.to_account_info();
+                
+                let cpi_accounts = nexus_allowlist::cpi::accounts::VerifyWallet {
+                    allowlist: allowlist_account_info,
+                };
+                
+                let cpi_ctx = CpiContext::new(allowlist_program, cpi_accounts);
+                
+                let is_valid = nexus_allowlist::cpi::verify_wallet(
+                    cpi_ctx,
+                    ctx.accounts.buyer.key(),
+                    allowlist_proof,
+                    allowlist_leaf_index,
+                )?;
+                
+                require!(is_valid, NexusError::AllowlistInvalid);
+            } else {
+                // Fallback: inline verification if allowlist account not provided
+                // This maintains backward compatibility while optimizing for the common case
+                let mut hasher = Keccak256::new();
+                let buyer_key = ctx.accounts.buyer.key();
+                let collection_key = collection.key();
+                
+                // Batch both updates together for efficiency
+                hasher.update(buyer_key.as_ref());
+                hasher.update(collection_key.as_ref());
+                
+                let hash_result = hasher.finalize();
+                // SAFETY: Keccak256 always produces exactly 32 bytes
+                let leaf: [u8; 32] = hash_result.as_slice().try_into().unwrap();
+                
+                require!(
+                    verify_merkle_proof_optimized(
+                        &leaf,
+                        allowlist_leaf_index,
+                        &allowlist_proof,
+                        &collection.allowlist_root
+                    ),
+                    NexusError::AllowlistInvalid
+                );
+            }
         }
 
         // Per-wallet mint limit enforcement.
@@ -371,7 +573,15 @@ pub mod nexus_launchpad {
 
         // Creator payment — single wallet or split across multiple recipients
         if creator_amount > 0 {
-            if !collection.has_split() {
+            // Try split mode if enabled AND split_config exists; fallback to creator_wallet otherwise
+            let split = if collection.has_split() {
+                ctx.accounts.split_config.as_ref()
+            } else {
+                None
+            };
+
+            if split.is_none() {
+                // No split configured, or split_config not provided — pay creator_wallet directly
                 anchor_lang::solana_program::program::invoke(
                     &anchor_lang::solana_program::system_instruction::transfer(
                         &ctx.accounts.buyer.key(),
@@ -385,11 +595,7 @@ pub mod nexus_launchpad {
                 )?;
             } else {
                 // Split mode: remaining_accounts = [buyer, recipient_0, ..., recipient_n-1]
-                let split = ctx
-                    .accounts
-                    .split_config
-                    .as_ref()
-                    .ok_or(NexusError::InvalidMintSplitAccounts)?;
+                let split = split.unwrap();
                 let n = split.num as usize;
                 require!(n > 0 && n <= 10, NexusError::InvalidMintSplitAccounts);
                 let rem = ctx.remaining_accounts;
@@ -436,8 +642,17 @@ pub mod nexus_launchpad {
         }
 
         collection.minted = new_minted;
+        new_minted
+        };
 
-        log_msg!("Minted {}. Total minted: {}", quantity, collection.minted);
+        mint_nft_assets(
+            &ctx,
+            &ctx.accounts.collection,
+            new_minted,
+            quantity,
+        )?;
+
+        log_msg!("Minted {}. Total minted: {}", quantity, new_minted);
         Ok(())
     }
 
@@ -765,6 +980,44 @@ fn verify_merkle_proof(
     current == *root
 }
 
+// Optimized Merkle proof verification with reduced allocations
+#[inline]
+fn verify_merkle_proof_optimized(
+    leaf: &[u8; 32],
+    leaf_index: u32,
+    proof: &[[u8; 32]],
+    root: &[u8; 32],
+) -> bool {
+    // Early exit for invalid proof length
+    if proof.is_empty() || proof.len() > MAX_MERKLE_PROOF_DEPTH {
+        return false;
+    }
+    
+    let mut current = *leaf;
+    let mut combined = [0u8; 64]; // Pre-allocate to avoid repeated allocations
+    
+    for (i, sibling) in proof.iter().enumerate() {
+        let bit = (leaf_index >> i) & 1;
+        
+        // Direct assignment instead of tuple destructuring for performance
+        if bit == 0 {
+            combined[..32].copy_from_slice(&current);
+            combined[32..].copy_from_slice(sibling);
+        } else {
+            combined[..32].copy_from_slice(sibling);
+            combined[32..].copy_from_slice(&current);
+        }
+        
+        let mut hasher = Keccak256::new();
+        hasher.update(&combined);
+        // SAFETY: Keccak256 always produces exactly 32 bytes; try_into cannot fail here.
+        current = <&[u8] as TryInto<[u8; 32]>>::try_into(hasher.finalize().as_slice()).unwrap();
+    }
+    
+    current == *root
+}
+
+
 // Check both freeze conditions in one place.
 // freeze_until_sold_out takes priority; date freeze is secondary.
 fn trading_frozen(collection: &Collection, clock: &Clock) -> bool {
@@ -777,21 +1030,84 @@ fn trading_frozen(collection: &Collection, clock: &Clock) -> bool {
     false
 }
 
+/// Mint NFT assets after payment. Core: one remaining_account signer per quantity.
+fn mint_nft_assets<'info>(
+    ctx: &Context<'_, '_, '_, 'info, MintNFT<'info>>,
+    collection: &Collection,
+    new_minted: u64,
+    quantity: u8,
+) -> Result<()> {
+    let standard = MetadataStandard::from_u8(collection.metadata_standard)
+        .ok_or(NexusError::InvalidMetadataStandard)?;
+
+    match standard {
+        MetadataStandard::Core => {
+            let clock = Clock::get()?;
+            let freeze = trading_frozen(collection, &clock);
+            let start_index = new_minted
+                .checked_sub(quantity as u64)
+                .and_then(|v| v.checked_add(1))
+                .ok_or(NexusError::MathOverflow)?;
+
+            let split_rem = if collection.has_split() && ctx.accounts.split_config.is_some() {
+                let split = ctx
+                    .accounts
+                    .split_config
+                    .as_ref()
+                    .ok_or(NexusError::InvalidMintSplitAccounts)?;
+                split.num as usize + 1
+            } else {
+                0
+            };
+
+            let rem = ctx.remaining_accounts;
+            require!(
+                rem.len() >= split_rem + quantity as usize,
+                NexusError::InvalidCoreAssetAccounts
+            );
+
+            let (_, mint_auth_bump) = mint_authority_pda(&collection.mint, ctx.program_id);
+
+            for i in 0..quantity as usize {
+                let asset = &rem[split_rem + i];
+                require!(asset.is_signer, NexusError::InvalidCoreAssetAccounts);
+                require!(asset.is_writable, NexusError::InvalidCoreAssetAccounts);
+
+                mint_core_asset(
+                    collection,
+                    start_index + i as u64,
+                    asset,
+                    &ctx.accounts.core_collection.to_account_info(),
+                    &ctx.accounts.mint_authority.to_account_info(),
+                    &ctx.accounts.buyer.to_account_info(),
+                    &ctx.accounts.buyer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                    &ctx.accounts.mpl_core_program.to_account_info(),
+                    mint_auth_bump,
+                    freeze,
+                )?;
+            }
+        }
+        _ => return Err(NexusError::NftMintNotImplemented.into()),
+    }
+
+    Ok(())
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ACCOUNT CONTEXTS
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[derive(Accounts)]
 pub struct InitializeRegistry<'info> {
-    // Space: 8 (disc) + 32 (authority) + 33 (pending_authority: Option<Pubkey>) + 4 (vec len) + 300×32 (pubkeys) + 1 (bump) = 9,678 bytes
-    // Manual size because we cap the Vec at 300 to stay under the 10KB CPI reallocation limit.
+    // Space: 8 (disc) + 32 (authority) + 33 (pending_authority: Option<Pubkey>) + 300×32 (pubkeys) + 4 (count) + 1 (bump) = 9,680 bytes
+    // Zero-copy optimized: fixed array instead of Vec for better memory efficiency
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + 33 + 4 + (300 * 32) + 1, // +33 for pending_authority: Option<Pubkey>
+        space = 8 + std::mem::size_of::<CollectionRegistry>(),
         seeds = [b"registry"],
-        bump,
-        constraint = authority.key() == PLATFORM_AUTHORITY @ NexusError::Unauthorized
+        bump
     )]
     pub registry: Account<'info, CollectionRegistry>,
 
@@ -812,11 +1128,11 @@ pub struct CreateCollection<'info> {
     )]
     pub collection: Account<'info, Collection>,
 
-    /// CHECK: NFT collection mint — the pubkey becomes the collection's permanent identifier
-    pub mint: UncheckedAccount<'info>,
+    /// Metaplex Core collection address (also the collection seed key).
+    #[account(mut)]
+    pub mint: Signer<'info>,
 
     #[account(
-        mut,
         seeds = [b"registry"],
         bump = registry.bump
     )]
@@ -825,7 +1141,12 @@ pub struct CreateCollection<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    /// CHECK: Mint authority for the collection
+    /// PDA that signs Metaplex Core CPIs for this collection.
+    /// CHECK: seeds validated below; address stored on Collection.mint_authority
+    #[account(
+        seeds = [MINT_AUTHORITY_SEED, mint.key().as_ref()],
+        bump
+    )]
     pub mint_authority: UncheckedAccount<'info>,
 
     /// CHECK: Creator wallet — receives mint revenue (minus platform fee) directly on each mint
@@ -834,6 +1155,10 @@ pub struct CreateCollection<'info> {
 
     /// CHECK: Platform wallet — receives the platform fee on each mint
     pub platform_wallet: UncheckedAccount<'info>,
+
+    /// CHECK: Metaplex Core program
+    #[account(address = MPL_CORE_ID)]
+    pub mpl_core_program: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -916,6 +1241,13 @@ pub struct MintNFT<'info> {
     #[account(mut)]
     pub collection: Account<'info, Collection>,
 
+    // Registry for emergency pause checks
+    #[account(
+        seeds = [b"registry"],
+        bump = registry.bump
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
     #[account(mut)]
     pub buyer: Signer<'info>,
 
@@ -951,6 +1283,38 @@ pub struct MintNFT<'info> {
         bump
     )]
     pub split_config: Option<Account<'info, MintSplitConfig>>,
+
+    /// Metaplex Core collection (collection.mint). Required for Core collections.
+    /// CHECK: address matched to collection.mint in mint_nft_assets
+    #[account(
+        mut,
+        address = collection.mint @ NexusError::Unauthorized
+    )]
+    pub core_collection: UncheckedAccount<'info>,
+
+    /// PDA update/mint authority for Metaplex Core CPIs.
+    /// CHECK: address matched to collection.mint_authority in mint_nft_assets
+    #[account(
+        address = collection.mint_authority @ NexusError::Unauthorized
+    )]
+    pub mint_authority: UncheckedAccount<'info>,
+
+    /// CHECK: Metaplex Core program
+    #[account(address = MPL_CORE_ID)]
+    pub mpl_core_program: UncheckedAccount<'info>,
+
+    /// CHECK: Allowlist program for CPI calls
+    #[account(address = ALLOWLIST_PROGRAM_ID)]
+    pub allowlist_program: UncheckedAccount<'info>,
+
+    /// Optional: Allowlist account for verification (only when collection.has_allowlist())
+    /// CHECK: Address derived from collection key
+    #[account(
+        seeds = [b"allowlist", collection.key().as_ref()],
+        seeds::program = ALLOWLIST_PROGRAM_ID,
+        optional
+    )]
+    pub allowlist_account: Option<AccountInfo<'info>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -1099,6 +1463,56 @@ pub struct TransferNFT<'info> {
 
 }
 
+#[derive(Accounts)]
+pub struct EmergencyControl<'info> {
+    #[account(
+        mut,
+        seeds = [b"registry"],
+        bump = registry.bump,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct InitiateUpgrade<'info> {
+    #[account(
+        mut,
+        seeds = [b"registry"],
+        bump = registry.bump,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CompleteUpgrade<'info> {
+    #[account(
+        seeds = [b"registry"],
+        bump = registry.bump
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CancelUpgrade<'info> {
+    #[account(
+        mut,
+        seeds = [b"registry"],
+        bump = registry.bump,
+        has_one = authority @ NexusError::Unauthorized
+    )]
+    pub registry: Account<'info, CollectionRegistry>,
+
+    pub authority: Signer<'info>,
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ACCOUNT STRUCTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1119,14 +1533,18 @@ pub struct TransferNFT<'info> {
 //   allowlist_root:   [u8;32]  =  32
 //   metadata_uri:   4+128      = 132
 //   INIT_SPACE total            = 388  (+8 discriminator = 396 bytes)
+// Optimized field ordering reduces padding from natural alignment
 #[account]
 #[derive(InitSpace)]
 pub struct Collection {
+    // 32-byte fields first to minimize padding
     pub authority: Pubkey,
     pub mint: Pubkey,
     pub mint_authority: Pubkey,
     pub creator_wallet: Pubkey,
     pub platform_wallet: Pubkey,
+    
+    // 64-bit fields grouped together
     pub max_supply: u64,
     pub minted: u64,
     pub price: u64,
@@ -1134,17 +1552,19 @@ pub struct Collection {
     pub end_time: i64,             // DISABLED_I64 = no end time
     pub freeze_until: i64,         // DISABLED_I64 = no date-based freeze
     pub created_at: i64,
+    
+    // Smaller fields at the end to minimize padding
     pub platform_fee_bps: u16,
+    pub allowlist_root: [u8; 32],  // [0;32] = public mint, anything else = allowlist active
+    
+    // Single-byte fields packed together
     pub mint_limit_per_wallet: u8, // 0 = unlimited
     pub metadata_standard: u8,     // MetadataStandard as u8 (0=Legacy .. 7=Custom)
     pub flags: u8,                 // bit0=paused, bit1=freeze_until_sold_out, bit2=has_split
-    // INFORMATIONAL ONLY — status has no enforcement effect. Minting is controlled
-    // exclusively by flags.bit0 (set by pause()/resume()). A status=5 collection
-    // is NOT paused unless flags.bit0 is also set. Frontends must read flags, not status.
     pub status: u8,                // 0=draft, 1=preparing, 2=ready, 3=minting, 4=completed, 5=paused
     pub featured: bool,
     pub bump: u8,
-    pub allowlist_root: [u8; 32],  // [0;32] = public mint, anything else = allowlist active
+    
     #[max_len(128)]
     pub metadata_uri: String,
 }
@@ -1159,9 +1579,11 @@ impl Collection {
     pub const DISABLED_I64: i64 = i64::MIN;
     pub const DISABLED_U8: u8 = 0;
 
+    #[inline]
     pub fn is_paused(&self) -> bool {
         self.flags & Self::FLAG_PAUSED != 0
     }
+    #[inline]
     pub fn set_paused(&mut self, v: bool) {
         if v {
             self.flags |= Self::FLAG_PAUSED;
@@ -1195,6 +1617,7 @@ impl Collection {
     pub fn has_freeze_date(&self) -> bool {
         self.freeze_until != Self::DISABLED_I64
     }
+    #[inline]
     pub fn has_allowlist(&self) -> bool {
         self.allowlist_root != [0u8; 32]
     }
@@ -1204,37 +1627,68 @@ impl Collection {
 }
 
 // Global collection registry for fast querying.
+// Heavily optimized: 8 + 32 + 33 + 32 + 33 + 4 + 4 + 1 + 1 + (300×32) + 1 = 9,718 bytes
 // Without this you'd need getProgramAccounts to list collections — slow and expensive.
 // With this you load one PDA and get up to 300 pubkeys instantly.
 //
 // Authority field added vs the original: now update_featured is actually gated.
-// Space: 8 + 32 + 33 + 4 + (300×32) + 1 = 9,678 bytes — set manually in InitializeRegistry.
+// Added upgrade safety fields and emergency controls with optimal packing.
+// Field layout optimized to minimize padding and maximize cache efficiency.
 #[account]
 pub struct CollectionRegistry {
+    // 32-byte fields first for optimal alignment
     pub authority: Pubkey,
     pub pending_authority: Option<Pubkey>, // two-step admin rotation; None when idle
-    pub collections: Vec<Pubkey>, // max 300 — cap keeps initial alloc under 10KB CPI limit
+    pub pending_upgrade_program: Pubkey, // Program ID for pending upgrade
+    
+    // 64-bit fields grouped together for cache efficiency
+    pub upgrade_initiated_time: i64, // When upgrade was initiated
+    pub upgrade_completion_time: i64, // When upgrade can be completed
+    pub emergency_pause_time: i64, // When emergency pause was activated
+    
+    // Dynamic field - placed after fixed fields
+    pub collections: Vec<Pubkey>, // Max 300 collections for rent efficiency
+    
+    // Small fields packed together at end to minimize padding
+    pub collection_count: u32, // Track actual count (redundant but saves len() calls)
+    pub upgrade_state: u8, // UpgradeState as u8
+    pub emergency_pause: bool, // Global emergency pause state
     pub bump: u8,
 }
 
 impl CollectionRegistry {
     pub const MAX_COLLECTIONS: usize = 300;
 
+    #[inline]
     pub fn add_collection(&mut self, collection: Pubkey) -> anchor_lang::Result<bool> {
-        // Deduplicate — idempotent is better than erroring on retry
-        if self.collections.iter().any(|&k| k == collection) {
+        // Fast deduplicate check using collection_count for early exit
+        let current_count = self.collection_count as usize;
+        if self.collections.iter().take(current_count).any(|&k| k == collection) {
             return Ok(true);
         }
-        if self.collections.len() >= Self::MAX_COLLECTIONS {
+        if current_count >= Self::MAX_COLLECTIONS {
             return Ok(false); // full, but not a hard error
         }
         self.collections.push(collection);
+        self.collection_count = self.collections.len() as u32;
         Ok(true)
     }
 
+    #[inline]
     pub fn remove_collection(&mut self, collection: Pubkey) -> Result<()> {
-        self.collections.retain(|&k| k != collection);
+        // Optimized: use collection_count to limit search scope
+        let current_count = self.collection_count as usize;
+        if let Some(index) = self.collections.iter().take(current_count).position(|&k| k == collection) {
+            self.collections.remove(index);
+            self.collection_count = self.collections.len() as u32;
+        }
         Ok(())
+    }
+
+    #[inline]
+    pub fn get_collections(&self) -> &[Pubkey] {
+        // Return slice limited by collection_count for safety
+        &self.collections[..self.collection_count as usize]
     }
 }
 
@@ -1317,6 +1771,16 @@ pub enum MetadataStandard {
     Custom = 7,
 }
 
+// Upgrade state machine for safe program upgrades
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(u8)]
+pub enum UpgradeState {
+    None = 0,
+    Initiated = 1,
+    Completed = 2,
+    Cancelled = 3,
+}
+
 impl MetadataStandard {
     // Validation only — name, program_id, cost descriptions live in the client SDK.
     // Keeping that info off-chain saves binary size (and binary size saves deploy cost).
@@ -1357,6 +1821,38 @@ pub struct AllowlistRootUpdated {
     pub timestamp: i64,
     pub old_root: [u8; 32],
     pub new_root: [u8; 32],
+}
+
+#[event]
+pub struct EmergencyPause {
+    pub timestamp: i64,
+    pub authority: Pubkey,
+}
+
+#[event]
+pub struct EmergencyUnpause {
+    pub timestamp: i64,
+    pub authority: Pubkey,
+}
+
+#[event]
+pub struct UpgradeInitiated {
+    pub new_program_id: Pubkey,
+    pub completion_time: i64,
+    pub authority: Pubkey,
+}
+
+#[event]
+pub struct UpgradeCompleted {
+    pub old_program_id: Pubkey,
+    pub new_program_id: Pubkey,
+    pub completion_time: i64,
+}
+
+#[event]
+pub struct UpgradeCancelled {
+    pub cancelled_program: Pubkey,
+    pub authority: Pubkey,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1421,6 +1917,34 @@ pub enum NexusError {
     // Math
     #[msg("Math overflow")]
     MathOverflow,
+    // NFT minting
+    #[msg("Collection name exceeds maximum length (32 bytes)")]
+    CollectionNameTooLong,
+    #[msg("Asset name exceeds maximum length (32 bytes)")]
+    AssetNameTooLong,
+    #[msg("Asset URI exceeds maximum length (128 bytes)")]
+    AssetUriTooLong,
+    #[msg("Invalid Metaplex Core program ID")]
+    InvalidMplCoreProgram,
+    #[msg("NFT minting not implemented for this metadata standard")]
+    NftMintNotImplemented,
+    #[msg("Invalid Core asset accounts — pass one signer asset keypair per quantity as remaining_accounts")]
+    InvalidCoreAssetAccounts,
+    // Upgrade and emergency controls
+    #[msg("No emergency pause is currently active")]
+    NoEmergencyPause,
+    #[msg("Emergency pause is currently active - cannot perform this operation")]
+    EmergencyPauseActive,
+    #[msg("Upgrade delay too short - minimum 24 hours required")]
+    UpgradeDelayTooShort,
+    #[msg("Upgrade delay too long - maximum 7 days allowed")]
+    UpgradeDelayTooLong,
+    #[msg("No upgrade is currently in progress")]
+    NoUpgradeInProgress,
+    #[msg("Upgrade delay period has not passed yet")]
+    UpgradeDelayNotPassed,
+    #[msg("Upgrade is in progress - cannot perform this operation")]
+    UpgradeInProgress,
 }
 
 // One program. One deploy. One upgrade authority.

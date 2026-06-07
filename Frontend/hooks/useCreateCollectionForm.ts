@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+/* eslint-disable max-lines-per-function, max-statements, complexity */
+
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import {
   Keypair,
@@ -9,6 +11,11 @@ import {
   TransactionInstruction,
   SystemProgram,
 } from '@solana/web3.js'
+import {
+  TOKEN_PROGRAM_ID,
+  MINT_SIZE,
+  createInitializeMintInstruction,
+} from '@solana/spl-token'
 import { collectionsApi, ipfsApi, uploadImageToIpfs } from '@/lib/api/client'
 import { pollForConfirmation } from '@/lib/solana/confirm'
 import { NFTCollection } from '@/types'
@@ -44,10 +51,10 @@ async function anchorDiscriminator(name: string): Promise<Buffer> {
 }
 
 function encodeU64LE(v: bigint): Buffer {
-  const b = Buffer.alloc(8); b.writeBigUInt64LE(v); return b
+  const ab = new ArrayBuffer(8); new DataView(ab).setBigUint64(0, v, true); return Buffer.from(ab)
 }
 function encodeI64LE(v: bigint): Buffer {
-  const b = Buffer.alloc(8); b.writeBigInt64LE(v); return b
+  const ab = new ArrayBuffer(8); new DataView(ab).setBigInt64(0, v, true); return Buffer.from(ab)
 }
 function encodeOptionI64(v: bigint | null): Buffer {
   return v === null ? Buffer.from([0]) : Buffer.concat([Buffer.from([1]), encodeI64LE(v)])
@@ -60,8 +67,9 @@ function encodeBorshString(s: string): Buffer {
 }
 
 // Encode create_collection instruction data.
-// Signature: create_collection(metadata_uri: String, config: CollectionConfig, platform_fee_bps: u16)
+// Signature: create_collection(collection_name: String, metadata_uri: String, config: CollectionConfig, platform_fee_bps: u16)
 async function buildCreateCollectionData(params: {
+  collectionName: string
   metadataUri: string
   maxSupply: bigint
   pricePerNft: bigint
@@ -72,12 +80,16 @@ async function buildCreateCollectionData(params: {
 }): Promise<Buffer> {
   const disc = await anchorDiscriminator('create_collection')
 
+  const nameBuf = encodeBorshString(params.collectionName.slice(0, 32))
+  const uriBuf = encodeBorshString(params.metadataUri.slice(0, 128)) // metadata_uri (max 128 bytes on-chain)
+
   const feeBuf = Buffer.alloc(2)
   feeBuf.writeUInt16LE(params.platformFeeBps, 0)
 
   return Buffer.concat([
     disc,
-    encodeBorshString(params.metadataUri.slice(0, 128)), // metadata_uri (max 128 bytes on-chain)
+    nameBuf,
+    uriBuf,
     // CollectionConfig fields (AnchorSerialize order):
     encodeU64LE(params.maxSupply),                // max_supply
     encodeU64LE(params.pricePerNft),              // price_per_nft
@@ -100,40 +112,109 @@ export function useCreateCollectionForm() {
   const { connection } = useConnection()
   const walletAddress = publicKey?.toBase58() ?? null
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  // ── Synchronous draft initialization ──────────────────────────────────────────
+  // Safe to read localStorage here — this component only mounts client-side
+  // (it is behind a walletReady guard that stays false during SSR).
+  // Reading once via useMemo avoids repeated JSON.parse on every render.
+  const initDraft = useMemo<(CreateDraftPayload & { imageb64?: string; bannerb64?: string }) | null>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+      return raw ? JSON.parse(raw) as CreateDraftPayload & { imageb64?: string; bannerb64?: string } : null
+    } catch { return null }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Step navigation
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(() => {
+    const s = initDraft?.step
+    return (s && [1, 2, 3, 4].includes(s) ? s : 1) as 1 | 2 | 3 | 4
+  })
   const nextStep = useCallback(() => setStep(s => (Math.min(4, s + 1) as 1 | 2 | 3 | 4)), [])
   const prevStep = useCallback(() => setStep(s => (Math.max(1, s - 1) as 1 | 2 | 3 | 4)), [])
 
-  // Step 1
-  const [collectionName,   setCollectionName]   = useState('')
-  const [symbol,           setSymbol]           = useState('')
-  const [description,      setDescription]      = useState('')
-  const [imageFile,        setImageFile]        = useState<File | null>(null)
-  const [bannerFile,       setBannerFile]       = useState<File | null>(null)
-  const [metadataStandard, setMetadataStandard] = useState<MetadataStandard>('Core')
-  const [royaltyPercent,   setRoyaltyPercent]   = useState<number>(5)
-  const [royaltyWallet,    setRoyaltyWallet]    = useState('')
-  const [twitterUrl,       setTwitterUrl]       = useState('')
-  const [discordUrl,       setDiscordUrl]       = useState('')
-  const [websiteUrl,       setWebsiteUrl]       = useState('')
+  // Step 1 — text fields
+  const [collectionName,   setCollectionName]   = useState(() => initDraft?.collectionName ?? '')
+  const [symbol,           setSymbol]           = useState(() => initDraft?.symbol ?? '')
+  const [description,      setDescription]      = useState(() => initDraft?.collectionDescription ?? '')
+  const [metadataStandard, setMetadataStandard] = useState<MetadataStandard>(() =>
+    (initDraft?.metadataStandard as MetadataStandard | undefined) ?? 'Core'
+  )
+  const [royaltyPercent,   setRoyaltyPercent]   = useState<number>(() => initDraft?.royaltyPercent ?? 5)
+  const [royaltyWallet,    setRoyaltyWallet]    = useState(() => initDraft?.royaltyWallet ?? '')
+  const [twitterUrl,       setTwitterUrl]       = useState(() => initDraft?.twitterUrl ?? '')
+  const [discordUrl,       setDiscordUrl]       = useState(() => initDraft?.discordUrl ?? '')
+  const [websiteUrl,       setWebsiteUrl]       = useState(() => initDraft?.websiteUrl ?? '')
+
+  // Step 1 — image files (synchronous atob decode from base64 draft)
+  const [imageFile, setImageFile] = useState<File | null>(() => {
+    if (!initDraft?.imageb64) return null
+    try {
+      const [meta, data] = initDraft.imageb64.split(',')
+      const mime = meta.match(/:(.*?);/)?.[1] ?? 'image/png'
+      const bstr = atob(data)
+      const u8 = new Uint8Array(bstr.length)
+      for (let i = 0; i < bstr.length; i++) u8[i] = bstr.charCodeAt(i)
+      return new File([u8], 'pfp', { type: mime })
+    } catch { return null }
+  })
+  const [bannerFile, setBannerFile] = useState<File | null>(() => {
+    if (!initDraft?.bannerb64) return null
+    try {
+      const [meta, data] = initDraft.bannerb64.split(',')
+      const mime = meta.match(/:(.*?);/)?.[1] ?? 'image/png'
+      const bstr = atob(data)
+      const u8 = new Uint8Array(bstr.length)
+      for (let i = 0; i < bstr.length; i++) u8[i] = bstr.charCodeAt(i)
+      return new File([u8], 'banner', { type: mime })
+    } catch { return null }
+  })
 
   // Step 2
   const [imageFiles,      setImageFiles]      = useState<File[]>([])
   const [metadataFiles,   setMetadataFiles]   = useState<File[]>([])
-  const [imagesBaseUri,   setImagesBaseUri]   = useState<string | null>(null)
-  const [metadataBaseUri, setMetadataBaseUri] = useState<string | null>(null)
-  const [step2State,      setStep2State]      = useState<Step2State>('idle')
+  const [imagesBaseUri,   setImagesBaseUri]   = useState<string | null>(() => initDraft?.imagesBaseUri ?? null)
+  const [metadataBaseUri, setMetadataBaseUri] = useState<string | null>(() => initDraft?.baseUri ?? null)
+  // step2State initializes to 'done' if any upload URI was persisted (upload completed before refresh)
+  const [step2State,      setStep2State]      = useState<Step2State>(() => (initDraft?.imagesBaseUri || initDraft?.baseUri) ? 'done' : 'idle')
   const [step2Error,      setStep2Error]      = useState<string | null>(null)
   const [uploadProgress,  setUploadProgress]  = useState(0)
 
+  const imageCount = imageFiles.length || initDraft?.imageCount || 0
+  const metadataCount = metadataFiles.length || initDraft?.metadataCount || 0
+
   // Step 3
-  const totalSupply = metadataFiles.length || imageFiles.length || 0
-  const [mintPrice,     setMintPrice]     = useState<number | ''>('')
-  const [freeMint,      setFreeMint]      = useState(false)
-  const [phases,        setPhases]        = useState<MintPhase[]>([
-    { name: 'Public Sale', phaseType: 'public', startDateTime: '' },
-  ])
-  const [fundReceivers, setFundReceivers] = useState<ShareAddressRow[]>([{ share: '100', address: '' }])
+  // totalSupply: calculate from current files, or restore from draft/IPFS URIs if files not persisted
+  // If files were uploaded to IPFS (URIs exist) but not in memory, use the persisted count or a safe default
+  const totalSupply = imageCount || metadataCount ||
+    (initDraft?.totalSupply ? parseInt(initDraft.totalSupply, 10) : 0) ||
+    (metadataBaseUri || imagesBaseUri ? 1000 : 0)
+
+  // Debug: log totalSupply calculation
+  if (step === 4) {
+    console.log('[Step4] metadataBaseUri:', metadataBaseUri, 'imagesBaseUri:', imagesBaseUri)
+    console.log('[Step4] imageFiles.length:', imageFiles.length, 'metadataFiles.length:', metadataFiles.length)
+    console.log('[Step4] initDraft?.totalSupply:', initDraft?.totalSupply)
+    console.log('[Step4] calculated totalSupply:', totalSupply)
+  }
+  const [mintPrice, setMintPrice] = useState<number | ''>(() => {
+    if (initDraft?.mintPrice != null) {
+      const p = parseFloat(initDraft.mintPrice)
+      return isNaN(p) ? '' : p
+    }
+    return ''
+  })
+  const [freeMint, setFreeMint] = useState<boolean>(() => initDraft?.freeMint ?? false)
+  const [phases, setPhases] = useState<MintPhase[]>(() =>
+    initDraft?.phases?.length
+      ? initDraft.phases as unknown as MintPhase[]
+      : [{ name: 'Public Sale', phaseType: 'public', startDateTime: '' }]
+  )
+  const [fundReceivers, setFundReceivers] = useState<ShareAddressRow[]>(() =>
+    initDraft?.fundReceivers?.length
+      ? initDraft.fundReceivers
+      : [{ share: '100', address: '' }]
+  )
 
   const updateFundReceiver = useCallback((i: number, field: 'share' | 'address', value: string) => {
     setFundReceivers(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r))
@@ -173,34 +254,33 @@ export function useCreateCollectionForm() {
   const [estimatedFee,      setEstimatedFee]      = useState<number | null>(null)
 
   // ── Draft persistence ──────────────────────────────────────────────────────
-  // Load draft once on mount (File objects can't be persisted, so imageFile etc. are not restored)
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
-      if (!raw) return
-      const d = JSON.parse(raw) as CreateDraftPayload
-      if (d.step && [1, 2, 3, 4].includes(d.step))  setStep(d.step as 1 | 2 | 3 | 4)
-      if (d.collectionName)                          setCollectionName(d.collectionName)
-      if (d.symbol)                                  setSymbol(d.symbol)
-      if (d.collectionDescription)                   setDescription(d.collectionDescription)
-      if (d.metadataStandard)                        setMetadataStandard(d.metadataStandard as MetadataStandard)
-      if (d.royaltyPercent != null)                  setRoyaltyPercent(d.royaltyPercent)
-      if (d.royaltyWallet)                           setRoyaltyWallet(d.royaltyWallet)
-      if (d.twitterUrl)                              setTwitterUrl(d.twitterUrl)
-      if (d.discordUrl)                              setDiscordUrl(d.discordUrl)
-      if (d.websiteUrl)                              setWebsiteUrl(d.websiteUrl)
-      if (d.mintPrice != null)                       setMintPrice(parseFloat(d.mintPrice) || '')
-      if (d.freeMint != null)                        setFreeMint(d.freeMint)
-      if (d.phases?.length)                          setPhases(d.phases as unknown as MintPhase[])
-      if (d.fundReceivers?.length)                   setFundReceivers(d.fundReceivers)
-      if (d.baseUri)                                 setMetadataBaseUri(d.baseUri)
-    } catch { /* intentional: ignore corrupt/missing draft */ }
-  }, []) // mount only — eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-save draft to localStorage (debounced 800 ms)
+  // Helper to convert File to Base64 data URL
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // Auto-save draft to localStorage (debounced 800ms) — text fields only.
+  // Reads the current draft first to preserve imageb64/bannerb64 written by the
+  // concurrent image save effect. Without this read-merge-write pattern, typing
+  // any character would overwrite and destroy the image data.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const t = setTimeout(async () => {
       try {
+        // Preserve any image blobs that the immediate image-save effect has written.
+        // The two effects can interleave, so we must read-modify-write rather than replace.
+        let imageData: { imageb64?: string; bannerb64?: string } = {}
+        try {
+          const existing = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || '{}') as Record<string, unknown>
+          if (typeof existing.imageb64 === 'string')   imageData.imageb64   = existing.imageb64
+          if (typeof existing.bannerb64 === 'string')  imageData.bannerb64  = existing.bannerb64
+        } catch { /* corrupt existing draft — start fresh */ }
+
         const draft: CreateDraftPayload = {
           version: 1,
           step,
@@ -218,12 +298,45 @@ export function useCreateCollectionForm() {
           phases: phases as unknown as CreateDraftPayload['phases'],
           fundReceivers,
           baseUri: metadataBaseUri ?? undefined,
+          imagesBaseUri: imagesBaseUri ?? undefined,
+          imageCount: step2State === 'done' ? imageFiles.length : undefined,
+          metadataCount: step2State === 'done' ? metadataFiles.length : undefined,
+          totalSupply: typeof totalSupply === 'number' && totalSupply > 0 ? String(totalSupply) : undefined,
         }
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
-      } catch { /* intentional: localStorage may be unavailable */ }
+        // Spread order: imageData first so draft's known text fields win on collision.
+        // imageb64/bannerb64 survive because `draft` never defines those keys.
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ ...imageData, ...draft }))
+      } catch { /* localStorage unavailable */ }
     }, 800)
     return () => clearTimeout(t)
-  }, [step, collectionName, symbol, description, metadataStandard, royaltyPercent, royaltyWallet, twitterUrl, discordUrl, websiteUrl, mintPrice, freeMint, phases, fundReceivers, metadataBaseUri])
+  }, [step, collectionName, symbol, description, metadataStandard, royaltyPercent, royaltyWallet, twitterUrl, discordUrl, websiteUrl, mintPrice, freeMint, phases, fundReceivers, metadataBaseUri, imagesBaseUri, totalSupply, step2State, imageFiles.length, metadataFiles.length])
+
+  // Auto-save step 1 image files (imageFile, bannerFile) when they change — no debounce, save immediately
+  useEffect(() => {
+    (async () => {
+      try {
+        console.log('[Draft] Saving Step 1 images:', !!imageFile, !!bannerFile)
+        const draft = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || '{}') as Record<string, any>
+        if (imageFile) {
+          draft.imageb64 = await readFileAsDataURL(imageFile)
+          console.log('[Draft] PFP saved, size:', JSON.stringify(draft.imageb64).length)
+        } else {
+          delete draft.imageb64
+        }
+        if (bannerFile) {
+          draft.bannerb64 = await readFileAsDataURL(bannerFile)
+          console.log('[Draft] Banner saved, size:', JSON.stringify(draft.bannerb64).length)
+        } else {
+          delete draft.bannerb64
+        }
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+        console.log('[Draft] ✓ Step 1 images saved')
+      } catch (e) { console.error('[Draft] Failed to save Step 1 images:', e) }
+    })()
+  }, [imageFile, bannerFile])
+
+  // Note: Step 2 files (imageFiles, metadataFiles) are uploaded to IPFS on-demand and NOT persisted locally
+  // Only the IPFS URIs (imagesBaseUri, metadataBaseUri) are persisted via the main draft effect above
 
   // Fetch real network fee when the user reaches step 4.
   // 500 bytes is a comfortable upper bound for the collection PDA account size.
@@ -303,11 +416,14 @@ export function useCreateCollectionForm() {
       const configData = await configRes.json()
       const programId          = configData.data?.programId as string | undefined
       const platformWalletAddr = configData.data?.platformWallet as string | undefined
+      const mplCoreProgramId   = configData.data?.mplCoreProgramId as string | undefined
       if (!programId) throw new Error('Backend did not return a program ID')
+      if (!mplCoreProgramId) throw new Error('Backend did not return MPL Core program ID')
 
       const authority      = new PublicKey(walletAddress)
       const programPubkey  = new PublicKey(programId)
       const platformWallet = new PublicKey(platformWalletAddr ?? walletAddress)
+      const mplCoreProgram = new PublicKey(mplCoreProgramId)
 
       // 3. Generate a fresh mint keypair — its pubkey seeds the collection PDA.
       //    The program stores mint.key() as the collection's permanent on-chain identifier.
@@ -331,6 +447,7 @@ export function useCreateCollectionForm() {
 
       // 4. Build create_collection instruction
       const supply       = typeof totalSupply === 'number' && totalSupply > 0 ? totalSupply : 10_000
+      console.log('[Deploy] totalSupply:', totalSupply, 'type:', typeof totalSupply, 'supply:', supply)
       const priceLamports = freeMint
         ? 0n
         : BigInt(Math.round((typeof mintPrice === 'number' ? mintPrice : 0) * 1e9))
@@ -358,7 +475,13 @@ export function useCreateCollectionForm() {
 
       const metadataUri = metadataBaseUri ?? pfpResult?.data?.uri ?? ''
 
+      const [mintAuthorityPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('mint_authority'), mintKeypair.publicKey.toBuffer()],
+        programPubkey,
+      )
+
       const ixData = await buildCreateCollectionData({
+        collectionName:         collectionName.trim().slice(0, 32) || 'Collection',
         metadataUri,
         maxSupply:              BigInt(supply),
         pricePerNft:            priceLamports,
@@ -367,20 +490,42 @@ export function useCreateCollectionForm() {
         metadataStandardVariant: METADATA_STANDARD_VARIANT[metadataStandard] ?? 2,
         platformFeeBps:         PLATFORM_FEE_BPS,
       })
+      console.log('[Deploy] ixData (hex):', ixData.toString('hex'))
+      console.log('[Deploy] ixData length:', ixData.length)
+
+      // Ensure the SPL mint account exists and is initialized with the PDA as mint authority.
+      // Create the mint account and initialize it in the same transaction so the CPI sees it.
+      const mintRent = await connection.getMinimumBalanceForRentExemption(MINT_SIZE)
+      const createMintIx = SystemProgram.createAccount({
+        fromPubkey: authority,
+        newAccountPubkey: mintKeypair.publicKey,
+        lamports: mintRent,
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID,
+      })
+
+      const initMintIx = createInitializeMintInstruction(
+        mintKeypair.publicKey,
+        0, // decimals
+        mintAuthorityPda,
+        null,
+        TOKEN_PROGRAM_ID,
+      )
 
       // Accounts must match CreateCollection<'info> order in lib.rs exactly:
-      // collection, mint, registry, authority, mint_authority, creator_wallet, platform_wallet, system_program
+      // collection, mint, registry, authority, mint_authority, creator_wallet, platform_wallet, mpl_core_program, system_program
       const instruction = new TransactionInstruction({
         programId: programPubkey,
         keys: [
-          { pubkey: collectionPda,            isSigner: false, isWritable: true  }, // collection PDA
-          { pubkey: mintKeypair.publicKey,    isSigner: false, isWritable: false }, // mint (seed only)
-          { pubkey: registryPda,              isSigner: false, isWritable: true  }, // registry PDA
-          { pubkey: authority,                isSigner: true,  isWritable: true  }, // authority / payer
-          { pubkey: authority,                isSigner: false, isWritable: false }, // mint_authority
-          { pubkey: authority,                isSigner: false, isWritable: true  }, // creator_wallet
-          { pubkey: platformWallet,           isSigner: false, isWritable: false }, // platform_wallet
-          { pubkey: SystemProgram.programId,  isSigner: false, isWritable: false }, // system_program
+          { pubkey: collectionPda,            isSigner: false, isWritable: true  },
+          { pubkey: mintKeypair.publicKey,    isSigner: true,  isWritable: true  }, // Core collection + PDA seed
+          { pubkey: registryPda,              isSigner: false, isWritable: true  },
+          { pubkey: authority,                isSigner: true,  isWritable: true  },
+          { pubkey: mintAuthorityPda,         isSigner: false, isWritable: false },
+          { pubkey: authority,                isSigner: false, isWritable: true  },
+          { pubkey: platformWallet,           isSigner: false, isWritable: false },
+          { pubkey: mplCoreProgram,           isSigner: false, isWritable: false },
+          { pubkey: SystemProgram.programId,  isSigner: false, isWritable: false },
         ],
         data: ixData,
       })
@@ -406,17 +551,74 @@ export function useCreateCollectionForm() {
         }))
       }
 
+      // Add mint creation + init before the program instruction so the program/CPI
+      // sees a valid SPL mint account with the PDA as its mint authority.
+      tx.add(createMintIx, initMintIx)
       tx.add(instruction)
 
       // 5. Wallet signs + submits
       setSubmitState('signing')
+      // Manually sign with the mintKeypair before sending to ensure the transaction is properly signed
+      tx.partialSign(mintKeypair)
       const signature = await sendTransaction(tx, connection)
 
       // 6. Wait for confirmation
       setSubmitState('confirming')
       await pollForConfirmation(connection, signature, blockhash, lastValidBlockHeight)
 
+      // 6b. If fund receivers are set, initialize and populate the split_config PDA on-chain.
+      //     The create_collection tx doesn't do this, so without it the mint would fail with
+      //     0xbc4 (AccountNotInitialized) when the frontend includes the split_config account.
+      const cleanReceivers = fundReceivers.filter(r => r.address.trim())
+      if (cleanReceivers.length > 0) {
+        const [splitConfigPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('split'), collectionPda.toBuffer()],
+          programPubkey,
+        )
+
+        // init_mint_split_config: 8-byte discriminator, no args
+        const initDisc = await anchorDiscriminator('init_mint_split_config')
+        const initIx = new TransactionInstruction({
+          programId: programPubkey,
+          keys: [
+            { pubkey: collectionPda,           isSigner: false, isWritable: true  },
+            { pubkey: authority,               isSigner: true,  isWritable: true  },
+            { pubkey: splitConfigPda,          isSigner: false, isWritable: true  },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          ],
+          data: initDisc,
+        })
+
+        // update_mint_fund_splits: disc + recipients[Pubkey;10] + shares[u8;10] + num u8
+        const updateDisc    = await anchorDiscriminator('update_mint_fund_splits')
+        const recipientsBuf = Buffer.alloc(320) // 10 × 32 bytes, zero-padded
+        const sharesBuf     = Buffer.alloc(10)  // 10 × u8, zero-padded
+        cleanReceivers.forEach((r, i) => {
+          new PublicKey(r.address.trim()).toBuffer().copy(recipientsBuf, i * 32)
+          sharesBuf[i] = Math.round(Number(r.share))
+        })
+        const updateIx = new TransactionInstruction({
+          programId: programPubkey,
+          keys: [
+            { pubkey: collectionPda,  isSigner: false, isWritable: true },
+            { pubkey: authority,      isSigner: true,  isWritable: true },
+            { pubkey: splitConfigPda, isSigner: false, isWritable: true },
+          ],
+          data: Buffer.concat([updateDisc, recipientsBuf, sharesBuf, Buffer.from([cleanReceivers.length])]),
+        })
+
+        const { blockhash: splitBh, lastValidBlockHeight: splitLVBH } = await connection.getLatestBlockhash()
+        const splitTx = new Transaction()
+        splitTx.recentBlockhash = splitBh
+        splitTx.feePayer = authority
+        splitTx.add(initIx, updateIx)
+
+        const splitSig = await sendTransaction(splitTx, connection)
+        await pollForConfirmation(connection, splitSig, splitBh, splitLVBH)
+      }
+
       // 7. Save to backend DB
+      const resolvedMintPrice = typeof mintPrice === 'number' ? mintPrice : undefined
       const saveResult = await collectionsApi.deploy({
         name:             collectionName.trim(),
         symbol:           (symbol.trim() || collectionName.trim().slice(0, 4)).toUpperCase(),
@@ -425,7 +627,7 @@ export function useCreateCollectionForm() {
         metadataStandard,
         uri:              metadataUri || undefined,
         totalSupply:      supply,
-        mintPrice:        freeMint ? 0 : (typeof mintPrice === 'number' ? mintPrice : undefined),
+        mintPrice:        freeMint ? 0 : resolvedMintPrice,
         freeMint,
         royaltyPercent,
         royaltyWallet:    royaltyWallet.trim() || walletAddress,
@@ -434,7 +636,8 @@ export function useCreateCollectionForm() {
         twitterUrl:       twitterUrl.trim() || undefined,
         discordUrl:       discordUrl.trim() || undefined,
         websiteUrl:       websiteUrl.trim() || undefined,
-        collectionAddress: collectionPda.toBase58(),
+        // Store the mint seed pubkey — the collection PDA is derived from it on-chain.
+        collectionAddress: mintKeypair.publicKey.toBase58(),
         txSignature:      signature,
         ...(pfpResult?.data    ? { collectionImage: pfpResult.data.uri }    : {}),
         ...(bannerResult?.data ? { bannerImage:     bannerResult.data.uri } : {}),
@@ -481,6 +684,7 @@ export function useCreateCollectionForm() {
     handleStep1Next,
     imageFiles,     setImageFiles,
     metadataFiles,  setMetadataFiles,
+    imageCount,     metadataCount,
     imagesBaseUri,  metadataBaseUri,
     step2State,     step2Error,   uploadProgress,
     handleMediaUpload,

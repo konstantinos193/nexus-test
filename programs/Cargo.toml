@@ -2,6 +2,10 @@
 members = [
     "programs/nexus-launchpad",
 ]
+exclude = [
+    "programs/nexus-allowlist",
+    "programs/nexus-payment",
+]
 resolver = "2"
 
 # Patch dependencies to use versions compatible with Rust 1.79 (Solana 2.1.5 toolchain)

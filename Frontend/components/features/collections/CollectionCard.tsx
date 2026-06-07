@@ -106,101 +106,74 @@ export function CollectionCard({ collection }: CollectionCardProps) {
     e.currentTarget.src = `/api/images/banner?id=${collection.id}&name=${encodeURIComponent(collection.name)}&w=600&h=400`;
   };
 
+  // Status label — if/else beats nested ternary every time (the linter agrees)
+  let statusLabel = "Ended"
+  if (displayStatus === "live") statusLabel = "Live"
+  else if (displayStatus === "upcoming") statusLabel = "Upcoming"
+
   return (
-    // The Link — every click here is a user choosing to dive deeper into this collection.
-    // Hopefully they find what they're looking for. (Hopefully the collection is good.)
-    <Link href={`/drops/${collection.slug ?? collection.id}`} className={styles.link}>
-      <article className={styles.card}>
-
-        {/* ── Image Section ───────────────────────────────────────────────────
-            This is the visual hook. If the image is bad, the user bounces.
-            If the IPFS gateway is slow, the image is blank and the user still bounces.
-            We try our best. The blockchain doesn't always cooperate. */}
-        <div className={styles.imageWrap}>
-          <img
-            // Primary src — IPFS-resolved or direct URL. Falls back on error.
-            src={imageUrl ?? `/api/images/banner?id=${collection.id}&name=${encodeURIComponent(collection.name)}&w=600&h=400`}
-            alt={collection.name}
-            className={styles.image}
-            // Lazy load because we might have 50 of these in a grid. The CPU is not a miracle worker.
-            loading="lazy"
-            // The safety net — generate a fallback banner if everything else fails
-            onError={handleImageError}
-          />
-
-          {/* Status badge — floats over the image, judges the collection's progress in life */}
-          <span className={`${styles.badge} ${styles[`badge_${displayStatus}`]}`}>
-            {/* The pulsing dot — only "live" collections deserve the dot. It's earned. */}
-            {displayStatus === "live" && <span className={styles.dot} />}
-            {/* Human-readable status — "Live", "Upcoming", or "Ended" (RIP) */}
-            {displayStatus === "live" ? "Live" : displayStatus === "upcoming" ? "Upcoming" : "Ended"}
-          </span>
-        </div>
-
-        {/* ── Info Section ────────────────────────────────────────────────────
-            The bottom half of the card. Numbers, names, and one small dream. */}
-        <div className={styles.info}>
-          {/* Collection name — the creator's pitch in a single line */}
-          <h3 className={styles.name}>{collection.name}</h3>
-
-          {/* Creator chip — opens Solscan in a new tab so the user can do their own research
-              (They probably won't. But we give them the tools. We're responsible like that.) */}
-          <a
-            href={`https://solscan.io/account/${collection.creator}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.creator}
-            // Stop propagation so the Link above doesn't fire too — one navigation at a time, please
-            onClick={e => e.stopPropagation()}
-          >
-            {/* The Solana logo — tiny, but it carries the weight of an entire ecosystem */}
-            <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={10} height={10} unoptimized />
-            {creatorDisplay}
-          </a>
-
-          {/* Divider — a thin line separating identity from economics */}
-          <div className={styles.divider} />
-
-          {/* ── Stats Row: Price + Supply ──────────────────────────────────── */}
-          <div className={styles.stats}>
-            {/* Price stat — the number that determines if users mint or walk away */}
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>Price</span>
-              <span className={styles.statValue}>
-                {formatPrice(collection.price)}
-                {/* Only show the SOL logo if there's actually a price — "Free SOL" would be misleading */}
-                {(collection.price ?? 0) > 0 && (
-                  <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={10} height={10} unoptimized className={styles.solIcon} />
-                )}
-              </span>
-            </div>
-
-            {/* Supply stat — minted / total, separated by a non-breaking space for aesthetic reasons */}
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>Supply</span>
-              <span className={styles.statValue}>
-                {collection.minted.toLocaleString()}&nbsp;/&nbsp;{collection.totalSupply.toLocaleString()}
-              </span>
-            </div>
+    <div className={styles.container}>
+      <Link href={`/drops/${collection.slug ?? collection.id}`} className={styles.link}>
+        <article className={styles.card}>
+          <div className={styles.imageWrap}>
+            <img
+              src={imageUrl ?? `/api/images/banner?id=${collection.id}&name=${encodeURIComponent(collection.name)}&w=600&h=400`}
+              alt={collection.name}
+              className={styles.image}
+              loading="lazy"
+              onError={handleImageError}
+            />
+            <span className={`${styles.badge} ${styles[`badge_${displayStatus}`]}`}>
+              {displayStatus === "live" && <span className={styles.dot} />}
+              {statusLabel}
+            </span>
           </div>
 
-          {/* ── Mint Progress Bar ───────────────────────────────────────────
-              Only shown for live mints. Upcoming and ended collections
-              don't need a progress bar — one has nothing to show, the other is done screaming. */}
-          {displayStatus === "live" && (
-            <div className={styles.progressWrap}>
-              <div className={styles.progressBar}>
-                {/* The fill — a visual representation of how sold-out this thing is getting */}
-                <div className={styles.progressFill} style={{ width: `${mintProgress}%` }} />
+          <div className={styles.info}>
+            <h3 className={styles.name}>{collection.name}</h3>
+            <div className={styles.divider} />
+            <div className={styles.stats}>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Price</span>
+                <span className={styles.statValue}>
+                  {formatPrice(collection.price)}
+                  {(collection.price ?? 0) > 0 && (
+                    <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={10} height={10} unoptimized className={styles.solIcon} />
+                  )}
+                </span>
               </div>
-              {/* Percentage label — one decimal place because whole numbers feel like lying */}
-              <span className={styles.progressLabel}>{mintProgress.toFixed(1)}% minted</span>
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Supply</span>
+                <span className={styles.statValue}>
+                  {collection.minted.toLocaleString()}&nbsp;/&nbsp;{collection.totalSupply.toLocaleString()}
+                </span>
+              </div>
             </div>
-          )}
-        </div>
 
-      </article>
-    </Link>
+            {displayStatus === "live" && (
+              <div className={styles.progressWrap}>
+                <div className={styles.progressBar}>
+                  <div className={styles.progressFill} style={{ width: `${mintProgress}%` }} />
+                </div>
+                <span className={styles.progressLabel}>{mintProgress.toFixed(1)}% minted</span>
+              </div>
+            )}
+          </div>
+        </article>
+      </Link>
+
+      <button
+        type="button"
+        className={styles.creator}
+        onClick={e => {
+          e.stopPropagation();
+          window.open(`https://solscan.io/account/${collection.creator}`, "_blank");
+        }}
+      >
+        <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={10} height={10} unoptimized />
+        {creatorDisplay}
+      </button>
+    </div>
   );
 }
 

@@ -89,6 +89,8 @@ interface DeployFormProps {
   // Step 2 data — uploaded media
   imageFiles:       File[]
   metadataFiles:    File[]
+  imageCount:       number
+  metadataCount:    number
   // IPFS URIs — also prefixed with _ in the body, kept for future use
   imagesBaseUri:    string | null
   metadataBaseUri:  string | null
@@ -161,11 +163,12 @@ interface CheckCard {
  * The only user-interactive elements are Back and Deploy.
  * Everything else is information, confirmation, and mood-setting.
  */
+// eslint-disable-next-line max-lines-per-function, complexity
 export default function DeployForm({
   collectionName, symbol, description, metadataStandard,
   royaltyPercent, royaltyWallet: _royaltyWallet, walletAddress: _walletAddress,
   imageFile, bannerFile,
-  imageFiles, metadataFiles, imagesBaseUri: _imagesBaseUri, metadataBaseUri: _metadataBaseUri,
+  imageFiles, metadataFiles, imageCount, metadataCount, imagesBaseUri: _imagesBaseUri, metadataBaseUri: _metadataBaseUri,
   totalSupply, mintPrice, freeMint, phases,
   estimatedFee,
   isConnected, submitState, isDeploying, error,
@@ -178,6 +181,11 @@ export default function DeployForm({
   // effectivePrice — derived from phases + global price. Used in both the numbers strip
   // and the fee information row in section H.
   const effectivePrice = getEffectivePrice(phases, mintPrice, freeMint)
+  let priceDisplay: string
+  if (effectivePrice === 'free') priceDisplay = 'Free'
+  else if (effectivePrice === 'varies') priceDisplay = 'Varies by phase'
+  else if (effectivePrice !== '') priceDisplay = `${effectivePrice} SOL`
+  else priceDisplay = '—'
 
   // pfpUrl + bannerUrl — object URLs for preview images.
   // Two separate effects because Strict Mode's double-invoke would revoke a shared URL
@@ -203,6 +211,9 @@ export default function DeployForm({
   // Pre-flight check cards — three cards built from the collected form data.
   // Collection: name + royalty + standard. Media: image/metadata file counts. Phases: count + start.
   // ok = false shows amber warning, never disables deploy. Advisory, not blocking.
+  const mediaImageCount = imageFiles.length || imageCount
+  const mediaMetadataCount = metadataFiles.length || metadataCount
+
   const checkCards: CheckCard[] = [
     {
       icon:  <Layers className="w-5 h-5" />,
@@ -220,11 +231,11 @@ export default function DeployForm({
       icon:  <ImageIcon className="w-5 h-5" />,
       title: 'Media',
       items: [
-        `${imageFiles.length} image${imageFiles.length !== 1 ? 's' : ''}`,
-        `${metadataFiles.length} metadata file${metadataFiles.length !== 1 ? 's' : ''}`,
+        `${mediaImageCount} image${mediaImageCount !== 1 ? 's' : ''}`,
+        `${mediaMetadataCount} metadata file${mediaMetadataCount !== 1 ? 's' : ''}`,
       ],
       // ok = at least one file. Zero files on Step 4 is technically possible if Step 2 was skipped.
-      ok: imageFiles.length > 0 || metadataFiles.length > 0,
+      ok: mediaImageCount > 0 || mediaMetadataCount > 0,
     },
     {
       icon:  <CalendarRange className="w-5 h-5" />,
@@ -375,7 +386,7 @@ export default function DeployForm({
           // Supply — toLocaleString for thousands separators. ∞ when supply is empty.
           { icon: <Package className="w-4 h-4" />, label: 'Supply',  value: totalSupply !== '' ? totalSupply.toLocaleString() : '∞' },
           // Price — "Free", "Varies by phase", "X SOL", or "—" when unset.
-          { icon: <Coins   className="w-4 h-4" />, label: 'Price',   value: effectivePrice === 'free' ? 'Free' : effectivePrice === 'varies' ? 'Varies by phase' : effectivePrice !== '' ? `${effectivePrice} SOL` : '—' },
+          { icon: <Coins   className="w-4 h-4" />, label: 'Price',   value: priceDisplay },
           // Royalty — always shows the % symbol because context matters.
           { icon: <Shield  className="w-4 h-4" />, label: 'Royalty', value: `${royaltyPercent}%` },
           // Phases — raw count. Zero is valid but will show as "0" which is honest.

@@ -38,8 +38,6 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import {
   PublicKey,
   Transaction,
-  TransactionInstruction,
-  SystemProgram,
 } from '@solana/web3.js'
 
 // Chain config — fetches programId, platformWallet, etc. from backend at runtime
@@ -47,7 +45,8 @@ import { getChainConfig }      from '@/lib/solana/chain-config'
 // Confirmation polling — HTTP-based, no WebSocket dependency
 import { pollForConfirmation } from '@/lib/solana/confirm'
 // Mint instruction data builder
-import { buildMintData }       from '@/lib/solana/mint'
+
+import { buildMintInstruction } from '@/lib/solana/build-mint-tx'
 
 // ── Section Components ────────────────────────────────────────────────────────
 // Each section of the drop detail page is a self-contained component
@@ -273,66 +272,58 @@ export default function DropPageClient() {
 
   // handleMint — builds and sends the on-chain mint transaction (TECH-002 complete)
   const handleMint = useCallback(async (qty: number) => {
-    if (!publicKey || !collection?.mintAddress) return
+    console.log('[MINT] Starting mint transaction for qty:', qty)
+    console.log('[MINT] publicKey:', publicKey?.toString(), 'mintAddress:', collection?.mintAddress)
+    if (!publicKey || !collection?.mintAddress) {
+      console.warn('[MINT] Missing publicKey or mintAddress')
+      return
+    }
     setMinting(true)
     setMintError(null)
     try {
+      console.log('[MINT] Step 1: Fetching chain config')
       const cfg       = await getChainConfig()
+      console.log('[MINT] Chain config:', { programId: cfg.programId, platformWallet: cfg.platformWallet })
       const programId = new PublicKey(cfg.programId)
-      const mintKey   = new PublicKey(collection.mintAddress)
 
-      // collection PDA: seeds = ["collection", mintKey]
-      const [collectionPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('collection'), mintKey.toBuffer()],
+      console.log('[MINT] Step 2: Building standard-aware mint instruction')
+      const { instruction: ix, extraSigners, standard } = await buildMintInstruction({
+        connection,
         programId,
-      )
+        buyer: publicKey,
+        creatorAddress: collection.creatorAddress,
+        platformWallet: cfg.platformWallet,
+        storedMintAddress: collection.mintAddress,
+        quantity: qty,
+      })
+      console.log('[MINT] Standard:', standard, 'extraSigners:', extraSigners.length)
 
-      // wallet_tracker PDA: seeds = ["wallet_mint", collection, buyer]
-      const [walletTracker] = PublicKey.findProgramAddressSync(
-        [Buffer.from('wallet_mint'), collectionPda.toBuffer(), publicKey.toBuffer()],
-        programId,
-      )
-
-      const keys: { pubkey: PublicKey; isSigner: boolean; isWritable: boolean }[] = [
-        { pubkey: collectionPda,                              isSigner: false, isWritable: true  },
-        { pubkey: publicKey,                                  isSigner: true,  isWritable: true  },
-        { pubkey: new PublicKey(collection.creatorAddress),   isSigner: false, isWritable: true  },
-        { pubkey: new PublicKey(cfg.platformWallet),          isSigner: false, isWritable: true  },
-        { pubkey: walletTracker,                              isSigner: false, isWritable: true  },
-      ]
-
-      // Include split_config only if the PDA is properly initialized on-chain.
-      // DB fundReceivers cannot be trusted — the PDA may not have been created during deploy.
-      // Discriminator [169,57,103,31,150,143,133,25] from IDL (nexus_launchpad MintSplitConfig).
-      const SPLIT_CONFIG_DISC = Buffer.from([169, 57, 103, 31, 150, 143, 133, 25])
-      const [splitConfig] = PublicKey.findProgramAddressSync(
-        [Buffer.from('split'), collectionPda.toBuffer()],
-        programId,
-      )
-      const splitInfo = await connection.getAccountInfo(splitConfig)
-      const isValidSplitConfig = splitInfo !== null &&
-        splitInfo.data.length >= 8 &&
-        splitInfo.data.subarray(0, 8).equals(SPLIT_CONFIG_DISC)
-      if (isValidSplitConfig) {
-        keys.push({ pubkey: splitConfig, isSigner: false, isWritable: false })
-      }
-
-      keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false })
-
-      const ix = new TransactionInstruction({ programId, keys, data: buildMintData(qty) })
+      console.log('[MINT] Step 6: Getting blockhash')
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
+      console.log('[MINT] Blockhash:', blockhash, 'lastValidBlockHeight:', lastValidBlockHeight)
+
+      console.log('[MINT] Step 7: Building transaction')
       const tx = new Transaction()
       tx.recentBlockhash = blockhash
       tx.feePayer = publicKey
       tx.add(ix)
+      console.log('[MINT] Transaction built, size estimate:', tx.serialize({ requireAllSignatures: false }).length, 'bytes')
 
-      const sig = await sendTransaction(tx, connection)
+      console.log('[MINT] Step 8: Sending transaction to wallet')
+      const sig = await sendTransaction(tx, connection, { signers: extraSigners })
+      console.log('[MINT] Transaction sent! Signature:', sig)
+
+      console.log('[MINT] Step 9: Polling for confirmation')
       await pollForConfirmation(connection, sig, blockhash, lastValidBlockHeight)
+      console.log('[MINT] ✅ Transaction confirmed!')
 
       // Optimistically increment minted count so the progress bar updates immediately
       setCollection(c => c ? { ...c, minted: c.minted + qty } : c)
+      console.log('[MINT] Collection state updated')
     } catch (e) {
-      setMintError(e instanceof Error ? e.message : 'Mint failed')
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      console.error('[MINT] ❌ Error:', errorMsg, e)
+      setMintError(errorMsg)
     } finally {
       setMinting(false)
     }

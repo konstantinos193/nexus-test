@@ -88,7 +88,7 @@
     "@nestjs/cli": "^11.0.21",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "@types/pg": "^8.20.0",
     "dotenv": "^17.4.2",
     "nodemon": "^3.1.14",

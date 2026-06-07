@@ -95,7 +95,7 @@ export default function CreateLayout({
   // Fragment with no extra DOM — intentional
   // The create flow needs space. We give it space.
   // Adding a wrapper div here would upset the form layout. Don't.
-  return <>{children}</>
+  return children
 }
 
 // ── Juan's Sign-Off ───────────────────────────────────────────────────────────

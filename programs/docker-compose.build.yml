@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   anchor-build:
     build:
@@ -8,16 +6,44 @@ services:
     container_name: nexus-anchor-build
     volumes:
       - .:/workspace
-      - cargo-cache:/root/.cargo
-      - solana-cache:/root/.local/share/solana
-      - target:/workspace/target
+      - cargo-registry-cache:/root/.cargo/registry
     working_dir: /workspace
     environment:
-      - CARGO_HOME=/root/.cargo
-      - SOLANA_HOME=/root/.local/share/solana
-    command: sh -c "avm install latest && avm use latest && anchor build"
+      - PATH=/usr/local/cargo/bin:/opt/solana/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        echo "=== anchor $(anchor --version) ==="
+        echo "=== cargo-build-sbf $(cargo-build-sbf --version) ==="
+        anchor build -- --features idl-build
+        ls -la target/deploy/nexus_launchpad.so target/idl/nexus_launchpad.json
+        cp -f target/idl/nexus_launchpad.json ../Backend/src/solana/idl/nexus_launchpad.json 2>/dev/null || true
+        echo "=== Build OK ==="
+
+  anchor-deploy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-anchor-deploy
+    volumes:
+      - .:/workspace
+      - ./wallet.json:/root/.config/solana/id.json
+      - cargo-registry-cache:/root/.cargo/registry
+    working_dir: /workspace
+    environment:
+      - PATH=/usr/local/cargo/bin:/opt/solana/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        echo "=== anchor $(anchor --version) ==="
+        echo "=== cargo-build-sbf $(cargo-build-sbf --version) ==="
+        echo "=== Deploying to https://rpc.nexus-web3.com ==="
+        anchor deploy --provider.cluster https://rpc.nexus-web3.com
+        echo "=== Deploy OK ==="
 
 volumes:
-  cargo-cache:
-  solana-cache:
-  target:
+  cargo-registry-cache:

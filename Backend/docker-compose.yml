@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: nexus123
+      POSTGRES_DB: nexus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/martechnetworks/nexus-backend:7504f5ca67ad1e286047455562e23b7e0a948f59
+    container_name: nexus-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:nexus123@postgres:5432/nexus_db?schema=public"
+      PORT: 8000
+      FRONTEND_URL: https://nexus-web3.com
+      API_KEY: 543ef675f15bf0d12b03e88a0f7026b3806c76cb447f2b3787e0039259785cad
+      SOLANA_NETWORK: devnet
+      SOLANA_RPC_URL: https://rpc.nexus-web3.com
+      SOLANA_COMMITMENT: confirmed
+      PROGRAM_ID: CzpjY2BnGvr97kJihy5DDAbExqu8Gqzz9j1U8RV5j7Cm
+      IPFS_MODE: http
+      IPFS_API_URL: http://ipfs-node:5001
+      IPFS_GATEWAY_URL: http://ipfs-node:8080
+      IPFS_PUBLIC_GATEWAY_URL: https://ipfs.io/ipfs/
+    ports:
+      - "8000:8000"
+    networks:
+      - martech-network
+
+networks:
+  martech-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -225,13 +225,10 @@ export default function HeaderSearch({
           aria-label="Search results"
         >
           {/* loading → "Searching…". !hasQuery → "Type to search...". No results → "No collections found." Otherwise → list. Desktop + mobile, same UX. */}
-          {loading ? (
-            <div className={styles.status}>Searching…</div>
-          ) : !hasQuery ? (
-            <div className={styles.status}>Type to search collections</div>
-          ) : results.length === 0 ? (
-            <div className={styles.status}>No collections found</div>
-          ) : (
+          {loading && <div className={styles.status}>Searching…</div>}
+          {!loading && !hasQuery && <div className={styles.status}>Type to search collections</div>}
+          {!loading && hasQuery && results.length === 0 && <div className={styles.status}>No collections found</div>}
+          {!loading && hasQuery && results.length > 0 && (
             <ul className={styles.list}>
               {results.map((c) => (
                 <li key={c.id} className={styles.item}>

@@ -297,8 +297,8 @@ export function getDiscoverCollectionsByTab(tab: 'trending' | 'new' | 'ending_so
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
     case 'ending_soon':
-      return discoverCollections.filter((c) => (c as any).endDate).sort(
-        (a, b) => new Date((a as any).endDate).getTime() - new Date((b as any).endDate).getTime()
+      return discoverCollections.filter((c) => c.endDate).sort(
+        (a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime()
       )
     case 'free_mint':
       return discoverCollections.filter((c) => c.price === 0)

@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable max-lines, max-lines-per-function, complexity */
+
 /**
  * CollectionForm - Step 1: The sacred ritual of naming your collection.
  * Name, symbol, description, NFT standard, PFP + banner upload, royalty config, social links.
@@ -35,6 +37,11 @@ import { navigationUtils } from '@/lib/event-handlers'
 // MetadataStandard — Core | Legacy | Compressed | Programmable.
 // The user picks one. The blockchain enforces it forever. No pressure.
 import type { MetadataStandard } from '@/hooks/useCreateCollectionForm'
+import {
+  STANDARD_MINT_SUPPORT,
+  STANDARD_MINT_HINT,
+  type UiMetadataStandard,
+} from '@/lib/solana/standards'
 
 // ── Props interface ────────────────────────────────────────────────────────────
 // Twenty-two props. Yes, twenty-two. This is Step 1 of a 4-step wizard.
@@ -360,11 +367,14 @@ export default function CollectionForm({
           ] as const).map(({ value, label, sub, hint, tag, color, activeBorder, icon }) => {
             // active — drives border color and background tint. Each standard has its own palette.
             const active = metadataStandard === value
+            const uiValue = value as UiMetadataStandard
+            const mintLive = STANDARD_MINT_SUPPORT[uiValue] === 'live'
             return (
               <button
                 key={value}
                 type="button"
                 onClick={() => setMetadataStandard(value)}
+                title={STANDARD_MINT_HINT[uiValue]}
                 className={[
                   'relative flex flex-col gap-2.5 px-3 pt-3.5 pb-3 rounded-xl border text-left transition-all',
                   // Active: accent border + subtle bg tint. Inactive: default border, hover highlight.
@@ -385,6 +395,9 @@ export default function CollectionForm({
                 </div>
                 {/* Hint — one line, tells the user when to use this standard. */}
                 <p className="text-[11px] text-dark-text-tertiary leading-snug">{hint}</p>
+                <p className={`text-[10px] font-semibold leading-snug ${mintLive ? 'text-dark-accent-success' : 'text-dark-accent-warning'}`}>
+                  {mintLive ? 'Mint ready' : 'Deploy only'}
+                </p>
               </button>
             )
           })}

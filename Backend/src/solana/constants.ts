@@ -136,6 +136,19 @@ export const PLATFORM_WALLET =
 // ── External Program Addresses ─────────────────────────────────────────────────
 
 /**
+ * MPL_CORE_PROGRAM_ID
+ *
+ * The Metaplex Core program address — used for Core collection creation.
+ * Stable across devnet, testnet, and mainnet-beta.
+ *
+ * Configurable via MPL_CORE_PROGRAM_ID env var for localnet deployments.
+ * The mainnet address is the production MPL Core program.
+ */
+// Metaplex Core program — used for Core standard NFT collections.
+export const MPL_CORE_PROGRAM_ID =
+  process.env.MPL_CORE_PROGRAM_ID || 'CoREENxT6tW1HoK8ypYmtXvZApgjbpa9xcfc1mpRj9DA';
+
+/**
  * TOKEN_METADATA_PROGRAM_ID
  *
  * The Metaplex Token Metadata program address.

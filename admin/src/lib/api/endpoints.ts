@@ -1,31 +1,27 @@
-/**
- * Centralized API endpoint paths. Keeps routes consistent and easy to change.
- */
-
 export const endpoints = {
-  users: {
-    list: '/users',
-    byId: (id: string) => `/users/${id}`,
-    create: '/users',
-    update: (id: string) => `/users/${id}`,
-    delete: (id: string) => `/users/${id}`,
+  collections: {
+    list: '/api/collections',
+    byId: (id: string) => `/api/collections/${id}`,
+    sync: '/api/collections/sync',
+    onchain: (address: string) => `/api/collections/onchain/${address}`,
+  },
+  admin: {
+    stats: '/api/admin/stats',
+    creators: '/api/admin/creators',
+    updateCollection: (id: string) => `/api/admin/collections/${id}`,
+    deleteCollection: (id: string) => `/api/admin/collections/${id}`,
+  },
+  infrastructure: {
+    health: '/health',
+    ipfsHealth: '/api/ipfs/health',
+    ipfsPins: '/api/ipfs/pins',
+    ipfsCheck: (hash: string) => `/api/ipfs/check/${hash}`,
+    ipfsView: (hash: string) => `/api/ipfs/view/${hash}`,
+    solanaNetwork: '/api/solana/network',
+    solanaConfig: '/api/solana/config',
+    contractStatus: '/api/solana/contracts/status',
   },
   activity: {
-    list: '/activity',
-  },
-  settings: {
-    general: '/settings/general',
-    security: '/settings/security',
-    apiKeys: '/settings/api-keys',
-    apiKeyRevoke: (id: string) => `/settings/api-keys/${id}/revoke`,
-  },
-  dashboard: {
-    kpis: '/dashboard/kpis',
-    recentActivity: '/dashboard/recent-activity',
-  },
-  auth: {
-    me: '/auth/me',
-    login: '/auth/login',
-    logout: '/auth/logout',
+    list: '/api/activity',
   },
 } as const

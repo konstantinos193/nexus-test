@@ -481,6 +481,7 @@ export class CollectionsService {
       discordUrl:         data.discordUrl,
       websiteUrl:         data.websiteUrl,
       updatedBy:          data.creatorAddress,        // Track who last touched this. Accountability.
+      updatedAt:          new Date(),                 // Database requires this — track when we made it.
     });
 
     // Wrap in a transaction. Because if the save fails, we want a clean rollback,
@@ -633,20 +634,38 @@ export class CollectionsService {
 function toNFTCollection(c: Collection): NFTCollection {
   const phases: any[] = Array.isArray(c.phases) ? c.phases : []; // Null-safe phase extraction.
 
-  // Prefer stored effectiveStatus (accurate at last write); fall back to computing it now.
-  // The fallback exists for rows created before effectiveStatus was added to the schema.
-  // History haunts us. The migration runs, but the old data endures.
-  const resolvedStatus = (c.effectiveStatus || computeEffectiveStatus(c.status, phases)) as NFTCollection['status'];
+  // Always recompute status from phases at read time so time-based transitions (ready→minting,
+  // minting→completed) happen automatically without needing a write. Use the stored
+  // effectiveStatus (or status) as the base so locked states (paused, completed) are respected.
+  const resolvedStatus = computeEffectiveStatus(c.effectiveStatus || c.status, phases) as NFTCollection['status'];
+
+  // Compute effective price: if there is exactly one currently active phase and it has a
+  // priceOverride, surface that as the collection price so callers don't have to re-derive it.
+  // When multiple phases are active simultaneously the caller (MintInteractionModule) uses
+  // activePhase.priceOverride directly from the phases array — base price is the right fallback.
+  const now = Date.now();
+  const activePhases = phases.filter(p =>
+    p.startDateTime &&
+    new Date(p.startDateTime).getTime() <= now &&
+    (!p.endDateTime || new Date(p.endDateTime).getTime() > now),
+  );
+  const effectivePrice =
+    activePhases.length === 1 && activePhases[0].priceOverride != null
+      ? parseFloat(activePhases[0].priceOverride)
+      : c.price;
 
   return {
     ...c,                                              // Spread the entity — inherit what we don't explicitly map.
-    status:    resolvedStatus,                         // Always the effective (computed) status, not the raw base.
-    createdAt: c.createdAt.toISOString(),              // Dates → ISO strings. JSON doesn't do Date objects. Never did.
-    updatedAt: c.updatedAt.toISOString(),
-    mintStart: c.mintStart ? c.mintStart.toISOString() : undefined, // Optional. Absent if no schedule.
-    endDate:   c.endDate   ? c.endDate.toISOString()   : undefined, // Optional. Absent if it runs forever (bold).
-    blockchain: c.blockchain as 'solana',              // TypeScript demands the cast. We oblige, knowing it's always 'solana'.
-    traits:    (Array.isArray(c.traits) ? c.traits : []) as NFTCollection['traits'], // Never null. Always array. Always.
+    status:          resolvedStatus,                   // Always the effective (computed) status, not the raw base.
+    effectiveStatus: resolvedStatus,                   // Explicit field — frontend reads c.effectiveStatus ?? c.status.
+    mintAddress:     c.mintAddress ?? undefined,       // Explicit — not left to the spread so Swagger sees it.
+    price:           effectivePrice,                   // Active single-phase priceOverride wins; multi-phase falls back to base.
+    createdAt:       c.createdAt.toISOString(),        // Dates → ISO strings. JSON doesn't do Date objects. Never did.
+    updatedAt:       c.updatedAt.toISOString(),
+    mintStart:       c.mintStart ? c.mintStart.toISOString() : undefined,
+    endDate:         c.endDate   ? c.endDate.toISOString()   : undefined,
+    blockchain:      c.blockchain as 'solana',
+    traits:          (Array.isArray(c.traits) ? c.traits : []) as NFTCollection['traits'],
   };
 }
 

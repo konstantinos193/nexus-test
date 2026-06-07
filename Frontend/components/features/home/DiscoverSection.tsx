@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { NFTCollection } from '@/types'
 import { CollectionCard } from '../collections/CollectionCard'
 import { useDiscoverCollections } from '@/hooks/useCollections'
-import { getDiscoverCollectionsByTab } from '@/lib/data/collections'
 import styles from './DiscoverSection.module.css'
 
 type DiscoverTab = 'trending' | 'new' | 'ending_soon' | 'free_mint'
@@ -22,11 +21,8 @@ const MAX_DISPLAY = 6
 export default function DiscoverSection() {
   const [activeTab, setActiveTab] = useState<DiscoverTab>('trending')
 
-  const { data: apiCollections = [] } = useDiscoverCollections(activeTab)
-  const collections =
-    apiCollections && apiCollections.length > 0
-      ? apiCollections
-      : getDiscoverCollectionsByTab(activeTab)
+  const { data: apiCollections } = useDiscoverCollections(activeTab)
+  const collections = apiCollections ?? []
 
   const display = collections.slice(0, MAX_DISPLAY)
 

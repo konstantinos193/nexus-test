@@ -15,12 +15,23 @@ no-log-ix-name = []
 cpi = ["no-entrypoint"]
 idl-build = ["anchor-lang/idl-build"]
 logs = []
+# Core features for minimal deployment
+core = []
+# Optional features for extended functionality
+# allowlist-module = ["nexus-allowlist"]
+# payment-module = ["nexus-payment"]
+# full = ["allowlist-module", "payment-module"]
 # Production defaults: no-idl (saves ~20-50KB), no-log-ix-name (saves CU)
 # IDL is only needed for client generation, not runtime
 default = ["no-idl", "no-log-ix-name"]
 
 [dependencies]
 anchor-lang = { version = "0.32.1", default-features = false, features = ["init-if-needed"] }
+anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
 sha3 = { version = "0.10", default-features = false }
-# NOTE: Add mpl-core when implementing Metaplex Freeze Delegate CPI
-# mpl-core = { version = "0.11.1", features = ["anchor"] }
+mpl-core = { version = "0.11.1", features = ["anchor"] }
+itoa = "1.0"  # Optimized string formatting
+
+# CPI dependencies - only include when optional modules exist
+# nexus-allowlist = { path = "../nexus-allowlist", features = ["cpi"], optional = true }
+# nexus-payment = { path = "../nexus-payment", features = ["cpi"], optional = true }

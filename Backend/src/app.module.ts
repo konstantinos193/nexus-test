@@ -35,6 +35,7 @@ import { SolanaModule } from './solana/solana.module';
 // IpfsModule: permanent storage for NFT images and metadata.
 // Because "permanent" is a strong word, but we say it with confidence anyway.
 import { IpfsModule } from './ipfs/ipfs.module';
+import { AdminModule } from './admin/admin.module';
 
 // HealthController: the "are you alive?" endpoint.
 // Kubernetes asks this question obsessively. We respect the commitment.
@@ -88,6 +89,9 @@ import { AppController } from './app.controller';
     // IpfsModule — uploads and pins files to IPFS.
     // Because "put it on the blockchain permanently" is a promise we try to keep.
     IpfsModule,
+
+    // AdminModule — platform operator endpoints: stats, collection moderation, creators list.
+    AdminModule,
   ],
 
   // Controllers registered at the root level.

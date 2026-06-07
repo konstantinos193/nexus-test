@@ -278,6 +278,7 @@ function CreatePageContentInner() {
               <MediaMetadataForm
                 imageFiles={form.imageFiles}        setImageFiles={form.setImageFiles}
                 metadataFiles={form.metadataFiles}  setMetadataFiles={form.setMetadataFiles}
+                imageCount={form.imageCount}        metadataCount={form.metadataCount}
                 imagesBaseUri={form.imagesBaseUri}
                 metadataBaseUri={form.metadataBaseUri}
                 step2State={form.step2State}
@@ -329,6 +330,8 @@ function CreatePageContentInner() {
                 bannerFile={form.bannerFile}
                 imageFiles={form.imageFiles}
                 metadataFiles={form.metadataFiles}
+                imageCount={form.imageCount}
+                metadataCount={form.metadataCount}
                 imagesBaseUri={form.imagesBaseUri}
                 metadataBaseUri={form.metadataBaseUri}
                 totalSupply={form.totalSupply}

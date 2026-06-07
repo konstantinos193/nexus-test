@@ -96,7 +96,7 @@ export default function ToolsLayout({
   // Direct fragment render — no wrapper element, no layout crimes
   // The tools page manages its own max-width and padding
   // We don't layer structure on top of structure. We've learned from past mistakes.
-  return <>{children}</>
+  return children
 }
 
 // ── Juan's Sign-Off ───────────────────────────────────────────────────────────

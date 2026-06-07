@@ -19,11 +19,8 @@
  * (Coded with empathy, humor, and the knowledge that we've all hit a 404 before)
  */
 
-// NotFoundContent — the actual UI: the 404 number, the sad message, the "go home" CTA
-// This is where we say "you're lost" without making the user feel bad about it
-// Because it's probably not their fault. Probably. Unless they typed the URL themselves.
-// Which they definitely did. But we won't say that.
-import NotFoundContent from '@/components/features/not-found/NotFoundContent'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 // ── Page Component ────────────────────────────────────────────────────────────
 
@@ -38,16 +35,21 @@ import NotFoundContent from '@/components/features/not-found/NotFoundContent'
  */
 export default function NotFound() {
   return (
-    // Fragment — clean, minimal, just the content component
-    // The root layout handles the header/footer scaffolding
-    // We just need to drop the error UI in and get out of the way
-    <>
-      {/* NotFoundContent — the 404 UI component
-          Big "404" or illustration, friendly message, a button to go home
-          Friendly. Clear. Not accusatory. We welcome the lost.
-          (Even if they absolutely typed the wrong URL on purpose to test us.) */}
-      <NotFoundContent />
-    </>
+    <section className="min-h-[60vh] flex flex-col items-center justify-center px-6 py-12 text-center" aria-labelledby="not-found-heading">
+      <div className="max-w-md">
+        <h1 id="not-found-heading" className="text-6xl lg:text-8xl font-bold leading-none tracking-tight text-gray-500">
+          404
+        </h1>
+        <p className="text-lg font-medium text-white mt-3">Page not found</p>
+        <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+          This page doesn&apos;t exist or may have been moved.
+        </p>
+        <Link href="/" className="inline-flex items-center gap-2 mt-8 px-6 py-3 text-sm font-medium text-cyan-400 no-underline rounded-lg border border-gray-700 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10">
+          <ArrowLeft size={18} aria-hidden="true" />
+          Back to home
+        </Link>
+      </div>
+    </section>
   )
 }
 

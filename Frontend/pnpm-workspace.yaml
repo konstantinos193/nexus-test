@@ -1,5 +1,6 @@
 allowBuilds:
   '@stellar/stellar-sdk': true
+  bigint-buffer: set this to true or false
   blake-hash: true
   bufferutil: true
   protobufjs: true

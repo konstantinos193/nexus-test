@@ -1,0 +1,31 @@
+[package]
+name = "nexus-payment"
+version = "0.1.0"
+description = "NeXus Payment Splitting Program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "nexus_payment"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build"]
+logs = []
+# Production defaults: no-idl (saves ~20-50KB), no-log-ix-name (saves CU)
+# IDL is only needed for client generation, not runtime
+default = ["no-idl", "no-log-ix-name"]
+
+[dependencies]
+anchor-lang = { version = "0.32.1", default-features = false, features = ["init-if-needed"] }
+anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
+
+# Optimization: Minimal dependencies for payment splitting
+# Add itoa if string operations are needed
+# itoa = "1.0"  # Uncomment if needed
+
+[dev-dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }

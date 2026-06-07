@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable max-lines, complexity */
+
 /**
  * MediaMetadataForm - Step 2: NFT images and metadata folder upload to IPFS.
  * Two dramatic drag-drop zones, a local NFT preview grid before upload,
@@ -648,6 +650,8 @@ interface MediaMetadataFormProps {
   setImageFiles:    (f: File[]) => void
   metadataFiles:    File[]
   setMetadataFiles: (f: File[]) => void
+  imageCount:       number
+  metadataCount:    number
   imagesBaseUri:    string | null
   metadataBaseUri:  string | null
   step2State:       Step2State
@@ -663,6 +667,7 @@ interface MediaMetadataFormProps {
 export default function MediaMetadataForm({
   imageFiles, setImageFiles,
   metadataFiles, setMetadataFiles,
+  imageCount, metadataCount,
   imagesBaseUri, metadataBaseUri,
   step2State, step2Error, uploadProgress,
   onUpload, onNext, onBack,
@@ -853,7 +858,7 @@ export default function MediaMetadataForm({
       {/* ── F. IPFS success panel ─────────────────────────────────────────────── */}
       {showSuccessUI && (
         <IpfsSuccessPanel
-          imageCount={imageFiles.length || metadataFiles.length}
+          imageCount={imageCount || metadataCount}
           imagesBaseUri={imagesBaseUri}
           metadataBaseUri={metadataBaseUri}
           uploadedAt={uploadedAt}

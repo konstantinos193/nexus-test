@@ -1,53 +1,34 @@
-# Dockerfile for Solana/Anchor Development (Localnet)
-FROM ubuntu:22.04
+# Solana/Anchor build image for nexus-launchpad
+FROM rust:1.86-bookworm
 
-# Avoid interactive prompts during build
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    git \
+    ca-certificates \
     build-essential \
     pkg-config \
     libssl-dev \
     libudev-dev \
+    git \
+    bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Solana CLI via GitHub release tarball (more reliable than install.sh behind flaky TLS)
+ARG SOLANA_VERSION=1.18.26
+RUN set -eux; \
+    curl -fsSL --retry 5 --retry-delay 3 \
+      "https://github.com/solana-labs/solana/releases/download/v${SOLANA_VERSION}/solana-release-x86_64-unknown-linux-gnu.tar.bz2" \
+      -o /tmp/solana.tar.bz2; \
+    mkdir -p /opt/solana; \
+    tar -xjf /tmp/solana.tar.bz2 -C /opt/solana --strip-components=1; \
+    rm /tmp/solana.tar.bz2
 
-# Install Solana CLI (for localnet validator)
-# Try multiple methods to handle SSL issues
-RUN (curl -sSfL https://release.solana.com/stable/install | sh) || \
-    (sleep 5 && curl -sSfL https://release.solana.com/stable/install | sh) || \
-    (curl -k -sSfL https://release.solana.com/stable/install | sh) || \
-    (cd /tmp && \
-     wget -q https://github.com/solana-labs/solana/releases/download/v1.18.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2 && \
-     tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2 && \
-     mkdir -p /root/.local/share/solana/install/active_release/bin && \
-     cp solana-release/bin/* /root/.local/share/solana/install/active_release/bin/ && \
-     rm -rf solana-release*)
-# Set PATH for Solana
-ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
-# Verify Solana installation
-RUN /root/.local/share/solana/install/active_release/bin/solana --version || \
-    (echo "ERROR: Solana installation failed" && exit 1)
+ENV PATH="/usr/local/cargo/bin:/opt/solana/bin:${PATH}"
 
-# Install Anchor AVM (we'll install anchor versions as needed)
-RUN cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-ENV PATH="/root/.cargo/bin:${PATH}"
+RUN solana --version && cargo-build-sbf --version
 
-# Install Node.js (for tests)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs
+# Anchor CLI 0.32.1 (must match Anchor.toml)
+RUN cargo install --locked anchor-cli@0.32.1
 
-# Install Yarn
-RUN npm install -g yarn
+RUN anchor --version
 
-# Set working directory
 WORKDIR /workspace
-
-# Default command (can be overridden)
-CMD ["/bin/bash"]

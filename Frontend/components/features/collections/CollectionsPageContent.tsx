@@ -13,6 +13,8 @@
 
 // React — the foundation on which all our hopes and components are built
 import React from 'react'
+// NFTCollection — the shape of a collection from the API. Used for the displayedCollections prop.
+import type { NFTCollection } from '@/types'
 // CollectionGrid — the actual grid of cards. This is what we're protecting with all these guards.
 import CollectionGrid from '@/components/features/collections/CollectionGrid'
 // LoadMore — the humble button at the bottom that says "there's more, if you want it"
@@ -27,9 +29,9 @@ import styles from './CollectionsPageContent.module.css'
  * squeezed into six props and a prayer.
  */
 interface CollectionsPageContentProps {
-  displayedCollections: any[]   // The collections to show — `any[]` because the parent handles the types
-  isLoading: boolean             // True while the API call is in-flight
-  error: any                     // If something went wrong, this is non-null and we show a sad face
+  displayedCollections: NFTCollection[]  // The collections to show — typed from the API response
+  isLoading: boolean                     // True while the API call is in-flight
+  error: unknown                         // If something went wrong, this is non-null and we show a sad face
   handleLoadMore: () => void     // Callback to load the next page — fires when the button is clicked
   hasMore: boolean               // Whether there are more collections beyond the current page
   handleClearFilters: () => void // Callback to reset all filters — offered as an escape hatch in empty state
@@ -66,7 +68,7 @@ export function CollectionsPageContent({
   // Pass loading=true to CollectionGrid so it renders skeleton cards.
   // (Much better than showing an empty grid that then fills up. Layout shifts are bad vibes.)
   if (isLoading && displayedCollections.length === 0) {
-    return <CollectionGrid collections={[]} loading={true} />
+    return <CollectionGrid collections={[]} loading />
   }
 
   // ── Empty State (Not Loading, Genuinely Empty) ──────────────────────────────

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { NFTCollection } from '@/types'
 import { placeholderBannerUrl } from '@/lib/utils/placeholderBanners'
 import { avatarUrl } from '@/lib/utils/avatarUrl'
@@ -42,7 +43,7 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
 
   useEffect(() => {
     if (!useClones && position !== 0) setPosition(0)
-  }, [useClones])
+  }, [useClones, position])
 
   const [isHovered, setIsHovered] = useState(false)
 
@@ -108,7 +109,31 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
     return () => clearInterval(interval)
   }, [n, isHovered, goToNext])
 
-  if (n === 0) return null
+  if (n === 0) {
+    return (
+      <div className={styles.heroSectionBackdrop}>
+        <section className={styles.heroSection}>
+          <div className={styles.carouselWrapper}>
+            <div className={styles.borderOverlay}></div>
+            <div className={styles.emptyHero}>
+              <Image
+                src="/NeXus_Web3_Logo.png"
+                alt="NeXus"
+                width={64}
+                height={64}
+                className={styles.emptyHeroLogo}
+              />
+              <h1 className={styles.emptyHeroTitle}>Something big is coming.</h1>
+              <p className={styles.emptyHeroSubtitle}>Be the first to launch your collection on NeXus.</p>
+              <Link href="/create" className={styles.emptyHeroCta}>
+                Create Collection
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(0)
@@ -149,15 +174,14 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
               className={`${styles.carouselTrack} ${skipTransition ? styles.carouselTrackNoTransition : ''}`}
               style={{ transform: `translate3d(-${position * 100}%, 0, 0)` }}
             >
-              {extendedCollections.map((collection, index) => (
+              {extendedCollections.map((collection, index) => {
+                let slideKey: string
+                if (useClones && index === 0) slideKey = `clone-last-${collection.id}`
+                else if (useClones && index === totalSlides - 1) slideKey = `clone-first-${collection.id}`
+                else slideKey = collection.id
+                return (
                 <div
-                  key={
-                    useClones && index === 0
-                      ? `clone-last-${collection.id}`
-                      : useClones && index === totalSlides - 1
-                      ? `clone-first-${collection.id}`
-                      : collection.id
-                  }
+                  key={slideKey}
                   className={styles.carouselSlide}
                   role="group"
                   aria-roledescription="slide"
@@ -215,7 +239,8 @@ export default function HeroSection({ collections = [] }: HeroSectionProps) {
                     </div>
                   </Link>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
             {n > 1 && (

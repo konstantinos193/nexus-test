@@ -159,7 +159,7 @@ export interface WalletConnection {
   address: string
   chainId: number
   isConnected: boolean
-  provider?: any
+  provider?: unknown
 }
 
 // API Response wrapper - because APIs love to wrap things in unnecessary layers

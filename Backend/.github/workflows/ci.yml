@@ -71,77 +71,16 @@ jobs:
     needs: [quality, docker]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    env:
-      ENV: ${{ github.event.inputs.environment || 'staging' }}
     steps:
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
-          port: 22
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           timeout: 300s
           command_timeout: 240s
           envs: GITHUB_TOKEN,GITHUB_ACTOR,GITHUB_SHA
-          script: |
-            set -e
-            IMAGE="ghcr.io/martechnetworks/nexus-backend"
-            SHA="${GITHUB_SHA}"
-            ENV_FILE="/var/www/nexus-backend/.env.staging"
-
-            echo "=== Authenticating GHCR ==="
-            echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
-
-            echo "=== Pulling image ==="
-            docker pull "$IMAGE:$SHA"
-
-            echo "=== Running migrations ==="
-            DOCKER_ENV="/tmp/nexus-backend-$ENV.env"
-            grep -v '^#' "$ENV_FILE" | grep -v '^$' | sed "s/^export //; s/='\(.*\)'$/=\1/; s/=\"\(.*\)\"$/=\1/" > "$DOCKER_ENV"
-            DATABASE_URL=$(grep "^DATABASE_URL=" "$DOCKER_ENV" | cut -d= -f2-)
-            docker run --rm --network host --env-file "$DOCKER_ENV" -e DATABASE_URL="$DATABASE_URL" "$IMAGE:$SHA" sh -c "npx prisma migrate deploy"
-
-            echo "=== Blue-green deploy ==="
-            LIVE_PORT=$(docker inspect nexus-backend --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "^PORT=" | cut -d= -f2 || echo "8000")
-            LIVE_PORT=${LIVE_PORT:-8000}
-            if [ "$LIVE_PORT" = "8000" ]; then STANDBY_PORT=8010; else STANDBY_PORT=8000; fi
-
-            docker rm -f nexus-backend-new 2>/dev/null || true
-            docker run -d --name nexus-backend-new --restart no --network host \
-              --env-file "$DOCKER_ENV" -e PORT=$STANDBY_PORT "$IMAGE:$SHA"
-
-            HEALTHY=false
-            for i in $(seq 1 20); do
-              if curl -sf --max-time 3 "http://localhost:$STANDBY_PORT/health"; then
-                HEALTHY=true; break
-              fi
-              echo "Attempt $i/20 failed, retrying in 3s..."
-              sleep 3
-            done
-
-            if [ "$HEALTHY" != "true" ]; then
-              docker logs nexus-backend-new --tail 50
-              docker rm -f nexus-backend-new
-              exit 1
-            fi
-
-            docker stop nexus-backend 2>/dev/null || true
-            docker rm nexus-backend 2>/dev/null || true
-            docker stop nexus-backend-new
-            docker rm nexus-backend-new
-            docker run -d --name nexus-backend --restart unless-stopped --network host \
-              --env-file "$DOCKER_ENV" -e PORT=$LIVE_PORT "$IMAGE:$SHA"
-
-            for i in $(seq 1 10); do
-              if curl -sf --max-time 3 "http://localhost:$LIVE_PORT/health"; then
-                echo "Live"; break
-              fi
-              sleep 3
-              if [ $i -eq 10 ]; then docker logs nexus-backend --tail 30; exit 1; fi
-            done
-
-            docker image prune -f
-            echo "=== Deploy complete ==="
+          script: /var/www/deploy.sh

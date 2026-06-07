@@ -1,0 +1,30 @@
+[package]
+name = "nexus-allowlist"
+version = "0.1.0"
+description = "NeXus Allowlist Verification Program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "nexus_allowlist"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build"]
+logs = []
+# Production defaults: no-idl (saves ~20-50KB), no-log-ix-name (saves CU)
+# IDL is only needed for client generation, not runtime
+default = ["no-idl", "no-log-ix-name"]
+
+[dependencies]
+anchor-lang = { version = "0.32.1", default-features = false, features = ["init-if-needed"] }
+sha3 = { version = "0.10", default-features = false }
+
+# Optimization: Add itoa for efficient string operations if needed
+# itoa = "1.0"  # Uncomment if string operations are added
+
+[dev-dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }

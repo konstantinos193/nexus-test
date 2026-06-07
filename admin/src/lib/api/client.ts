@@ -1,9 +1,4 @@
-/**
- * REST-compatible API client. Replace baseUrl and add real auth headers in production.
- * Works with any backend that returns JSON and uses standard HTTP status codes.
- */
-
-const BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 export interface RequestConfig extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>
@@ -11,7 +6,8 @@ export interface RequestConfig extends RequestInit {
 
 async function request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
   const { params, ...init } = config
-  const url = new URL(endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`)
+  const base = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`
+  const url = new URL(base, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -19,15 +15,16 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
     })
   }
 
+  const storedApiKey =
+    typeof window !== 'undefined' ? localStorage.getItem('nexus_admin_api_key') : null
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...init.headers,
+    ...(storedApiKey ? { 'x-api-key': storedApiKey } : {}),
+    ...(init.headers ?? {}),
   }
 
-  const response = await fetch(url.toString(), {
-    ...init,
-    headers,
-  })
+  const response = await fetch(url.toString(), { ...init, headers })
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
@@ -38,6 +35,7 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
     }
   }
 
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -46,13 +44,18 @@ export const api = {
     request<T>(endpoint, { ...config, method: 'GET' }),
 
   post: <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
-    request<T>(endpoint, { ...config, method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-
-  put: <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
-    request<T>(endpoint, { ...config, method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+    request<T>(endpoint, {
+      ...config,
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
 
   patch: <T>(endpoint: string, body?: unknown, config?: RequestConfig) =>
-    request<T>(endpoint, { ...config, method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
+    request<T>(endpoint, {
+      ...config,
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
 
   delete: <T>(endpoint: string, config?: RequestConfig) =>
     request<T>(endpoint, { ...config, method: 'DELETE' }),

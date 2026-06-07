@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable max-lines, max-lines-per-function */
+
 /**
  * MintPhasesForm - Step 3: Supply, pricing, and mint phase configuration.
  * Standard inputs for supply and price, quick-start templates, and per-phase config cards.
@@ -60,7 +62,7 @@ function truncateAddress(addr: string): string {
 }
 
 // Quick-start templates — clicking one replaces the phases array wholesale
-const PHASE_TEMPLATES = [
+export const PHASE_TEMPLATES = [
   {
     id: 'public',
     label: 'Public Sale',
@@ -92,7 +94,7 @@ const PHASE_TEMPLATES = [
 ]
 
 // Detects which template matches the current phases by phaseType signature
-function detectActiveTemplate(phases: MintPhase[]): string | null {
+export function detectActiveTemplate(phases: MintPhase[]): string | null {
   const sig = phases.map(p => p.phaseType).join(',')
   if (phases.length === 1 && sig === 'public')                     return 'public'
   if (phases.length === 2 && sig === 'allowlist,public')           return 'allowlist-public'
@@ -100,7 +102,7 @@ function detectActiveTemplate(phases: MintPhase[]): string | null {
   return null
 }
 
-function PhaseCard({
+export function PhaseCard({
   phase, index, total,
   onChange, onRemove,
 }: {
@@ -136,33 +138,40 @@ function PhaseCard({
         }`}>
           {index + 1}
         </span>
-        <input
-          type="text"
-          value={phase.name}
-          onChange={(e) => set('name', e.target.value)}
-          placeholder="Phase name"
-          className="flex-1 bg-transparent text-sm font-medium text-dark-text-primary placeholder-dark-text-tertiary focus:outline-none"
-        />
+        <div className="flex-1 flex items-center gap-1.5 group min-w-0">
+          <input
+            type="text"
+            value={phase.name}
+            onChange={(e) => set('name', e.target.value)}
+            placeholder="Phase name"
+            className="flex-1 min-w-0 bg-transparent text-sm font-medium text-dark-text-primary placeholder-dark-text-tertiary focus:outline-none border-b border-transparent group-hover:border-dark-border-primary focus:border-dark-accent-primary/60 transition-colors"
+          />
+          <Pencil className="w-3 h-3 text-dark-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        </div>
         <div className="flex items-center gap-2 ml-auto shrink-0">
           {/* Public / Allowlist toggle with Globe/Shield icons */}
           <div className="flex rounded-lg overflow-hidden border border-dark-border-primary text-xs">
-            {(['public', 'allowlist'] as const).map((t) => (
+            {(['public', 'allowlist'] as const).map((t) => {
+              let phaseTypeClass: string
+              if (phase.phaseType !== t) {
+                phaseTypeClass = 'text-dark-text-tertiary hover:text-dark-text-secondary'
+              } else if (t === 'public') {
+                phaseTypeClass = 'bg-dark-accent-primary/15 text-dark-accent-primary'
+              } else {
+                phaseTypeClass = 'bg-dark-accent-secondary/15 text-dark-accent-secondary'
+              }
+              return (
               <button
                 key={t}
                 type="button"
                 onClick={() => set('phaseType', t)}
-                className={`flex items-center gap-1 px-2.5 py-1 font-medium transition-colors capitalize ${
-                  phase.phaseType === t
-                    ? t === 'public'
-                        ? 'bg-dark-accent-primary/15 text-dark-accent-primary'
-                        : 'bg-dark-accent-secondary/15 text-dark-accent-secondary'
-                    : 'text-dark-text-tertiary hover:text-dark-text-secondary'
-                }`}
+                className={`flex items-center gap-1 px-2.5 py-1 font-medium transition-colors capitalize ${phaseTypeClass}`}
               >
                 {t === 'public' ? <Globe className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
                 {t}
               </button>
-            ))}
+              )
+            })}
           </div>
           <button type="button" onClick={() => setExpanded(v => !v)} className="text-dark-text-tertiary hover:text-dark-text-secondary transition-colors">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

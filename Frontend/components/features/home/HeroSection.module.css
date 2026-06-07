@@ -57,6 +57,91 @@
   }
 }
 
+/* ============================================
+   EMPTY STATE (no collections yet)
+   ============================================ */
+
+.emptyHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  aspect-ratio: 5/2;
+  padding: 2rem 1rem;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border: 1px solid rgba(109, 40, 217, 0.25);
+  backdrop-filter: blur(10px);
+}
+
+@media (min-width: 640px) {
+  .emptyHero { aspect-ratio: 21/7; }
+}
+@media (min-width: 768px) {
+  .emptyHero { aspect-ratio: 16/5; }
+}
+@media (min-width: 1024px) {
+  .emptyHero { aspect-ratio: 16/6; }
+}
+@media (min-width: 1280px) {
+  .emptyHero { aspect-ratio: 16/5.5; }
+}
+
+.emptyHeroLogo {
+  opacity: 0.9;
+  border-radius: 0.5rem;
+  filter: brightness(1.1);
+}
+
+.emptyHeroTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.01em;
+  max-width: 500px;
+}
+
+@media (min-width: 768px) {
+  .emptyHeroTitle { font-size: 2rem; }
+}
+
+.emptyHeroSubtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.emptyHeroCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  background: rgb(109, 40, 217);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+  border: none;
+  cursor: pointer;
+}
+
+.emptyHeroCta:hover {
+  background: rgb(124, 58, 237);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(109, 40, 217, 0.3);
+}
+
+/* ============================================
+   CAROUSEL WRAPPER
+   ============================================ */
+
 .carouselWrapper {
   position: relative;
   border-radius: 0.5rem;

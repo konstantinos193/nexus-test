@@ -831,11 +831,38 @@ export class CollectionsSyncService implements OnModuleInit {
    * @param collectionAddress - The base58 public key string of the collection account.
    * @returns                 - Decoded collection data, or null if unavailable.
    */
+  /**
+   * Resolves a stored address to the on-chain collection account.
+   * Accepts either the collection PDA (legacy deploy) or the mint seed pubkey.
+   */
+  private async resolveCollectionAddress(storedAddress: string): Promise<PublicKey | null> {
+    const stored = new PublicKey(storedAddress);
+    const directInfo = await this.connection.getAccountInfo(stored);
+    if (directInfo?.owner.equals(this.programId)) {
+      return stored;
+    }
+
+    const [derived] = PublicKey.findProgramAddressSync(
+      [Buffer.from('collection'), stored.toBuffer()],
+      this.programId,
+    );
+    const derivedInfo = await this.connection.getAccountInfo(derived);
+    if (derivedInfo?.owner.equals(this.programId)) {
+      return derived;
+    }
+
+    return null;
+  }
+
   async getCollectionOnChain(
     collectionAddress: string,
   ): Promise<any | null> {
     try {
-      const address = new PublicKey(collectionAddress);
+      const address = await this.resolveCollectionAddress(collectionAddress);
+      if (!address) {
+        return null;
+      }
+
       const accountInfo = await this.connection.getAccountInfo(address);
 
       if (!accountInfo) {
