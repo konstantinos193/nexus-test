@@ -17,6 +17,9 @@ idl-build = ["anchor-lang/idl-build"]
 logs = []
 # Core features for minimal deployment
 core = []
+# Point MPL_CORE_ID at this localnet's MPL Core clone (3C7bAz...) instead of the standard
+# CoREEN... address. Build with `--features localnet` for the nexus dev validator.
+localnet = []
 # Optional features for extended functionality
 # allowlist-module = ["nexus-allowlist"]
 # payment-module = ["nexus-payment"]
@@ -29,7 +32,10 @@ default = ["no-idl", "no-log-ix-name"]
 anchor-lang = { version = "0.32.1", default-features = false, features = ["init-if-needed"] }
 anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
 sha3 = { version = "0.10", default-features = false }
-mpl-core = { version = "0.11.1", features = ["anchor"] }
+# NOTE: the "anchor" feature drags in anchor-lang 0.31.x, which conflicts with this
+# crate's anchor-lang 0.32.1 (two versions of Context/Bumps -> build fails). The program
+# only uses mpl_core::ID + the base CPI builders/types, none of which need that feature.
+mpl-core = { version = "0.11.1" }
 itoa = "1.0"  # Optimized string formatting
 
 # CPI dependencies - only include when optional modules exist

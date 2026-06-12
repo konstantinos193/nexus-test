@@ -34,6 +34,7 @@ model Collection {
   price         Decimal?  @db.Decimal(18, 9)
   status        String   @default("draft") // draft, preparing, ready, minting, completed, paused
   featured      Boolean  @default(false)
+  featuredRank  Int?     // Explicit owner-curated featured display order; NULL sorts last
   mintStart     DateTime? // When minting starts (for countdown and phase calculation)
   endDate       DateTime? // When minting ends
   traits        Json?    // NFT traits/attributes stored as JSON
@@ -51,7 +52,9 @@ model Collection {
   // L-2: Wallet address of the last modifier.
   updatedBy              String?
   createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  // @default(now()) so inserts that don't go through Prisma's create (which would auto-set
+  // @updatedAt) still satisfy the NOT NULL column instead of failing with 23502.
+  updatedAt              DateTime  @default(now()) @updatedAt
   // L-1: Soft delete — null means active; non-null means deleted.
   deletedAt              DateTime?
 
@@ -69,4 +72,62 @@ model Collection {
   @@index([status, mintStart])
   // Composite for cursor pagination: (createdAt DESC, id DESC) — migration 20260605000009
   @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([featuredRank])
+}
+
+// Owner-admin: derived platform-fee revenue timeline. One row per observed minted delta.
+// Populated by the collections sync service (migration 20260612000000).
+model FeeLedger {
+  id             String   @id @default(uuid())
+  collectionId   String
+  mintAddress    String?  @db.VarChar(44)
+  creatorAddress String   @db.VarChar(44)
+  mintedBefore   Int      @default(0)
+  mintedAfter    Int      @default(0)
+  mintedDelta    Int      @default(0)
+  pricePerMint   Decimal? @db.Decimal(18, 9)
+  platformFeeBps Int?
+  feeRevenue     Decimal  @default(0) @db.Decimal(18, 9)
+  isBaseline     Boolean  @default(false)
+  recordedAt     DateTime @default(now())
+
+  @@index([collectionId])
+  @@index([creatorAddress])
+  @@index([recordedAt])
+  @@index([isBaseline])
+  @@map("fee_ledger")
+}
+
+// Owner-admin: real console accounts with roles (migration 20260612000000).
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  displayName  String
+  role         String    @default("read_only") // super_admin, finance, moderator, read_only
+  disabled     Boolean   @default(false)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@map("admin_user")
+}
+
+// Owner-admin: append-only record of privileged actions (migration 20260612000000).
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  actorEmail  String?
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  txSignature String?  @db.VarChar(88)
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_log")
 }

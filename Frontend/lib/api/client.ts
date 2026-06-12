@@ -228,8 +228,13 @@ export const ipfsApi = {
       const form = new FormData()
       for (const file of files) form.append(file.name, file)
       const xhr = new window.XMLHttpRequest()
+      // Upload-byte progress only reflects the browser → Next.js leg, which is
+      // near-instant on localhost. The real wait is server-side IPFS pinning,
+      // invisible to XHR. So cap upload progress at 90% and only complete to
+      // 100% in onload (when the backend has actually pinned and responded) —
+      // otherwise the bar reads "100%" while pinning is still in flight.
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 90))
       }
       xhr.onload = () => {
         try {

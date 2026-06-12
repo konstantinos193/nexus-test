@@ -5,6 +5,11 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from '@solana/web3.js'
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token'
 import { buildMintData } from '@/lib/solana/mint'
 import {
   decodeMintSplitRecipients,
@@ -23,6 +28,29 @@ import {
   type UiMetadataStandard,
 } from '@/lib/solana/standards'
 
+const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+
+function deriveMetadataPda(mint: PublicKey): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    TOKEN_METADATA_PROGRAM_ID,
+  )
+  return pda
+}
+
+function deriveMasterEditionPda(mint: PublicKey): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from('metadata'),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mint.toBuffer(),
+      Buffer.from('edition'),
+    ],
+    TOKEN_METADATA_PROGRAM_ID,
+  )
+  return pda
+}
+
 export interface MintTxParams {
   connection: Connection
   programId: PublicKey
@@ -35,7 +63,9 @@ export interface MintTxParams {
 
 export interface MintTxResult {
   instruction: TransactionInstruction
-  /** Extra signers the wallet must include (Core asset keypairs, etc.) */
+  /** Instructions to prepend to the transaction (e.g. ATA creation for Legacy mints) */
+  preInstructions: TransactionInstruction[]
+  /** Extra signers the wallet must include (Core asset keypairs, Legacy mint keypairs, etc.) */
   extraSigners: Keypair[]
   standard: UiMetadataStandard
 }
@@ -95,6 +125,8 @@ export async function buildMintInstruction(params: MintTxParams): Promise<MintTx
     keys.push({ pubkey: splitConfig, isSigner: false, isWritable: false })
   }
 
+  // Named accounts: core_collection, mint_authority, mpl_core_program, system_program.
+  // mpl_core_program is a required named account in MintNFT regardless of standard.
   keys.push(
     { pubkey: coreCollection, isSigner: false, isWritable: true },
     { pubkey: mintAuthority, isSigner: false, isWritable: false },
@@ -103,7 +135,9 @@ export async function buildMintInstruction(params: MintTxParams): Promise<MintTx
   )
 
   const extraSigners: Keypair[] = []
+  const preInstructions: TransactionInstruction[] = []
 
+  // Split accounts come before per-NFT remaining_accounts (same for all standards).
   if (isValidSplitConfig && splitInfo) {
     keys.push({ pubkey: buyer, isSigner: true, isWritable: true })
     for (const recipient of decodeMintSplitRecipients(splitInfo.data)) {
@@ -111,11 +145,44 @@ export async function buildMintInstruction(params: MintTxParams): Promise<MintTx
     }
   }
 
-  // One fresh asset keypair per NFT (remaining_accounts after split accounts)
-  for (let i = 0; i < quantity; i++) {
-    const asset = Keypair.generate()
-    extraSigners.push(asset)
-    keys.push({ pubkey: asset.publicKey, isSigner: true, isWritable: true })
+  if (standard === 'Core') {
+    // One fresh asset keypair per NFT.
+    for (let i = 0; i < quantity; i++) {
+      const asset = Keypair.generate()
+      extraSigners.push(asset)
+      keys.push({ pubkey: asset.publicKey, isSigner: true, isWritable: true })
+    }
+  } else if (standard === 'Legacy') {
+    // remaining_accounts for Legacy (after split accounts):
+    //   [0]: token_metadata_program
+    //   [1]: token_program
+    //   per NFT i: [2 + i*4 .. 2 + i*4 + 4]
+    //     mint (signer, writable), metadata PDA, master edition PDA, buyer ATA
+    keys.push(
+      { pubkey: TOKEN_METADATA_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    )
+
+    for (let i = 0; i < quantity; i++) {
+      const mint = Keypair.generate()
+      extraSigners.push(mint)
+
+      const metadata = deriveMetadataPda(mint.publicKey)
+      const masterEdition = deriveMasterEditionPda(mint.publicKey)
+      const ata = getAssociatedTokenAddressSync(mint.publicKey, buyer)
+
+      // Create the ATA idempotently before the mint instruction executes.
+      preInstructions.push(
+        createAssociatedTokenAccountIdempotentInstruction(buyer, ata, buyer, mint.publicKey),
+      )
+
+      keys.push(
+        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+        { pubkey: metadata, isSigner: false, isWritable: true },
+        { pubkey: masterEdition, isSigner: false, isWritable: true },
+        { pubkey: ata, isSigner: false, isWritable: true },
+      )
+    }
   }
 
   const ix = new TransactionInstruction({
@@ -124,7 +191,7 @@ export async function buildMintInstruction(params: MintTxParams): Promise<MintTx
     data: buildMintData(quantity),
   })
 
-  return { instruction: ix, extraSigners, standard }
+  return { instruction: ix, preInstructions, extraSigners, standard }
 }
 
 /** PDA helper used by deploy — collection from mint seed */

@@ -205,6 +205,15 @@ export class Collection {
   featured: boolean;
 
   /**
+   * Featured rank — the explicit display order for featured collections.
+   * Lower numbers surface first; NULL sorts last (falls back to minted DESC).
+   * Set by the owner admin's Featured management view so curation isn't hostage
+   * to raw mint counts. Only meaningful when featured = true.
+   */
+  @Column('int', { nullable: true })
+  featuredRank?: number;
+
+  /**
    * Mint start date — when the minting window opens.
    * Used for frontend countdown timers and for the sync service's
    * automatic READY → MINTING status transition.

@@ -23,7 +23,13 @@
 
 use anchor_lang::prelude::*;
 use core::convert::TryInto;
-use mpl_core::ID as MPL_CORE_ID;
+// MPL Core program id. The standard (mainnet/devnet) address is CoREEN..., but some localnets
+// host a clone of MPL Core at a non-standard address. Select per-network via the `localnet`
+// feature so the on-chain address constraint matches whatever the target validator actually runs.
+#[cfg(feature = "localnet")]
+pub const MPL_CORE_ID: Pubkey = Pubkey::from_str_const("3C7bAzHRQCFhpqhBzi7yWsk6xgcpe8o6XaYpVWPMkbS1");
+#[cfg(not(feature = "localnet"))]
+pub const MPL_CORE_ID: Pubkey = mpl_core::ID;
 use sha3::{Digest, Keccak256};
 
 // Updated with actual deployed program IDs
@@ -32,8 +38,8 @@ pub const PAYMENT_PROGRAM_ID: Pubkey = Pubkey::from_str_const("Fg6PaFpoGXkYsidMp
 
 mod nft_mint;
 use nft_mint::{
-    create_core_collection, mint_authority_pda, mint_core_asset, COLLECTION_NAME_MAX_LEN,
-    MINT_AUTHORITY_SEED,
+    create_core_collection, mint_authority_pda, mint_core_asset, mint_legacy_asset,
+    COLLECTION_NAME_MAX_LEN, MINT_AUTHORITY_SEED,
 };
 
 // TODO: Update this with the actual program ID after deployment
@@ -127,6 +133,46 @@ pub mod nexus_launchpad {
         Ok(())
     }
 
+    /// One-time admin recovery: reinitialize the global registry IN PLACE after a struct
+    /// layout change, reusing the existing (already large) account allocation. Gated to the
+    /// registry's stored authority, read raw from bytes [8..40] so it works regardless of the
+    /// old on-chain layout. Clears the collections list (existing collections remain
+    /// discoverable via getProgramAccounts). Intended for dev/localnet recovery, not routine use.
+    pub fn admin_reset_registry(ctx: Context<AdminResetRegistry>) -> Result<()> {
+        let info = ctx.accounts.registry.to_account_info();
+        {
+            let data = info.try_borrow_data()?;
+            require!(data.len() >= 40, NexusError::Unauthorized);
+            let mut auth_bytes = [0u8; 32];
+            auth_bytes.copy_from_slice(&data[8..40]);
+            let stored_authority = Pubkey::new_from_array(auth_bytes);
+            require_keys_eq!(
+                ctx.accounts.authority.key(),
+                stored_authority,
+                NexusError::Unauthorized
+            );
+        }
+        let fresh = CollectionRegistry {
+            authority: ctx.accounts.authority.key(),
+            pending_authority: None,
+            pending_upgrade_program: Pubkey::default(),
+            upgrade_initiated_time: 0,
+            upgrade_completion_time: 0,
+            emergency_pause_time: 0,
+            collections: Vec::new(),
+            collection_count: 0,
+            upgrade_state: 0,
+            emergency_pause: false,
+            bump: ctx.bumps.registry,
+        };
+        let bytes = fresh.try_to_vec()?;
+        let mut data = info.try_borrow_mut_data()?;
+        require!(data.len() >= 8 + bytes.len(), NexusError::Unauthorized);
+        data[8..8 + bytes.len()].copy_from_slice(&bytes);
+        log_msg!("Registry reinitialized in place by {}", ctx.accounts.authority.key());
+        Ok(())
+    }
+
     /// Emergency pause - stops all minting across all collections (registry authority only).
     /// Use this only in emergencies like security vulnerabilities or exploits.
     pub fn emergency_pause_all(ctx: Context<EmergencyControl>) -> Result<()> {
@@ -182,7 +228,7 @@ pub mod nexus_launchpad {
             authority: ctx.accounts.authority.key(),
         });
         
-        log_msg!("Upgrade initiated: {} -> {}", program_id(), new_program_id);
+        log_msg!("Upgrade initiated: {} -> {}", crate::ID, new_program_id);
         Ok(())
     }
 
@@ -204,7 +250,7 @@ pub mod nexus_launchpad {
         // The actual upgrade happens off-chain via solana program upgrade command
         // This just marks the upgrade as completed in our state
         emit!(UpgradeCompleted {
-            old_program_id: program_id(),
+            old_program_id: crate::ID,
             new_program_id: registry.pending_upgrade_program,
             completion_time: clock.unix_timestamp,
         });
@@ -421,8 +467,8 @@ pub mod nexus_launchpad {
     // Compute unit intensive operation - optimized for minimal CU usage
     // Early validation checks to fail fast and save compute units
     #[inline]
-    pub fn mint(
-        ctx: Context<MintNFT>,
+    pub fn mint<'info>(
+        ctx: Context<'_, '_, '_, 'info, MintNFT<'info>>,
         quantity: u8,
         allowlist_proof: Vec<[u8; 32]>,
         allowlist_leaf_index: u32,
@@ -478,28 +524,11 @@ pub mod nexus_launchpad {
             // Early validation to save compute units on bad input
             require!(!allowlist_proof.is_empty(), NexusError::AllowlistRequired);
             
-            // Optimized CPI call with minimal account overhead
-            if let Some(allowlist_account) = &ctx.accounts.allowlist_account {
-                let allowlist_program = ctx.accounts.allowlist_program.to_account_info();
-                let allowlist_account_info = allowlist_account.to_account_info();
-                
-                let cpi_accounts = nexus_allowlist::cpi::accounts::VerifyWallet {
-                    allowlist: allowlist_account_info,
-                };
-                
-                let cpi_ctx = CpiContext::new(allowlist_program, cpi_accounts);
-                
-                let is_valid = nexus_allowlist::cpi::verify_wallet(
-                    cpi_ctx,
-                    ctx.accounts.buyer.key(),
-                    allowlist_proof,
-                    allowlist_leaf_index,
-                )?;
-                
-                require!(is_valid, NexusError::AllowlistInvalid);
-            } else {
-                // Fallback: inline verification if allowlist account not provided
-                // This maintains backward compatibility while optimizing for the common case
+            // Allowlist verification via the program's own inline keccak Merkle proof against
+            // the on-chain root. The previous nexus_allowlist CPI branch was removed: that
+            // program is incomplete WIP (doesn't compile, excluded from the workspace). The
+            // inline path below is self-contained and is the canonical verification here.
+            {
                 let mut hasher = Keccak256::new();
                 let buyer_key = ctx.accounts.buyer.key();
                 let collection_key = collection.key();
@@ -1088,6 +1117,72 @@ fn mint_nft_assets<'info>(
                 )?;
             }
         }
+        MetadataStandard::Legacy => {
+            // remaining_accounts layout (after split accounts):
+            //   [split_rem + 0]: token_metadata_program
+            //   [split_rem + 1]: token_program (spl_token)
+            //   per NFT i: [split_rem + 2 + i*4 .. split_rem + 2 + i*4 + 4]
+            //     [0] mint keypair    (signer, writable)
+            //     [1] metadata PDA   (writable)
+            //     [2] master edition (writable)
+            //     [3] buyer ATA      (writable, pre-created by client)
+            let start_index = new_minted
+                .checked_sub(quantity as u64)
+                .and_then(|v| v.checked_add(1))
+                .ok_or(NexusError::MathOverflow)?;
+
+            let split_rem = if collection.has_split() && ctx.accounts.split_config.is_some() {
+                let split = ctx
+                    .accounts
+                    .split_config
+                    .as_ref()
+                    .ok_or(NexusError::InvalidMintSplitAccounts)?;
+                split.num as usize + 1
+            } else {
+                0
+            };
+
+            const LEGACY_PROG_ACCOUNTS: usize = 2; // token_metadata_program + token_program
+            let rem = ctx.remaining_accounts;
+            require!(
+                rem.len() >= split_rem + LEGACY_PROG_ACCOUNTS + quantity as usize * 4,
+                NexusError::InvalidCoreAssetAccounts
+            );
+
+            let token_metadata_program = &rem[split_rem];
+            let token_program = &rem[split_rem + 1];
+
+            let (_, mint_auth_bump) = mint_authority_pda(&collection.mint, ctx.program_id);
+
+            for i in 0..quantity as usize {
+                let base = split_rem + LEGACY_PROG_ACCOUNTS + i * 4;
+                let mint_account = &rem[base];
+                let metadata_account = &rem[base + 1];
+                let master_edition_account = &rem[base + 2];
+                let buyer_ata_account = &rem[base + 3];
+
+                require!(mint_account.is_signer, NexusError::InvalidCoreAssetAccounts);
+                require!(mint_account.is_writable, NexusError::InvalidCoreAssetAccounts);
+                require!(metadata_account.is_writable, NexusError::InvalidCoreAssetAccounts);
+                require!(master_edition_account.is_writable, NexusError::InvalidCoreAssetAccounts);
+                require!(buyer_ata_account.is_writable, NexusError::InvalidCoreAssetAccounts);
+
+                mint_legacy_asset(
+                    collection,
+                    start_index + i as u64,
+                    mint_account,
+                    metadata_account,
+                    master_edition_account,
+                    buyer_ata_account,
+                    &ctx.accounts.mint_authority.to_account_info(),
+                    &ctx.accounts.buyer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                    token_metadata_program,
+                    token_program,
+                    mint_auth_bump,
+                )?;
+            }
+        }
         _ => return Err(NexusError::NftMintNotImplemented.into()),
     }
 
@@ -1099,13 +1194,27 @@ fn mint_nft_assets<'info>(
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[derive(Accounts)]
+pub struct AdminResetRegistry<'info> {
+    /// CHECK: Registry PDA, reinitialized in place by the handler. No typed deserialize is
+    /// done here (the existing data may be an incompatible layout); the authority is validated
+    /// against the stored authority bytes inside admin_reset_registry.
+    #[account(mut, seeds = [b"registry"], bump)]
+    pub registry: UncheckedAccount<'info>,
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
 pub struct InitializeRegistry<'info> {
     // Space: 8 (disc) + 32 (authority) + 33 (pending_authority: Option<Pubkey>) + 300×32 (pubkeys) + 4 (count) + 1 (bump) = 9,680 bytes
     // Zero-copy optimized: fixed array instead of Vec for better memory efficiency
     #[account(
         init,
         payer = authority,
-        space = 8 + std::mem::size_of::<CollectionRegistry>(),
+        // size_of::<CollectionRegistry>() only counts the Vec header (24 bytes), not its 300-elem
+        // capacity, so it under-allocated to ~173 bytes (room for ~2 collections). Size explicitly:
+        // 8 disc + 32 authority + 33 Option<Pubkey> + 32 pending_upgrade + 3*8 i64
+        // + (4 + 32*300) collections + 4 count + 1 upgrade_state + 1 emergency_pause + 1 bump = 9740.
+        space = 9740,
         seeds = [b"registry"],
         bump
     )]
@@ -1311,8 +1420,8 @@ pub struct MintNFT<'info> {
     /// CHECK: Address derived from collection key
     #[account(
         seeds = [b"allowlist", collection.key().as_ref()],
+        bump,
         seeds::program = ALLOWLIST_PROGRAM_ID,
-        optional
     )]
     pub allowlist_account: Option<AccountInfo<'info>>,
 

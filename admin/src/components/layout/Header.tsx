@@ -27,15 +27,30 @@ export function Header({
   const displayTitle = title ?? pageTitles[pathname ?? ''] ?? 'Nexus Admin'
 
   return (
-    <header
-      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-4 px-6"
-      style={{ background: '#111118', borderBottom: '1px solid #252535' }}
-    >
-      <h1 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
-        {displayTitle}
-      </h1>
+    <header className="sticky top-0 z-30">
+      {/* Gradient accent bar — mirrors the Frontend header */}
+      <div
+        style={{
+          height: '2px',
+          background:
+            'linear-gradient(90deg, transparent 0%, #00d4ff 25%, #7c3aed 50%, #00d4ff 75%, transparent 100%)',
+          opacity: 0.8,
+        }}
+      />
+      <div
+        className="flex h-14 shrink-0 items-center justify-between gap-4 px-6"
+        style={{
+          background: 'rgba(10, 10, 15, 0.85)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        }}
+      >
+        <h1 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+          {displayTitle}
+        </h1>
 
-      <div className="flex flex-1 items-center justify-end gap-3 max-w-md ml-auto">
+        <div className="flex flex-1 items-center justify-end gap-3 max-w-md ml-auto">
         <input
           type="search"
           placeholder={searchPlaceholder}
@@ -135,6 +150,7 @@ export function Header({
             </Menu.Items>
           </Transition>
         </Menu>
+        </div>
       </div>
     </header>
   )

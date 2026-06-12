@@ -36,6 +36,10 @@ import { CollectionsSyncService } from './collections-sync.service';
 // A TypeScript class that doubles as a database schema. Very busy. Very tired.
 import { Collection } from '../database/entities/collection.entity';
 
+// FeeLedger entity — the sync service writes a revenue row here whenever it observes
+// a collection's on-chain minted count tick upward. Registered so the repo can inject.
+import { FeeLedger } from '../database/entities/fee-ledger.entity';
+
 // SolanaModule — imported here so CollectionsSyncService can talk to the chain.
 // Because you can't verify on-chain data without actually going on-chain.
 // (Surprisingly, this turned out to be necessary.)
@@ -64,7 +68,7 @@ import { ApiKeyGuard } from '../ipfs/guards/api-key.guard';
   imports: [
     // Register the Collection entity with TypeORM for this module's scope.
     // This is how repositories get injected. Sacred rite. Do not skip.
-    TypeOrmModule.forFeature([Collection]),
+    TypeOrmModule.forFeature([Collection, FeeLedger]),
 
     // Import SolanaModule so its exported services are available here.
     // CollectionsSyncService needs to verify things on-chain,

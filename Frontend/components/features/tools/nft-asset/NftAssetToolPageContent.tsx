@@ -4,40 +4,42 @@
 
 /**
  * NftAssetToolPageContent.tsx
- * The main orchestrator. All state lives here. All callbacks live here. All regret lives here.
- * Now a step-based wizard with left sidebar. Same vibe as /create.
+ * The main orchestrator. All state lives here. All callbacks live here.
+ * Generation now happens on the backend — this component POSTs a FormData and
+ * waits for a download token. No more freezing the browser main thread.
  *
- * @author Juan – state hoarder and callback dispenser (one day we'll refactor; today is not that day)
+ * @author Juan – state hoarder, callback dispenser, proud server-offloader
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+// No JSZip. No compositeLayers. No loadImage. They live on the backend now.
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import JSZip from 'jszip'
 import { ArrowLeft, Upload, Settings2, Zap } from 'lucide-react'
+
+// Only the pure data-manipulation utilities we actually need on the frontend
 import {
   type ExclusionRule,
   type LayerFolder,
   type RarityByLayer,
   type ValueNameOverrides,
-  nameFromFilename,
   filterImageFiles,
   groupByFolder,
-  buildTokenMetadata,
-  compositeLayers,
-  loadImage,
   getCombinationIndices,
   getLayerValues,
   isCombinationExcluded,
-  getCombinationWeight,
-  hasRarity,
-  getDisplayName,
   newRuleId,
 } from './nft-asset-utils'
+
+// Components
+import NftAssetErrorBoundary from './NftAssetErrorBoundary'
 import NftAssetToolUploadSection from './NftAssetToolUploadSection'
 import NftAssetToolRaritySection from './NftAssetToolRaritySection'
 import NftAssetToolExclusionsSection from './NftAssetToolExclusionsSection'
-import NftAssetToolOutputSection from './NftAssetToolOutputSection'
+import NftAssetToolOutputSection, { type GeneratedResult } from './NftAssetToolOutputSection'
 import NftAssetToast from './NftAssetToast'
+
+// The NestJS backend. NEXT_PUBLIC_BACKEND_URL matches how every other API call works.
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
 
 /* Step config */
 const STEPS = [
@@ -131,18 +133,8 @@ export default function NftAssetToolPageContent() {
   const [outputSize, setOutputSize] = useState<'layer' | '512' | '1024'>('layer')
   const [supply, setSupply] = useState('')
   const [generating, setGenerating] = useState(false)
-  const [progress, setProgress] = useState<{
-    current: number
-    total: number
-    startTime?: number
-  }>({ current: 0, total: 0 })
-  const [progressTick, setProgressTick] = useState(0)
-  const [generated, setGenerated] = useState<{
-    imageBlobs: Blob[]
-    metadataJsons: string[]
-    rarityIndex: Array<{ tokenId: number; rank: number; score: number }>
-  } | null>(null)
-  const [thumbnailUrls, setThumbnailUrls] = useState<string[] | null>(null)
+  const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 })
+  const [generated, setGenerated] = useState<GeneratedResult | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [layerDragId, setLayerDragId] = useState<string | null>(null)
@@ -155,22 +147,6 @@ export default function NftAssetToolPageContent() {
   const prevStep = useCallback(() => {
     if (step > 1) setStep(step - 1)
   }, [step])
-
-  useEffect(() => {
-    if (!generating || progress.total === 0) return
-    const id = setInterval(() => setProgressTick(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [generating, progress.total])
-
-  useEffect(() => {
-    if (!generated?.imageBlobs?.length) {
-      setThumbnailUrls(null)
-      return
-    }
-    const urls = generated.imageBlobs.map((blob) => URL.createObjectURL(blob))
-    setThumbnailUrls(urls)
-    return () => urls.forEach(URL.revokeObjectURL)
-  }, [generated])
 
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message })
@@ -215,12 +191,9 @@ export default function NftAssetToolPageContent() {
         return
       }
       const fileList = Array.from(files)
-
-      // Try to group by folder first (handles both webkitRelativePath and fallback logic)
       const byFolder = groupByFolder(fileList)
 
       if (byFolder.size > 0) {
-        // Successfully grouped by folder
         let layersAdded = 0
         byFolder.forEach((folderFiles, folderName) => {
           const images = filterImageFiles(folderFiles)
@@ -233,7 +206,6 @@ export default function NftAssetToolPageContent() {
           showToast('error', 'No image files found in any folders. Make sure your folders contain PNG, JPG, WebP, or GIF files.')
         }
       } else {
-        // No folder structure detected, try as single layer
         const images = filterImageFiles(fileList)
         if (images.length > 0) {
           addLayerFromFiles('Layer', images)
@@ -304,16 +276,55 @@ export default function NftAssetToolPageContent() {
     [layers]
   )
 
-  const validCombinationCount = useMemo(() => {
-    if (layers.length === 0 || exclusionRules.length === 0) return totalCombinations
-    const layerLengths = sortedLayersStable.map((l) => l.files.length)
-    let count = 0
-    const total = layerLengths.reduce((a, b) => a * b, 1)
-    for (let i = 0; i < total; i++) {
-      const indices = getCombinationIndices(i, layerLengths)
-      if (!isCombinationExcluded(sortedLayersStable, indices, exclusionRules)) count++
+  // Async because iterating millions of combos synchronously freezes the main thread.
+  // Chunked setTimeout yields to the browser between batches. Cancelled on dependency change.
+  const [validCombinationCount, setValidCombinationCount] = useState(0)
+  const validCountCancelRef = useRef(false)
+
+  useEffect(() => {
+    // No exclusions — answer is always totalCombinations; no iteration needed
+    if (exclusionRules.length === 0) {
+      setValidCombinationCount(totalCombinations)
+      return
     }
-    return count
+    if (layers.length === 0) {
+      setValidCombinationCount(0)
+      return
+    }
+
+    const layerLengths = sortedLayersStable.map((l) => l.files.length)
+    const total = layerLengths.reduce((a, b) => a * b, 1)
+
+    // For enormous combination spaces the exact count is academic (generation is capped at 2000
+    // anyway). Skip the loop and show the total so we don't freeze for e.g. 5 layers × 100 images.
+    if (total > 200_000) {
+      setValidCombinationCount(totalCombinations)
+      return
+    }
+
+    validCountCancelRef.current = false
+    let count = 0
+    let i = 0
+    const CHUNK = 5_000
+
+    const tick = () => {
+      if (validCountCancelRef.current) return
+      const end = Math.min(i + CHUNK, total)
+      for (; i < end; i++) {
+        if (!isCombinationExcluded(sortedLayersStable, getCombinationIndices(i, layerLengths), exclusionRules)) count++
+      }
+      if (i < total) {
+        setTimeout(tick, 0)
+      } else {
+        setValidCombinationCount(count)
+      }
+    }
+
+    const id = setTimeout(tick, 0)
+    return () => {
+      validCountCancelRef.current = true
+      clearTimeout(id)
+    }
   }, [layers, exclusionRules, totalCombinations, sortedLayersStable])
 
   const addExclusionRule = useCallback(() => {
@@ -321,20 +332,14 @@ export default function NftAssetToolPageContent() {
       showToast('error', 'Add at least 2 layers to create exclusions.')
       return
     }
-
     const candidates = sortedLayersStable.filter((layer) => getLayerValues(layer).length > 0)
     if (candidates.length < 2) {
-      showToast(
-        'error',
-        'Add at least 2 layers with valid trait values before creating exclusion rules.'
-      )
+      showToast('error', 'Add at least 2 layers with valid trait values before creating exclusion rules.')
       return
     }
-
     const [first, second] = candidates
     const valuesA = getLayerValues(first)
     const valuesB = getLayerValues(second)
-
     setExclusionRules((prev) => [
       ...prev,
       {
@@ -422,172 +427,61 @@ export default function NftAssetToolPageContent() {
     []
   )
 
-  /* The big one: generate images + metadata. Rarity-weighted or equal, then composite and zip. */
+  /* POST layers + config to the NestJS backend. It composites and zips server-side. */
   const generate = useCallback(async () => {
     if (layers.length === 0) {
       showToast('error', 'Add at least one layer folder.')
       return
     }
-    const total = totalCombinations
-    const validCount = validCombinationCount
-    const supplyNum = supply.trim()
-      ? Math.max(1, Math.min(2000, parseInt(supply, 10) || 0))
-      : null
-    const toGenerate =
-      supplyNum != null ? Math.min(supplyNum, validCount) : Math.min(validCount, 2000)
-
-    if (validCount > 2000 && (supplyNum == null || supplyNum > 2000)) {
-      showToast(
-        'error',
-        'Too many valid combinations (max 2000 per run). Set a limit or add exclusions.'
-      )
-      return
-    }
-    if (validCount === 0) {
+    if (validCombinationCount === 0) {
       showToast('error', 'No valid combinations. Relax or remove some exclusion rules.')
       return
     }
 
     setGenerating(true)
-    setProgress({ current: 0, total: toGenerate, startTime: Date.now() })
+    setProgress({ current: 0, total: validCombinationCount })
     setGenerated(null)
 
     try {
-      const sortedLayers = sortedLayersStable
-      const layerLengthsSorted = sortedLayers.map((l) => l.files.length)
-      const firstFile = sortedLayers[0].files[0]
-      const firstImg = await loadImage(firstFile)
-      let size: number | null
-      if (outputSize === '512') size = 512
-      else if (outputSize === '1024') size = 1024
-      else size = null
-      const width = size ?? firstImg.width
-      const height = size ?? firstImg.height
+      const configPayload = {
+        layers: sortedLayersStable.map((l) => ({ id: l.id, name: l.name, order: l.order })),
+        exclusionRules: exclusionRules.map(({ id, layerAId, valueA, layerBId, valueB }) => ({
+          id, layerAId, valueA, layerBId, valueB,
+        })),
+        rarityByLayer,
+        valueNameOverrides,
+        collectionNameBase,
+        collectionDescription,
+        externalUrl,
+        outputSize,
+        supply: supply.trim() ? Math.max(1, Math.min(2000, parseInt(supply, 10) || 0)) : null,
+      }
 
-      const useRarity = hasRarity(rarityByLayer)
-      type Combo = { flatIndex: number; indices: number[]; weight: number }
-      const combosToGenerate: Combo[] = []
-
-      if (useRarity) {
-        const weighted: Combo[] = []
-        let totalWeight = 0
-        for (let i = 0; i < total; i++) {
-          const indices = getCombinationIndices(i, layerLengthsSorted)
-          if (isCombinationExcluded(sortedLayers, indices, exclusionRules)) continue
-          const weight = getCombinationWeight(sortedLayers, indices, rarityByLayer)
-          if (weight <= 0) continue
-          weighted.push({ flatIndex: i, indices, weight })
-          totalWeight += weight
-        }
-        if (totalWeight <= 0) {
-          showToast('error', 'Rarity weights produced no valid combinations.')
-          setGenerating(false)
-          return
-        }
-        const used = new Set<number>()
-        for (let n = 0; n < toGenerate; n++) {
-          let totalRemaining = 0
-          for (const c of weighted) {
-            if (used.has(c.flatIndex)) continue
-            totalRemaining += c.weight
-          }
-          if (totalRemaining <= 0) break
-          let r = Math.random() * totalRemaining
-          let picked: Combo | null = null
-          for (const c of weighted) {
-            if (used.has(c.flatIndex)) continue
-            r -= c.weight
-            if (r <= 0) {
-              picked = c
-              break
-            }
-          }
-          if (!picked)
-            picked = weighted.find((c) => !used.has(c.flatIndex)) ?? weighted[weighted.length - 1]
-          used.add(picked.flatIndex)
-          combosToGenerate.push(picked)
-        }
-      } else {
-        let count = 0
-        for (let i = 0; i < total && count < toGenerate; i++) {
-          const indices = getCombinationIndices(i, layerLengthsSorted)
-          if (isCombinationExcluded(sortedLayers, indices, exclusionRules)) continue
-          combosToGenerate.push({ flatIndex: i, indices, weight: 1 })
-          count++
+      const formData = new FormData()
+      formData.append('config', JSON.stringify(configPayload))
+      for (const layer of sortedLayersStable) {
+        for (const file of layer.files) {
+          formData.append(`layer_${layer.id}`, file, file.name)
         }
       }
 
-      const imageBlobs: Blob[] = []
-      const metadataJsons: string[] = []
-      const allAttributes: Array<Array<{ trait_type: string; value: string }>> = []
-      const metaOpts = { description: collectionDescription, externalUrl }
-
-      for (let outputIndex = 0; outputIndex < combosToGenerate.length; outputIndex++) {
-        setProgress((prev) => ({
-          ...prev,
-          current: outputIndex + 1,
-          total: combosToGenerate.length,
-        }))
-        const { indices } = combosToGenerate[outputIndex]
-        const blob = await compositeLayers(sortedLayers, indices, width, height)
-        imageBlobs.push(blob)
-
-        const attributes = sortedLayers.map((layer, idx) => {
-          const originalValue = nameFromFilename(layer.files[indices[idx]].name)
-          return {
-            trait_type: layer.name,
-            value: getDisplayName(layer.id, originalValue, valueNameOverrides),
-          }
-        })
-        allAttributes.push(attributes)
-        const meta = buildTokenMetadata(
-          outputIndex,
-          collectionNameBase.trim() || 'NFT',
-          attributes,
-          metaOpts
-        )
-        metadataJsons.push(JSON.stringify(meta, null, 2))
-      }
-
-      const totalGen = allAttributes.length
-      const traitValueCount = new Map<string, number>()
-      for (const attrs of allAttributes) {
-        for (const a of attrs) {
-          const key = `${a.trait_type}\t${a.value}`
-          traitValueCount.set(key, (traitValueCount.get(key) ?? 0) + 1)
-        }
-      }
-      const scores = allAttributes.map((attrs) => {
-        let score = 0
-        for (const a of attrs) {
-          const key = `${a.trait_type}\t${a.value}`
-          const count = traitValueCount.get(key) ?? 1
-          score += totalGen / count
-        }
-        return score
+      const res = await fetch(`${BACKEND_URL}/tools/nft/generate`, {
+        method: 'POST',
+        body: formData,
       })
-      const order = scores.map((_, i) => i).sort((a, b) => scores[b] - scores[a])
-      const rankByTokenId = new Map<number, number>()
-      order.forEach((tokenId, zeroBasedRank) => {
-        rankByTokenId.set(tokenId, zeroBasedRank + 1)
-      })
-      const rarityIndex: Array<{ tokenId: number; rank: number; score: number }> = Array.from(
-        { length: totalGen },
-        (_, tokenId) => ({
-          tokenId,
-          rank: rankByTokenId.get(tokenId)!,
-          score: Math.round(scores[tokenId] * 100) / 100,
-        })
-      )
 
-      const generatedCount = combosToGenerate.length
-      setGenerated({ imageBlobs, metadataJsons, rarityIndex })
-      let msg: string
-      if (useRarity) msg = `Generated ${generatedCount} with rarity weights. Download the ZIP.`
-      else if (supplyNum != null && generatedCount < validCount) msg = `Generated ${generatedCount} (supply ${supplyNum}). ${validCount - generatedCount} more valid available.`
-      else if (generatedCount < validCount) msg = `Generated ${generatedCount} of ${validCount} valid. Download the ZIP.`
-      else msg = `Generated ${generatedCount} images and metadata (supply ${generatedCount}). Download the ZIP and use on Create.`
-      showToast('success', msg)
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error((errBody as { message?: string }).message ?? `Server error ${res.status}`)
+      }
+
+      const result = await res.json() as {
+        token: string
+        count: number
+        rarityIndex: Array<{ tokenId: number; rank: number; score: number }>
+      }
+      setGenerated({ token: result.token, count: result.count, rarityIndex: result.rarityIndex })
+      showToast('success', `Generated ${result.count} NFT${result.count !== 1 ? 's' : ''}. Download the ZIP.`)
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Generation failed.')
     } finally {
@@ -595,7 +489,6 @@ export default function NftAssetToolPageContent() {
     }
   }, [
     layers,
-    totalCombinations,
     validCombinationCount,
     sortedLayersStable,
     exclusionRules,
@@ -609,33 +502,15 @@ export default function NftAssetToolPageContent() {
     showToast,
   ])
 
-  /* Zip images + metadata + rarity.json and trigger download. We revoke nothing; the user's problem now. */
-  const downloadZip = useCallback(async () => {
-    if (!generated) return
-    const zip = new JSZip()
-    const imagesFolder = zip.folder('images')
-    const metadataFolder = zip.folder('metadata')
-    if (!imagesFolder || !metadataFolder) return
-    generated.imageBlobs.forEach((blob, i) => imagesFolder.file(`${i}.png`, blob))
-    generated.metadataJsons.forEach((json, i) => metadataFolder.file(`${i}.json`, json))
-    const rarityJson = JSON.stringify(
-      generated.rarityIndex.map((r) => ({ tokenId: r.tokenId, rank: r.rank, score: r.score })),
-      null,
-      2
-    )
-    zip.file('rarity.json', rarityJson)
-    const blob = await zip.generateAsync({ type: 'blob' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `nft-collection-${Date.now()}.zip`
-    a.click()
-    URL.revokeObjectURL(url)
-    showToast('success', 'ZIP downloaded. Unzip and drop images + metadata folders on /create.')
+  /* The token is single-use — after this download the server deletes the job directory. */
+  const handleDownload = useCallback(() => {
+    if (!generated?.token) return
+    window.location.href = `${BACKEND_URL}/tools/nft/download/${generated.token}`
+    showToast('success', 'Downloading ZIP… unzip and drop images + metadata folders on /create.')
   }, [generated, showToast])
 
   return (
-    <div className="tools-page nft-asset-tool">
+    <NftAssetErrorBoundary>
       <div className="min-h-screen bg-dark-bg-primary">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col lg:flex-row gap-10">
@@ -666,9 +541,9 @@ export default function NftAssetToolPageContent() {
               </div>
             </aside>
 
-            {/* Main content */}
+            {/* Main content – step card uses Tailwind, no CSS class */}
             <main className="flex-1 min-w-0">
-              <div className="nft-asset-step-card">
+              <div className="rounded-2xl border border-dark-border-primary bg-dark-bg-secondary p-6 sm:p-8">
                 {step === 1 && (
                   <NftAssetToolUploadSection
                     layers={layers}
@@ -734,16 +609,14 @@ export default function NftAssetToolPageContent() {
                     rarityByLayer={rarityByLayer}
                     generating={generating}
                     progress={progress}
-                    progressTick={progressTick}
                     generated={generated}
-                    thumbnailUrls={thumbnailUrls}
                     onGenerate={generate}
-                    onDownloadZip={downloadZip}
+                    onDownloadZip={handleDownload}
                   />
                 )}
 
                 {/* Footer nav */}
-                <div className="nft-asset-step-footer">
+                <div className="mt-8 flex items-center gap-3">
                   {step > 1 && (
                     <button
                       onClick={prevStep}
@@ -756,7 +629,7 @@ export default function NftAssetToolPageContent() {
                     <button
                       onClick={nextStep}
                       disabled={step === 1 && !canNextFromStep1}
-                      className="px-6 py-3 h-12 rounded-full text-sm font-medium bg-dark-accent-primary/15 border border-dark-accent-primary/30 hover:border-dark-accent-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-dark-accent-primary hover:text-dark-accent-primary"
+                      className="px-6 py-3 h-12 rounded-full text-sm font-medium bg-dark-accent-primary/15 border border-dark-accent-primary/30 hover:border-dark-accent-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-dark-accent-primary"
                     >
                       Next →
                     </button>
@@ -768,8 +641,8 @@ export default function NftAssetToolPageContent() {
         </div>
       </div>
       {toast && <NftAssetToast type={toast.type} message={toast.message} />}
-    </div>
+    </NftAssetErrorBoundary>
   )
 }
 
-// — Juan. 575 lines. We could split it. We didn't. The backlog is a dark place.
+// — Juan. Generation moved to the server. Page stays alive. No more frozen tabs. Worth it.

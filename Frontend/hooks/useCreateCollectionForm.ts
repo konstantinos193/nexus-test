@@ -11,11 +11,6 @@ import {
   TransactionInstruction,
   SystemProgram,
 } from '@solana/web3.js'
-import {
-  TOKEN_PROGRAM_ID,
-  MINT_SIZE,
-  createInitializeMintInstruction,
-} from '@solana/spl-token'
 import { collectionsApi, ipfsApi, uploadImageToIpfs } from '@/lib/api/client'
 import { pollForConfirmation } from '@/lib/solana/confirm'
 import { NFTCollection } from '@/types'
@@ -364,8 +359,14 @@ export function useCreateCollectionForm() {
     setStep2State('uploading')
     try {
       let imgPct = 0, metaPct = 0
-      const activeCount = (imageFiles.length ? 1 : 0) + (metadataFiles.length ? 1 : 0)
-      const update = () => setUploadProgress(Math.round((imgPct + metaPct) / activeCount))
+      // Weight each folder's 0–100 progress by its share of total bytes, so the
+      // large images folder dominates the bar and the tiny metadata folder can't
+      // jump it to ~50% on its own. Sizes come from File.size (no upload needed).
+      const imgBytes   = imageFiles.reduce((sum, f) => sum + f.size, 0)
+      const metaBytes  = metadataFiles.reduce((sum, f) => sum + f.size, 0)
+      const totalBytes = imgBytes + metaBytes || 1
+      const update = () =>
+        setUploadProgress(Math.round((imgPct * imgBytes + metaPct * metaBytes) / totalBytes))
       const [imgResult, metaResult] = await Promise.all([
         imageFiles.length
           ? ipfsApi.uploadDirectoryWithProgress(imageFiles,    p => { imgPct = p; update() })
@@ -493,24 +494,10 @@ export function useCreateCollectionForm() {
       console.log('[Deploy] ixData (hex):', ixData.toString('hex'))
       console.log('[Deploy] ixData length:', ixData.length)
 
-      // Ensure the SPL mint account exists and is initialized with the PDA as mint authority.
-      // Create the mint account and initialize it in the same transaction so the CPI sees it.
-      const mintRent = await connection.getMinimumBalanceForRentExemption(MINT_SIZE)
-      const createMintIx = SystemProgram.createAccount({
-        fromPubkey: authority,
-        newAccountPubkey: mintKeypair.publicKey,
-        lamports: mintRent,
-        space: MINT_SIZE,
-        programId: TOKEN_PROGRAM_ID,
-      })
-
-      const initMintIx = createInitializeMintInstruction(
-        mintKeypair.publicKey,
-        0, // decimals
-        mintAuthorityPda,
-        null,
-        TOKEN_PROGRAM_ID,
-      )
+      // NOTE: Do NOT pre-create an SPL mint at mintKeypair. create_collection CPIs into MPL Core
+      // (CreateCollectionV2), which *creates* the collection account at this address itself — it
+      // must be an empty/system-owned account. Pre-allocating it as an SPL mint makes the MPL Core
+      // CPI fail. The keypair only needs to sign the tx (see tx.partialSign(mintKeypair) below).
 
       // Accounts must match CreateCollection<'info> order in lib.rs exactly:
       // collection, mint, registry, authority, mint_authority, creator_wallet, platform_wallet, mpl_core_program, system_program
@@ -551,24 +538,9 @@ export function useCreateCollectionForm() {
         }))
       }
 
-      // Add mint creation + init before the program instruction so the program/CPI
-      // sees a valid SPL mint account with the PDA as its mint authority.
-      tx.add(createMintIx, initMintIx)
       tx.add(instruction)
 
-      // 5. Wallet signs + submits
-      setSubmitState('signing')
-      // Manually sign with the mintKeypair before sending to ensure the transaction is properly signed
-      tx.partialSign(mintKeypair)
-      const signature = await sendTransaction(tx, connection)
-
-      // 6. Wait for confirmation
-      setSubmitState('confirming')
-      await pollForConfirmation(connection, signature, blockhash, lastValidBlockHeight)
-
-      // 6b. If fund receivers are set, initialize and populate the split_config PDA on-chain.
-      //     The create_collection tx doesn't do this, so without it the mint would fail with
-      //     0xbc4 (AccountNotInitialized) when the frontend includes the split_config account.
+      // If fund receivers are set, include split_config init + update in the same tx
       const cleanReceivers = fundReceivers.filter(r => r.address.trim())
       if (cleanReceivers.length > 0) {
         const [splitConfigPda] = PublicKey.findProgramAddressSync(
@@ -576,7 +548,6 @@ export function useCreateCollectionForm() {
           programPubkey,
         )
 
-        // init_mint_split_config: 8-byte discriminator, no args
         const initDisc = await anchorDiscriminator('init_mint_split_config')
         const initIx = new TransactionInstruction({
           programId: programPubkey,
@@ -589,10 +560,9 @@ export function useCreateCollectionForm() {
           data: initDisc,
         })
 
-        // update_mint_fund_splits: disc + recipients[Pubkey;10] + shares[u8;10] + num u8
         const updateDisc    = await anchorDiscriminator('update_mint_fund_splits')
-        const recipientsBuf = Buffer.alloc(320) // 10 × 32 bytes, zero-padded
-        const sharesBuf     = Buffer.alloc(10)  // 10 × u8, zero-padded
+        const recipientsBuf = Buffer.alloc(320)
+        const sharesBuf     = Buffer.alloc(10)
         cleanReceivers.forEach((r, i) => {
           new PublicKey(r.address.trim()).toBuffer().copy(recipientsBuf, i * 32)
           sharesBuf[i] = Math.round(Number(r.share))
@@ -607,15 +577,17 @@ export function useCreateCollectionForm() {
           data: Buffer.concat([updateDisc, recipientsBuf, sharesBuf, Buffer.from([cleanReceivers.length])]),
         })
 
-        const { blockhash: splitBh, lastValidBlockHeight: splitLVBH } = await connection.getLatestBlockhash()
-        const splitTx = new Transaction()
-        splitTx.recentBlockhash = splitBh
-        splitTx.feePayer = authority
-        splitTx.add(initIx, updateIx)
-
-        const splitSig = await sendTransaction(splitTx, connection)
-        await pollForConfirmation(connection, splitSig, splitBh, splitLVBH)
+        tx.add(initIx, updateIx)
       }
+
+      // 5. Wallet signs + submits
+      setSubmitState('signing')
+      tx.partialSign(mintKeypair)
+      const signature = await sendTransaction(tx, connection)
+
+      // 6. Wait for confirmation
+      setSubmitState('confirming')
+      await pollForConfirmation(connection, signature, blockhash, lastValidBlockHeight)
 
       // 7. Save to backend DB
       const resolvedMintPrice = typeof mintPrice === 'number' ? mintPrice : undefined

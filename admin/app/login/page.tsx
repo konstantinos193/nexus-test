@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth/context'
 import { Button } from '@/components/ui/Button'
@@ -60,14 +61,16 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         {/* Logo */}
-        <div className="mb-8 text-center">
-          <h1
-            className="text-3xl font-bold tracking-tight"
-            style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-          >
-            Nexus
-          </h1>
-          <p className="mt-1 text-sm font-medium" style={{ color: '#8a8a9a' }}>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Image
+            src="/nexuslogo_nobg.png"
+            alt="NeXus Launchpad"
+            width={220}
+            height={73}
+            priority
+            className="logo-pulse h-16 w-auto"
+          />
+          <p className="mt-3 text-sm font-medium" style={{ color: '#8a8a9a' }}>
             Admin Dashboard
           </p>
         </div>

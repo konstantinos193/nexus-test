@@ -21,6 +21,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 // Every NFT collection ever created on this platform lives in this table.
 // TypeORM needs to know about it before it can manage it.
 import { Collection } from './entities/collection.entity';
+import { FeeLedger } from './entities/fee-ledger.entity';
+import { AdminUser } from './entities/admin-user.entity';
+import { AuditLog } from './entities/audit-log.entity';
 
 /**
  * DatabaseModule
@@ -102,7 +105,9 @@ import { Collection } from './entities/collection.entity';
 
           // Our entities: TypeORM needs to know which classes map to which tables.
           // This is the one place where the entity/table relationship is declared globally.
-          entities: [Collection],  // Sole tenant for now. May grow. Schema migrations will be required.
+          // The owner-admin tables joined the Collection in the schema. Each is backed by
+          // a Prisma migration (synchronize stays false). Add new entities here AND ship a migration.
+          entities: [Collection, FeeLedger, AdminUser, AuditLog],
 
           // synchronize: FALSE in all environments.
           // Auto-sync is a footgun that will silently drop columns in production.
@@ -164,7 +169,7 @@ import { Collection } from './entities/collection.entity';
     // Register the Collection entity for repository injection.
     // This is what makes @InjectRepository(Collection) work in feature modules.
     // The @Global() decorator means other modules get this without explicit imports.
-    TypeOrmModule.forFeature([Collection]),
+    TypeOrmModule.forFeature([Collection, FeeLedger, AdminUser, AuditLog]),
   ],
 
   // Export TypeOrmModule so any module in the application can inject TypeORM

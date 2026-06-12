@@ -287,7 +287,7 @@ export default function DropPageClient() {
       const programId = new PublicKey(cfg.programId)
 
       console.log('[MINT] Step 2: Building standard-aware mint instruction')
-      const { instruction: ix, extraSigners, standard } = await buildMintInstruction({
+      const { instruction: ix, preInstructions, extraSigners, standard } = await buildMintInstruction({
         connection,
         programId,
         buyer: publicKey,
@@ -306,6 +306,7 @@ export default function DropPageClient() {
       const tx = new Transaction()
       tx.recentBlockhash = blockhash
       tx.feePayer = publicKey
+      if (preInstructions.length > 0) tx.add(...preInstructions)
       tx.add(ix)
       console.log('[MINT] Transaction built, size estimate:', tx.serialize({ requireAllSignatures: false }).length, 'bytes')
 

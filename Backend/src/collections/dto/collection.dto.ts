@@ -135,6 +135,24 @@ export class NFTCollection {
   price?: number;
 
   /**
+   * The base mint price in SOL — the headline price the creator set, untouched
+   * by phase price overrides. `price` may be replaced by an active phase's
+   * priceOverride on detail responses; `mintPrice` is always the base value.
+   * Grid cards display this so they never surface a transient phase price.
+   */
+  @ApiProperty({ required: false, description: 'Base mint price in SOL (never a phase override)' })
+  mintPrice?: number;
+
+  /**
+   * The all-in price a buyer actually pays per NFT, in SOL — the base mint price plus
+   * the additive platform fee (buyer_pays = mint_price + mint_price × feeBps / 10_000).
+   * Computed server-side from the collection's platformFeeBasisPoints (falling back to
+   * the platform default) so the frontend never re-derives fee math. Grid cards show this.
+   */
+  @ApiProperty({ required: false, description: 'All-in price per NFT incl. additive platform fee (SOL)' })
+  buyerPrice?: number;
+
+  /**
    * The effective collection status — the computed, accurate status.
    *
    * This is NOT the raw database status. It is the status after applying
@@ -201,6 +219,14 @@ export class NFTCollection {
    */
   @ApiProperty({ required: false })
   featured?: boolean;
+
+  /**
+   * Owner-curated featured display order (lower = earlier). Null/absent = unranked,
+   * which sorts after ranked ones (then by minted). Surfaced so the admin Featured
+   * management view can render and reorder the current ordering.
+   */
+  @ApiProperty({ required: false, description: 'Featured display order (lower surfaces first); null = unranked' })
+  featuredRank?: number;
 
   /**
    * The on-chain mint address for the deployed collection (base58, 32–44 chars).

@@ -58,13 +58,13 @@ function getDisplayStatus(status: NFTCollection["status"]): "live" | "upcoming" 
 }
 
 /**
- * Formats the mint price for display.
- * 0 or undefined → "Free" — because "0.00 SOL" is technically accurate but spiritually wrong.
- * Anything else → 2 decimal places and a silent SOL icon next to it.
+ * Formats a SOL amount for the price chip.
+ * Whole numbers stay clean ("3"), fractional values get up to 2 decimals with no
+ * trailing zeros ("2.99", "0.5"). Because "3.00 SOL" is technically correct but
+ * spiritually noisy. 0 / undefined is handled by the caller as "Free".
  */
-function formatPrice(price?: number): string {
-  if (!price || price === 0) return "Free";
-  return price.toFixed(2);
+function formatSol(price: number): string {
+  return Number.isInteger(price) ? String(price) : price.toFixed(2).replace(/\.?0+$/, "");
 }
 
 /**
@@ -94,8 +94,17 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   // Prefer the main image, fall back to banner — something has to show on this card
   const imageUrl = resolveUrl(collection.imageUrl) || resolveUrl(collection.bannerUrl);
 
-  // Creator address, shortened so it fits in the UI without causing a layout breakdown
-  const creatorDisplay = truncateAddress(collection.creator || "Unknown");
+  // The all-in price the buyer pays (base mint price + additive platform fee) is computed
+  // server-side and handed to us ready to render — no fee math in the frontend. `buyerPrice`
+  // is the source of truth; `price` is the fallback for older payloads.
+  const displayPrice = collection.buyerPrice ?? collection.price ?? 0;
+  // Base price drives the disclosure tooltip only (label, not price derivation).
+  const basePrice = collection.mintPrice ?? collection.price ?? 0;
+
+  // The creator's wallet — the address we display and link out to. creatorAddress is the
+  // authoritative one; `creator` is the legacy fallback (currently the same value).
+  const creatorWallet = collection.creatorAddress || collection.creator || "";
+  const creatorDisplay = creatorWallet ? truncateAddress(creatorWallet) : "Unknown";
 
   /**
    * If the image fails to load (IPFS timeout, 404, pure chaos), fall back to
@@ -106,74 +115,85 @@ export function CollectionCard({ collection }: CollectionCardProps) {
     e.currentTarget.src = `/api/images/banner?id=${collection.id}&name=${encodeURIComponent(collection.name)}&w=600&h=400`;
   };
 
+  /**
+   * Open the creator's wallet on Solscan. Stops propagation so the click hits the
+   * creator pill (z-index above the stretched link) and NOT the card's drop link.
+   */
+  const openSolscan = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (creatorWallet) window.open(`https://solscan.io/account/${creatorWallet}`, "_blank");
+  };
+
   // Status label — if/else beats nested ternary every time (the linter agrees)
-  let statusLabel = "Ended"
-  if (displayStatus === "live") statusLabel = "Live"
-  else if (displayStatus === "upcoming") statusLabel = "Upcoming"
+  let statusLabel = "Ended";
+  if (displayStatus === "live") statusLabel = "Live";
+  else if (displayStatus === "upcoming") statusLabel = "Upcoming";
 
   return (
-    <div className={styles.container}>
-      <Link href={`/drops/${collection.slug ?? collection.id}`} className={styles.link}>
-        <article className={styles.card}>
-          <div className={styles.imageWrap}>
-            <img
-              src={imageUrl ?? `/api/images/banner?id=${collection.id}&name=${encodeURIComponent(collection.name)}&w=600&h=400`}
-              alt={collection.name}
-              className={styles.image}
-              loading="lazy"
-              onError={handleImageError}
-            />
-            <span className={`${styles.badge} ${styles[`badge_${displayStatus}`]}`}>
-              {displayStatus === "live" && <span className={styles.dot} />}
-              {statusLabel}
-            </span>
-          </div>
+    <article className={styles.card}>
+      {/* Stretched link = the whole-card click target. Sits BEHIND the creator pill so
+          the creator pill can intercept its own clicks. No grid-overlay hacks. */}
+      <Link
+        href={`/drops/${collection.slug ?? collection.id}`}
+        className={styles.stretchedLink}
+        aria-label={`View ${collection.name}`}
+      />
 
-          <div className={styles.info}>
-            <h3 className={styles.name}>{collection.name}</h3>
-            <div className={styles.divider} />
-            <div className={styles.stats}>
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>Price</span>
-                <span className={styles.statValue}>
-                  {formatPrice(collection.price)}
-                  {(collection.price ?? 0) > 0 && (
-                    <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={10} height={10} unoptimized className={styles.solIcon} />
-                  )}
-                </span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>Supply</span>
-                <span className={styles.statValue}>
-                  {collection.minted.toLocaleString()}&nbsp;/&nbsp;{collection.totalSupply.toLocaleString()}
-                </span>
-              </div>
+      <div className={styles.media}>
+        <img
+          src={imageUrl ?? `/api/images/banner?id=${collection.id}&name=${encodeURIComponent(collection.name)}&w=600&h=400`}
+          alt={collection.name}
+          className={styles.image}
+          loading="lazy"
+          onError={handleImageError}
+        />
+
+        <span className={`${styles.badge} ${styles[`badge_${displayStatus}`]}`}>
+          {displayStatus === "live" && <span className={styles.dot} />}
+          {statusLabel}
+        </span>
+
+        <span
+          className={styles.priceChip}
+          title={displayPrice > 0 ? `Base ${formatSol(basePrice)} SOL + platform fee = ${formatSol(displayPrice)} SOL` : undefined}
+        >
+          {displayPrice > 0 ? (
+            <>
+              {formatSol(displayPrice)}
+              <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={11} height={11} unoptimized className={styles.solIcon} />
+            </>
+          ) : (
+            "Free"
+          )}
+        </span>
+      </div>
+
+      <div className={styles.body}>
+        <h3 className={styles.name}>{collection.name}</h3>
+
+        {/* Creator pill — kept wallet + icon. z-index above the stretched link. */}
+        <button type="button" className={styles.creator} onClick={openSolscan} title={creatorWallet}>
+          <Image src="/svg/solana-sol-logo.svg" alt="" width={12} height={12} unoptimized className={styles.creatorIcon} />
+          {creatorDisplay}
+        </button>
+
+        <div className={styles.supplyRow}>
+          <span className={styles.supplyLabel}>Minted</span>
+          <span className={styles.supplyValue}>
+            {collection.minted.toLocaleString("en-US")} / {collection.totalSupply.toLocaleString("en-US")}
+          </span>
+        </div>
+
+        {displayStatus === "live" && (
+          <div className={styles.progressWrap}>
+            <div className={styles.progressBar}>
+              <div className={styles.progressFill} style={{ width: `${mintProgress}%` }} />
             </div>
-
-            {displayStatus === "live" && (
-              <div className={styles.progressWrap}>
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${mintProgress}%` }} />
-                </div>
-                <span className={styles.progressLabel}>{mintProgress.toFixed(1)}% minted</span>
-              </div>
-            )}
+            <span className={styles.progressLabel}>{mintProgress.toFixed(1)}% minted</span>
           </div>
-        </article>
-      </Link>
-
-      <button
-        type="button"
-        className={styles.creator}
-        onClick={e => {
-          e.stopPropagation();
-          window.open(`https://solscan.io/account/${collection.creator}`, "_blank");
-        }}
-      >
-        <Image src="/svg/solana-sol-logo.svg" alt="SOL" width={10} height={10} unoptimized />
-        {creatorDisplay}
-      </button>
-    </div>
+        )}
+      </div>
+    </article>
   );
 }
 

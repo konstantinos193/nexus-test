@@ -32,6 +32,11 @@ import { CreateCollectionDto } from './dto/create-collection.dto';
 // All fields optional — because commitment is hard.
 import { UpdateCollectionDto } from './dto/update-collection.dto';
 
+// The platform fee, in basis points. The single source of truth for what we charge
+// on top of every mint. Used here to compute the buyer's all-in price server-side so
+// the frontend never has to re-derive fee math. 100 = 1%, additive.
+import { PLATFORM_FEE_BPS } from '../solana/constants';
+
 
 // ── Status resolution ─────────────────────────────────────────────────────────
 // The part of the code that decides whether a collection is living its best life
@@ -105,7 +110,7 @@ export function computeEffectiveStatus(baseStatus: string, phases: any[]): strin
 const LIST_SELECT: (keyof Collection)[] = [
   'id', 'name', 'slug', 'description', 'imageUrl', 'bannerUrl',
   'creator', 'creatorAddress', 'blockchain', 'totalSupply', 'minted',
-  'price', 'status', 'effectiveStatus', 'featured', 'mintStart',
+  'price', 'status', 'effectiveStatus', 'featured', 'featuredRank', 'mintStart',
   'endDate', 'mintAddress', 'txSignature', 'twitterUrl', 'discordUrl', 'websiteUrl',
   'royaltyBasisPoints', 'platformFeeBasisPoints', 'createdAt', 'updatedAt',
 ];
@@ -181,9 +186,10 @@ export class CollectionsService {
     const cols = LIST_SELECT.map(c => `c.${c}`);
     const collections = await this.baseQb()
       .select(cols)
-      .andWhere('c.featured = true') // Only the chosen ones.
-      .orderBy('c.minted', 'DESC')   // Most minted first. We reward momentum.
-      .take(10)                       // 10. Not 11. Discipline.
+      .andWhere('c.featured = true')               // Only the chosen ones.
+      .orderBy('c.featuredRank', 'ASC', 'NULLS LAST') // Owner-curated order first…
+      .addOrderBy('c.minted', 'DESC')               // …then most minted (and for unranked ones).
+      .take(10)                                      // 10. Not 11. Discipline.
       .getMany();
     return collections.map(toNFTCollection);
   }
@@ -473,6 +479,7 @@ export class CollectionsService {
       endDate:            lastPhase?.endDateTime    ? new Date(lastPhase.endDateTime)    : undefined,
       featured:           false,                      // Not featured until someone with admin access says so.
       royaltyBasisPoints: Math.round((data.royaltyPercent ?? 0) * 100), // Percent to BPS. Math. Required.
+      platformFeeBasisPoints: PLATFORM_FEE_BPS,        // The fee baked on-chain at init — store it so the row is truthful before the first sync.
       mintAddress:        data.collectionAddress,
       txSignature:        data.txSignature,
       phases:             data.phases,
@@ -654,12 +661,25 @@ function toNFTCollection(c: Collection): NFTCollection {
       ? parseFloat(activePhases[0].priceOverride)
       : c.price;
 
+  // All-in price the buyer actually pays per NFT: the base mint price plus the additive
+  // platform fee. The per-collection platformFeeBasisPoints column is currently unpopulated
+  // (0) across all rows, so we use the platform-wide PLATFORM_FEE_BPS (the same 1% the
+  // global config, the create form, and the mint page all charge), honoring a per-collection
+  // value only when it's a real positive override. Computed once so the frontend renders it verbatim.
+  const feeBps = c.platformFeeBasisPoints && c.platformFeeBasisPoints > 0
+    ? c.platformFeeBasisPoints
+    : PLATFORM_FEE_BPS;
+  const base = c.price ?? 0;
+  const buyerPrice = base > 0 ? base * (1 + feeBps / 10_000) : base;
+
   return {
     ...c,                                              // Spread the entity — inherit what we don't explicitly map.
     status:          resolvedStatus,                   // Always the effective (computed) status, not the raw base.
     effectiveStatus: resolvedStatus,                   // Explicit field — frontend reads c.effectiveStatus ?? c.status.
     mintAddress:     c.mintAddress ?? undefined,       // Explicit — not left to the spread so Swagger sees it.
     price:           effectivePrice,                   // Active single-phase priceOverride wins; multi-phase falls back to base.
+    mintPrice:       c.price,                          // Always the base headline price — grid cards read this, never a phase override.
+    buyerPrice:      buyerPrice,                       // Base + additive platform fee — what the buyer actually pays. Grid cards display this.
     createdAt:       c.createdAt.toISOString(),        // Dates → ISO strings. JSON doesn't do Date objects. Never did.
     updatedAt:       c.updatedAt.toISOString(),
     mintStart:       c.mintStart ? c.mintStart.toISOString() : undefined,

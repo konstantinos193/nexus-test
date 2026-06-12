@@ -1,23 +1,11 @@
-.container {
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: 1fr;
-  height: 100%;
-}
-
-.link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  grid-row: 1;
-  grid-column: 1;
-}
-
+/* ── Card shell ─────────────────────────────────
+   position: relative so the stretched link can fill it. No grid-overlay hacks. */
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   background: #0f0f14;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -30,11 +18,23 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Image ─────────────────────────────────── */
-.imageWrap {
+/* The whole-card click target. Fills the card and sits ABOVE the positioned content
+   (.media / .body are position:relative, so the link needs a higher z-index than them
+   to receive clicks) but BELOW the creator pill, which opts back on top. */
+.stretchedLink {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  text-indent: -9999px;
+  overflow: hidden;
+}
+
+/* ── Media ──────────────────────────────────────
+   Square crop with badge (top-right) + price chip (bottom-left) layered on top. */
+.media {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background: #1a1a24;
 }
@@ -44,14 +44,14 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.35s ease;
+  transition: transform 0.4s ease;
 }
 
 .card:hover .image {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
-/* ── Badge ──────────────────────────────────── */
+/* ── Status badge ───────────────────────────────── */
 .badge {
   position: absolute;
   top: 10px;
@@ -59,31 +59,32 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 4px 9px;
+  border-radius: 7px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   backdrop-filter: blur(8px);
+  z-index: 1;
 }
 
 .badge_live {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   color: #10b981;
 }
 
 .badge_upcoming {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.32);
   color: #f59e0b;
 }
 
 .badge_ended {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .dot {
@@ -92,14 +93,40 @@
   border-radius: 50%;
   background: #10b981;
   flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
 }
 
-/* ── Info ───────────────────────────────────── */
-.info {
+/* ── Price chip (on image, bottom-left) ─────────── */
+.priceChip {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(10, 10, 14, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+}
+
+.solIcon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* ── Body ───────────────────────────────────────── */
+.body {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 14px 16px;
+  gap: 9px;
+  padding: 13px 14px 15px;
   flex: 1;
 }
 
@@ -114,81 +141,73 @@
   text-overflow: ellipsis;
 }
 
+/* Creator pill — sits ABOVE the stretched link so its own clicks open Solscan. */
 .creator {
-  grid-row: 1;
-  grid-column: 1;
+  position: relative;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  align-self: flex-start;
+  max-width: 100%;
   margin: 0;
-  padding: 0 14px 16px 14px;
+  padding: 4px 8px;
+  border-radius: 7px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
-  font-family: monospace;
+  font-family: var(--font-mono, monospace);
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   text-decoration: none;
-  transition: color 0.15s ease;
-  background: none;
-  border: none;
   cursor: pointer;
-  align-self: end;
-  pointer-events: auto;
-  z-index: 1;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .creator:hover {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
-.divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+.creatorIcon {
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
-/* ── Stats ──────────────────────────────────── */
-.stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.stat {
+/* ── Supply row ─────────────────────────────────── */
+.supplyRow {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
 }
 
-.statLabel {
-  font-size: 10px;
+.supplyLabel {
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.statValue {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 14px;
+.supplyValue {
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
+  font-variant-numeric: tabular-nums;
 }
 
-.solIcon {
-  flex-shrink: 0;
-  opacity: 0.85;
-}
-
-/* ── Progress ───────────────────────────────── */
+/* ── Progress ───────────────────────────────────── */
 .progressWrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .progressBar {
   width: 100%;
-  height: 3px;
+  height: 4px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
@@ -198,11 +217,12 @@
   height: 100%;
   border-radius: 99px;
   background: linear-gradient(90deg, #00d4ff, #7c3aed);
+  transition: width 0.4s ease;
 }
 
 .progressLabel {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -210,4 +230,5 @@
   .card:hover { transform: none; }
   .image { transition: none; }
   .card:hover .image { transform: none; }
+  .progressFill { transition: none; }
 }

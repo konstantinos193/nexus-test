@@ -34,6 +34,10 @@ export interface NFTCollection {
   totalSupply: number
   minted: number
   price?: number
+  /** Base mint price (SOL) — never a phase override. */
+  mintPrice?: number
+  /** All-in price per NFT (SOL) incl. additive platform fee. Computed server-side; grid cards display this. */
+  buyerPrice?: number
   status: CollectionStatus
   traits?: Trait[]
   createdAt: string

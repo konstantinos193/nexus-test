@@ -1,5 +1,19 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
+// Where the owner-console session token lives. Set on login, cleared on logout/401.
+export const TOKEN_STORAGE_KEY = 'nexus_admin_token'
+
+export function getToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(TOKEN_STORAGE_KEY)
+}
+
+export function setToken(token: string | null) {
+  if (typeof window === 'undefined') return
+  if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token)
+  else localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
+
 export interface RequestConfig extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>
 }
@@ -15,18 +29,24 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
     })
   }
 
-  const storedApiKey =
-    typeof window !== 'undefined' ? localStorage.getItem('nexus_admin_api_key') : null
+  const token = getToken()
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(storedApiKey ? { 'x-api-key': storedApiKey } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(init.headers ?? {}),
   }
 
   const response = await fetch(url.toString(), { ...init, headers })
 
   if (!response.ok) {
+    // Session expired or invalid — drop the token and bounce to login.
+    if (response.status === 401 && typeof window !== 'undefined') {
+      setToken(null)
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`
+      }
+    }
     const body = await response.json().catch(() => ({}))
     throw {
       message: (body as { message?: string }).message ?? response.statusText,
@@ -36,6 +56,12 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
   }
 
   if (response.status === 204) return undefined as T
+
+  // Some endpoints (CSV export) return text, not JSON.
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    return (await response.text()) as unknown as T
+  }
   return response.json() as Promise<T>
 }
 

@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 @layer base {
   :root {
@@ -73,11 +72,11 @@
   color: #ffffff;
 }
 
-@layer components {
-  .btn-base {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50;
-  }
+@utility btn-base {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50;
+}
 
+@layer components {
   .btn-primary {
     @apply btn-base;
     color: #0a0a0f;
@@ -154,5 +153,28 @@
   }
   .shadow-glow-lg {
     box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+  }
+}
+
+/* Brand logo glow — mirrors the Frontend header */
+@keyframes logoPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.5))
+            drop-shadow(0 0 14px rgba(0, 212, 255, 0.25));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(0, 212, 255, 1))
+            drop-shadow(0 0 36px rgba(0, 212, 255, 0.55))
+            drop-shadow(0 0 60px rgba(124, 58, 237, 0.45));
+  }
+}
+
+.logo-pulse {
+  animation: logoPulse 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-pulse {
+    animation: none;
   }
 }

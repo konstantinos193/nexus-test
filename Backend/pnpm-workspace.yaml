@@ -5,3 +5,5 @@ allowBuilds:
   bufferutil: true
   prisma: true
   utf-8-validate: true
+minimumReleaseAgeExclude:
+  - '@types/node@25.9.3'

@@ -1,9 +1,14 @@
 import type {
   ActivityLog,
   AdminStats,
+  ApiKey,
   Collection,
   Creator,
+  DashboardKpi,
+  GeneralSettings,
   PaginatedResponse,
+  SecuritySettings,
+  User,
 } from '../types'
 
 export const mockCollections: Collection[] = [
@@ -276,3 +281,145 @@ export function mockActivityList(
     totalPages: 1,
   }
 }
+
+// --- Dashboard ---
+
+export const mockDashboardKpis: DashboardKpi[] = [
+  { label: 'Total Collections', value: 6, change: 12, changeLabel: 'vs last week' },
+  { label: 'Total Minted', value: '5,150', change: 8, changeLabel: 'vs last week' },
+  { label: 'Active Collections', value: 2, change: -5, changeLabel: 'vs last week' },
+  { label: 'Unique Creators', value: 5, change: 25, changeLabel: 'vs last week' },
+]
+
+export const mockDashboardActivity: ActivityLog[] = [
+  {
+    id: '1',
+    userName: 'CryptoCreator',
+    action: 'collection.deployed',
+    resource: 'Cosmic Apes',
+    details: 'Collection deployed to Solana mainnet',
+    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: '2',
+    userName: 'Platform Admin',
+    action: 'admin.featured',
+    resource: 'Cosmic Apes',
+    details: 'Collection marked as featured',
+    timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: '3',
+    userName: 'System',
+    action: 'sync.completed',
+    resource: 'platform',
+    details: 'Blockchain sync completed — 6 collections updated',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: '4',
+    userName: 'Platform Admin',
+    action: 'admin.pause',
+    resource: 'Robot Squad',
+    details: 'Collection paused by admin',
+    timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: '5',
+    userName: 'PixelLab',
+    action: 'collection.completed',
+    resource: 'Pixel Pandas',
+    details: 'All 500 NFTs minted — collection completed',
+    timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+]
+
+// --- Users ---
+
+export const mockUsers: User[] = [
+  {
+    id: 'u-0001',
+    name: 'Platform Admin',
+    email: 'admin@nexus.io',
+    role: 'admin',
+    walletAddress: 'So1anaWa11etAddress1111111111111111111111111',
+    lastActiveAt: new Date(Date.now() - 3600000).toISOString(),
+    createdAt: new Date(Date.now() - 86400000 * 90).toISOString(),
+  },
+  {
+    id: 'u-0002',
+    name: 'CryptoCreator',
+    email: 'creator@cosmicapes.io',
+    role: 'creator',
+    walletAddress: 'So1anaWa11etAddress2222222222222222222222222',
+    lastActiveAt: new Date(Date.now() - 86400000).toISOString(),
+    createdAt: new Date(Date.now() - 86400000 * 60).toISOString(),
+  },
+  {
+    id: 'u-0003',
+    name: 'PixelLab',
+    email: 'team@pixellab.art',
+    role: 'creator',
+    walletAddress: 'So1anaWa11etAddress3333333333333333333333333',
+    lastActiveAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    createdAt: new Date(Date.now() - 86400000 * 45).toISOString(),
+  },
+  {
+    id: 'u-0004',
+    name: 'Jordan Reyes',
+    email: 'jordan.reyes@example.com',
+    role: 'viewer',
+    lastActiveAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+    createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
+  },
+]
+
+export function mockPaginatedUsers(
+  page: number,
+  pageSize: number,
+  search?: string
+): PaginatedResponse<User> {
+  let data = [...mockUsers]
+  if (search) {
+    const q = search.toLowerCase()
+    data = data.filter(
+      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    )
+  }
+  const total = data.length
+  const start = (page - 1) * pageSize
+  return {
+    data: data.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize) || 1,
+  }
+}
+
+// --- Settings ---
+
+export const mockGeneralSettings: GeneralSettings = {
+  siteName: 'Nexus Launchpad',
+  timezone: 'UTC',
+  language: 'English',
+}
+
+export const mockSecuritySettings: SecuritySettings = {
+  twoFactorEnabled: true,
+  sessionTimeout: 30,
+}
+
+export const mockApiKeys: ApiKey[] = [
+  {
+    id: 'k-0001',
+    name: 'Production API',
+    maskedKey: 'sk_live_••••••••4242',
+    lastUsedAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+  },
+  {
+    id: 'k-0002',
+    name: 'Staging API',
+    maskedKey: 'sk_test_••••••••8931',
+  },
+]

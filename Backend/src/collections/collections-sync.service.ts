@@ -43,10 +43,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 // DataSource: for transactions with full control.
 // Repository: for the day-to-day.
 // Together: the dynamic duo of "please don't corrupt the DB".
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, EntityManager } from 'typeorm';
 
 // The entity. The thing we're syncing into. The reason this file exists.
 import { Collection, CollectionStatus } from '../database/entities/collection.entity';
+
+// FeeLedger — the revenue diary. Every positive minted delta we observe becomes a row.
+import { FeeLedger } from '../database/entities/fee-ledger.entity';
 
 // The status computation oracle — imported from the service that already
 // figured out this math so we don't have to figure it out again.
@@ -122,6 +125,12 @@ const STATUS_MAP: Record<number, string> = {
  * So is our patience with "too many clients" errors at 2 AM.
  */
 const SYNC_BATCH_SIZE = 50;
+
+/**
+ * Lamports per SOL. On-chain `price` is stored in lamports (u64); the DB stores SOL.
+ * We divide by this when reflecting on-chain price into the database and the fee ledger.
+ */
+const LAMPORTS_PER_SOL = 1_000_000_000;
 
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -520,6 +529,14 @@ export class CollectionsSyncService implements OnModuleInit {
       const status       = STATUS_MAP[collectionData.status] || 'draft';       // u8 → human string.
       const featured     = collectionData.featured || false;                   // Boolean. Simple. Refreshing.
 
+      // ── Extract economics (for the fee ledger + revenue snapshot) ───────────
+      // These are the source of truth for "how much has this collection earned the platform".
+      // minted drives the delta; price (lamports→SOL) and platformFeeBps drive the math.
+      const minted       = this.toNum(collectionData.minted);                  // Cumulative mints on-chain.
+      const totalSupply  = this.toNum(collectionData.maxSupply);               // Hard cap.
+      const priceSol     = this.toNum(collectionData.price) / LAMPORTS_PER_SOL; // Lamports → SOL.
+      const platformFeeBps = this.toNum(collectionData.platformFeeBps);        // Basis points (100 = 1%).
+
       // ── Fetch metadata from URI ────────────────────────────────────────────
       // The on-chain account stores a URI. The actual name, description, and image
       // live off-chain (IPFS/Arweave). We fetch them now.
@@ -567,10 +584,12 @@ export class CollectionsSyncService implements OnModuleInit {
         status:          status as CollectionStatus,
         effectiveStatus: computeEffectiveStatus(status, []), // No phases = status IS effectiveStatus.
         featured:        featured,
-        traits: {
-          metadataUri:      metadataUri,
-          onChainAddress:   collectionAddress.toString(),
-        } as any,
+        // Economics reflected from on-chain truth so revenue reports and the ledger are accurate.
+        minted:          minted,
+        totalSupply:     totalSupply,
+        price:           priceSol > 0 ? priceSol : undefined,
+        platformFeeBasisPoints: platformFeeBps > 0 ? platformFeeBps : undefined,
+        traits:          [] as any,
       };
 
       // ── Atomic upsert ──────────────────────────────────────────────────────
@@ -586,14 +605,42 @@ export class CollectionsSyncService implements OnModuleInit {
 
         if (existing) {
           // We've seen this collection before. Update it with fresh on-chain data.
+          const prevMinted = existing.minted ?? 0;
           await manager.update(Collection, existing.id, collectionDataToSave);
+
+          // Record the platform-fee revenue for any new mints since last sync.
+          // The fee rate we freeze into the row is the on-chain one observed right now.
+          await this.recordFeeDelta(manager, {
+            collectionId: existing.id,
+            mintAddress: mint,
+            creatorAddress: authority,
+            prevMinted,
+            newMinted: minted,
+            priceSol,
+            platformFeeBps,
+          });
+
           return { created: false, updated: true };
         }
 
         // New collection! We've never seen this one before. Welcome to the launchpad.
         const slug = this.generateSlug(collectionDataToSave.name);
         const newCollection = manager.create(Collection, { ...collectionDataToSave, slug });
-        await manager.save(newCollection);
+        const saved = await manager.save(newCollection);
+
+        // A collection can already have mints by the time we first index it (creators
+        // mint before we crawl them). Capture that as a baseline ledger row so all-time
+        // revenue is correct from row one.
+        await this.recordFeeDelta(manager, {
+          collectionId: saved.id,
+          mintAddress: mint,
+          creatorAddress: authority,
+          prevMinted: 0,
+          newMinted: minted,
+          priceSol,
+          platformFeeBps,
+        });
+
         return { created: true, updated: false };
       });
     } catch (error) {
@@ -650,13 +697,13 @@ export class CollectionsSyncService implements OnModuleInit {
    *   8   freeze_until (i64) — metadata freeze timestamp
    *   8   created_at (i64)   — account creation timestamp
    *   2   platform_fee_bps (u16) — platform fee in basis points
+   *   32  allowlist_root ([u8;32]) — Merkle root for allowlist verification (BEFORE the u8 fields)
    *   1   mint_limit_per_wallet (u8) — max mints per wallet
    *   1   metadata_standard (u8) — Metaplex standard enum
    *   1   flags (u8)         — bitfield for various on/off features
    *   1   status (u8)        — collection lifecycle status
    *   1   featured (bool)    — whether this collection is featured
    *   1   bump (u8)          — PDA bump seed
-   *   32  allowlist_root ([u8;32]) — Merkle root for allowlist verification
    *   4+N metadata_uri (String) — 4-byte length-prefix + UTF-8 bytes
    *
    * @param data - The raw account data Buffer from getAccountInfo.
@@ -686,16 +733,18 @@ export class CollectionsSyncService implements OnModuleInit {
 
     // ── Smaller fields ─────────────────────────────────────────────────────
     const platformFeeBps      = view.getUint16(offset, true); offset += 2;
+
+    // allowlist_root [u8; 32] — in the Rust struct this comes RIGHT AFTER platform_fee_bps
+    // and BEFORE the single-byte fields. We don't use it for sync, but the cursor must skip
+    // it here or every field below (status, featured, metadata_uri) decodes from the wrong offset.
+    offset += 32;
+
     const mintLimitPerWallet  = data[offset];                 offset += 1;
     const metadataStandard    = data[offset];                 offset += 1;
     const flags               = data[offset];                 offset += 1; // Bitfield. Future-proof.
     const status              = data[offset];                 offset += 1; // The u8 we actually care about.
     const featured            = data[offset] !== 0;           offset += 1; // bool: nonzero = true.
     const bump                = data[offset];                 offset += 1;
-
-    // allowlist_root [u8; 32] — must advance past it to reach metadata_uri.
-    // We don't use the allowlist root for sync, but the byte cursor must move.
-    offset += 32;
 
     // metadata_uri (String): Borsh encoding — 4-byte LE length prefix + UTF-8 bytes.
     // The string we've been reading 192 bytes of binary data to reach. Worth it.
@@ -724,6 +773,66 @@ export class CollectionsSyncService implements OnModuleInit {
       bump,
       metadataUri, // The one we came here for. The journey's reward.
     };
+  }
+
+  /**
+   * Coerce an on-chain numeric (Anchor BN, JS bigint, or plain number) into a number.
+   * Anchor decode yields BN (has .toNumber()); the manual decoder yields bigint.
+   * Returns 0 for null/undefined so fee math never produces NaN.
+   */
+  private toNum(value: any): number {
+    if (value == null) return 0;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'bigint') return Number(value);
+    if (typeof value.toNumber === 'function') return value.toNumber();
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /**
+   * Insert a FeeLedger row for the mints that happened between two minted counts.
+   *
+   *   feeRevenue = mintedDelta * priceSol * platformFeeBps / 10000   (in SOL)
+   *
+   * We still record a row for free mints (feeRevenue = 0) because mintedDelta powers
+   * the "mints over time" chart regardless of price. No-op only when nothing new minted.
+   *
+   * isBaseline marks the first time we ever recorded volume for a collection (prevMinted 0) —
+   * the catch-up jump for collections that existed before this ledger did. Timeseries
+   * charts can optionally exclude baseline rows to show organic growth only.
+   */
+  private async recordFeeDelta(
+    manager: EntityManager,
+    params: {
+      collectionId: string;
+      mintAddress: string;
+      creatorAddress: string;
+      prevMinted: number;
+      newMinted: number;
+      priceSol: number;
+      platformFeeBps: number;
+    },
+  ): Promise<void> {
+    const { collectionId, mintAddress, creatorAddress, prevMinted, newMinted, priceSol, platformFeeBps } = params;
+    const delta = newMinted - prevMinted;
+    if (delta <= 0) return; // Nothing new minted (or the chain count went backwards — ignore).
+
+    const feeRevenue =
+      priceSol > 0 && platformFeeBps > 0 ? (delta * priceSol * platformFeeBps) / 10_000 : 0;
+
+    const row = manager.create(FeeLedger, {
+      collectionId,
+      mintAddress,
+      creatorAddress,
+      mintedBefore: prevMinted,
+      mintedAfter: newMinted,
+      mintedDelta: delta,
+      pricePerMint: priceSol > 0 ? priceSol : undefined,
+      platformFeeBps: platformFeeBps > 0 ? platformFeeBps : undefined,
+      feeRevenue,
+      isBaseline: prevMinted === 0,
+    });
+    await manager.save(row);
   }
 
   /**

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/context'
@@ -38,12 +39,14 @@ export function Sidebar() {
       >
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span
-              className="text-lg font-bold tracking-tight"
-              style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-            >
-              Nexus
-            </span>
+            <Image
+              src="/nexuslogo_nobg.png"
+              alt="NeXus Launchpad"
+              width={130}
+              height={43}
+              priority
+              className="logo-pulse h-8 w-auto"
+            />
             <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
               Admin
             </span>
@@ -84,10 +87,11 @@ export function Sidebar() {
               style={
                 isActive
                   ? {
-                      background: 'rgba(0, 212, 255, 0.08)',
+                      background: 'rgba(0, 212, 255, 0.06)',
                       color: '#00d4ff',
                       borderLeft: '2px solid #00d4ff',
-                      boxShadow: '0 0 12px rgba(0, 212, 255, 0.1)',
+                      boxShadow:
+                        '0 0 14px rgba(0, 212, 255, 0.35), 0 0 28px rgba(124, 58, 237, 0.15), inset 0 0 14px rgba(0, 212, 255, 0.04)',
                     }
                   : {
                       color: '#8a8a9a',

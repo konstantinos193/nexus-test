@@ -1114,6 +1114,10 @@
             "type": "pubkey"
           },
           {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
             "name": "mint_authority",
             "type": "pubkey"
           },
@@ -1150,8 +1154,21 @@
             "type": "i64"
           },
           {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
             "name": "platform_fee_bps",
             "type": "u16"
+          },
+          {
+            "name": "allowlist_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "mint_limit_per_wallet",
@@ -1166,17 +1183,20 @@
             "type": "u8"
           },
           {
-            "name": "allowlist_root",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "featured",
+            "type": "bool"
           },
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
           }
         ]
       }

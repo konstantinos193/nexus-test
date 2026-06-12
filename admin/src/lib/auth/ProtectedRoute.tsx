@@ -11,17 +11,26 @@ interface ProtectedRouteProps {
 
 /** Wraps routes that require authentication; optionally checks a permission */
 export function ProtectedRoute({ children, permission }: ProtectedRouteProps) {
-  const { isAuthenticated, hasPermission } = useAuth()
+  const { isAuthenticated, isLoading, hasPermission } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Wait for the session-restore probe to finish before deciding to redirect,
+    // otherwise a valid session bounces to /login on every refresh.
+    if (!isLoading && !isAuthenticated) {
       const from = pathname ? `/login?from=${encodeURIComponent(pathname)}` : '/login'
       router.replace(from)
-      return
     }
-  }, [isAuthenticated, router, pathname])
+  }, [isAuthenticated, isLoading, router, pathname])
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <p className="text-sm" style={{ color: '#8a8a9a' }}>Loading…</p>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return null

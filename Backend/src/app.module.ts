@@ -37,6 +37,15 @@ import { SolanaModule } from './solana/solana.module';
 import { IpfsModule } from './ipfs/ipfs.module';
 import { AdminModule } from './admin/admin.module';
 
+// Owner-console foundation: real admin auth + RBAC, append-only audit log,
+// and platform fee-revenue reporting.
+import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
+import { RevenueModule } from './revenue/revenue.module';
+
+// ToolsModule: the NFT asset generator. Browser stays alive; server does the heavy work.
+import { ToolsModule } from './tools/tools.module';
+
 // HealthController: the "are you alive?" endpoint.
 // Kubernetes asks this question obsessively. We respect the commitment.
 import { HealthController } from './health/health.controller';
@@ -90,8 +99,21 @@ import { AppController } from './app.controller';
     // Because "put it on the blockchain permanently" is a promise we try to keep.
     IpfsModule,
 
-    // AdminModule — platform operator endpoints: stats, collection moderation, creators list.
+    // AuthModule — owner-console accounts, login, RBAC guards. Imported before AdminModule
+    // consumers, though Nest resolves module order regardless.
+    AuthModule,
+
+    // AuditModule — append-only privileged-action log (provides AuditService).
+    AuditModule,
+
+    // AdminModule — platform operator endpoints: stats, collection moderation, creators, audit.
     AdminModule,
+
+    // RevenueModule — platform fee-revenue reporting (summary, by-collection/creator, timeseries, CSV).
+    RevenueModule,
+
+    // ToolsModule — NFT asset generator: POST to generate, GET to download, auto-cleanup.
+    ToolsModule,
   ],
 
   // Controllers registered at the root level.

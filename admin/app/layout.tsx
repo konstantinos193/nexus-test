@@ -11,6 +11,19 @@ const font = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Nexus Admin',
   description: 'NeXus NFT Launchpad admin dashboard',
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      'max-snippet': -1,
+      'max-image-preview': 'none',
+      'max-video-preview': -1,
+    },
+  },
 }
 
 export default function RootLayout({
